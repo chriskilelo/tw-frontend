@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
+@import './styles/tokens.css';
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--color-text-primary);
+  background-color: var(--color-page-bg);
+}
