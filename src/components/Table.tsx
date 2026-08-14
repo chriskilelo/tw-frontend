@@ -54,7 +54,22 @@ export function Table<T>({
               key={rowKey(row)}
               data-testid={getRowTestId?.(row)}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
-              className={[onRowClick ? 'cursor-pointer hover:bg-section-bg' : '', getRowClassName?.(row) ?? '']
+              onKeyDown={
+                onRowClick
+                  ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        onRowClick(row)
+                      }
+                    }
+                  : undefined
+              }
+              tabIndex={onRowClick ? 0 : undefined}
+              role={onRowClick ? 'button' : undefined}
+              className={[
+                onRowClick ? 'cursor-pointer hover:bg-section-bg focus-visible:outline-none' : '',
+                getRowClassName?.(row) ?? '',
+              ]
                 .filter(Boolean)
                 .join(' ') || undefined}
             >

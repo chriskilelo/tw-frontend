@@ -170,7 +170,7 @@ function ReportEditor({ reportId }: { reportId: string }) {
   const canEdit = role?.name === 'Ministry Attache' && user?.mission_id === report.mission?.id && report.status === 'draft'
 
   return (
-    <div className="p-6">
+    <div className="p-6" data-testid="report-form">
       <Link to="/reports" className="text-body-sm font-semibold text-accent-soft-text hover:underline">
         ← {en.reports.form.backToList}
       </Link>

@@ -30,6 +30,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.language_preference])
 
+  // WCAG 3.1.1 (Language of Page): index.html hardcodes lang="en" and nothing else in
+  // the app ever updates it — a Swahili-preference session would otherwise report the
+  // wrong page language to assistive technology indefinitely.
+  useEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
+
   const setLanguage = (next: LanguagePreference) => {
     const previous = language
     setLanguageState(next)

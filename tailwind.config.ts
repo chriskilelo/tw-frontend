@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import plugin from 'tailwindcss/plugin'
 
 // Custom breakpoints matching NFR-RESP-001's five viewport classes exactly
 // (TDD-ADR-003, TW-TDD-001 Section 5.6) rather than Tailwind's defaults.
@@ -96,4 +97,38 @@ export default {
       },
     },
   },
+  // Session 39 (accessibility audit): a global focus-visible ring for every
+  // interactive element, equivalent to applying `ring-2 ring-primary
+  // ring-offset-2` everywhere without hand-adding those classes to each of
+  // Button/Input/NavLink/Modal's many call sites. Implemented as a
+  // box-shadow (the same mechanism Tailwind's own ring-* utilities compile
+  // to), not `outline`, so it does not fight a component's own border-radius.
+  // Keyboard-only (:focus-visible), so it never appears on a mouse click.
+  plugins: [
+    plugin(({ addBase, theme }) => {
+      addBase({
+        [[
+          'a',
+          'button',
+          'input',
+          'select',
+          'textarea',
+          '[tabindex]',
+          '[role="button"]',
+          '[role="link"]',
+          '[role="tab"]',
+          '[role="menuitem"]',
+          '[role="checkbox"]',
+          '[role="radio"]',
+          '[role="switch"]',
+        ]
+          .map((selector) => `${selector}:focus-visible`)
+          .join(', ')]: {
+          outline: '2px solid transparent',
+          outlineOffset: '2px',
+          boxShadow: `0 0 0 2px ${theme('colors.page.bg')}, 0 0 0 4px ${theme('colors.primary.DEFAULT')}`,
+        },
+      })
+    }),
+  ],
 } satisfies Config
