@@ -1,10 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { listAlerts, type Alert, type AlertIntelligenceType, type AlertStatus } from '../../api/alerts'
 import { search, type SearchResult } from '../../api/search'
 import { Table, type TableColumn } from '../../components/Table'
 import { Input } from '../../components/Input'
+import { SearchSnippet } from '../../components/SearchSnippet'
 import { AlertStatusBadge } from './AlertStatusBadge'
 import en from '../../i18n/en'
 
@@ -177,33 +178,6 @@ function AlertCardList({ alerts, onSelect }: { alerts: Alert[]; onSelect: (id: s
   )
 }
 
-/**
- * ts_headline (App\Services\SearchService) only ever inserts literal `<b>`/
- * `</b>` around the matched term — it does not escape the rest of the
- * source text, which comes from user-submitted alert fields. Splitting on
- * those two literal delimiters and rendering each segment as a React text
- * node (auto-escaped) highlights the match without ever parsing the
- * snippet as HTML, so no dangerouslySetInnerHTML / XSS exposure.
- */
-function renderSnippet(snippet: string) {
-  return snippet.split(/(<b>|<\/b>)/).reduce<{ bold: boolean; nodes: ReactNode[] }>(
-    (acc, part, index) => {
-      if (part === '<b>') {
-        return { ...acc, bold: true }
-      }
-      if (part === '</b>') {
-        return { ...acc, bold: false }
-      }
-      if (part === '') {
-        return acc
-      }
-      acc.nodes.push(acc.bold ? <strong key={index}>{part}</strong> : <span key={index}>{part}</span>)
-      return acc
-    },
-    { bold: false, nodes: [] },
-  ).nodes
-}
-
 function SearchResultsList({ results, onSelect }: { results: SearchResult[]; onSelect: (id: string) => void }) {
   if (results.length === 0) {
     return <p className="py-6 text-center text-body text-text-muted">{en.alerts.list.empty}</p>
@@ -226,7 +200,9 @@ function SearchResultsList({ results, onSelect }: { results: SearchResult[]; onS
               </div>
               <p className="mt-2 text-body text-text-primary">{result.summary}</p>
               {result.snippet && (
-                <p className="mt-1 text-body-sm text-text-muted">{renderSnippet(result.snippet)}</p>
+                <p className="mt-1 text-body-sm text-text-muted">
+                  <SearchSnippet snippet={result.snippet} />
+                </p>
               )}
               <p className="mt-1 text-caption text-text-muted">{new Date(result.date).toLocaleString()}</p>
             </button>

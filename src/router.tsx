@@ -26,6 +26,13 @@ import HqWorkspacePage from './pages/sdt/HqWorkspacePage'
 import ReportComplianceConsolePage from './pages/sdt/ReportComplianceConsolePage'
 import DirectiveOverviewPage from './pages/sdt/DirectiveOverviewPage'
 import AIEBudgetCodePage from './pages/sdt/config/AIEBudgetCodePage'
+import KpiDashboardPage from './pages/kpi/KpiDashboardPage'
+import KpiComparisonPage from './pages/kpi/KpiComparisonPage'
+import ManualKpiEntryPage from './pages/kpi/ManualKpiEntryPage'
+import SetKpiTargetsPage from './pages/kpi/SetKpiTargetsPage'
+import HrmdDashboardPage from './pages/sdt/HrmdDashboardPage'
+import SearchResultsPage from './pages/search/SearchResultsPage'
+import CountryProfilePage from './pages/search/CountryProfilePage'
 import NotFoundPage from './pages/NotFoundPage'
 
 /**
@@ -82,6 +89,13 @@ export const router = createBrowserRouter([
           { path: '/sdt/reports/compliance', element: <ReportComplianceConsolePage /> },
           { path: '/sdt/directives/overview', element: <DirectiveOverviewPage /> },
           { path: '/sdt/config/aie-budget-codes', element: <AIEBudgetCodePage /> },
+          { path: '/kpi/dashboard', element: <KpiDashboardPage /> },
+          { path: '/kpi/comparison', element: <KpiComparisonPage /> },
+          { path: '/kpi/manual-entry', element: <ManualKpiEntryPage /> },
+          { path: '/kpi/targets', element: <SetKpiTargetsPage /> },
+          { path: '/sdt/hrmd-dashboard', element: <HrmdDashboardPage /> },
+          { path: '/search', element: <SearchResultsPage /> },
+          { path: '/search/countries/:country', element: <CountryProfilePage /> },
         ],
       },
     ],

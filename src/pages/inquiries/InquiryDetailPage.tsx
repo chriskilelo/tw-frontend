@@ -16,6 +16,7 @@ import { Modal } from '../../components/Modal'
 import { InquiryStatusBadge } from './InquiryStatusBadge'
 import { InquirySubTypeBadge } from './InquirySubTypeBadge'
 import { ReferralRecordModal } from '../../components/ReferralRecordModal'
+import { InquiryMatchingPanel } from '../../components/InquiryMatchingPanel'
 import en from '../../i18n/en'
 
 /** CLAUDE.md Section 8 Workflow Statuses and Transitions. `resolved -> closed` is
@@ -205,6 +206,11 @@ export default function InquiryDetailPage() {
               </ul>
             )}
           </section>
+
+          <InquiryMatchingPanel
+            inquiry={inquiry}
+            onLinked={(updated) => queryClient.setQueryData(['inquiry', id], updated)}
+          />
         </div>
       </div>
 

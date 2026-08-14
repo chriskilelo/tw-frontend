@@ -60,6 +60,13 @@ export interface InquiryNote {
   created_at: string
 }
 
+/** InquiryDetailResource's linked_inquiry shape (Session 34, FR-INQ-019 AC2). */
+export interface InquiryLinkRef {
+  id: string
+  reference_number: string
+  mission: string | null
+}
+
 export interface InquiryEvent {
   id: string
   event_type: InquiryEventType
@@ -86,6 +93,7 @@ export interface InquiryDetail {
   high_value_justification: string | null
   resolution_summary: string | null
   closed_at: string | null
+  linked_inquiry?: InquiryLinkRef | null
   mission?: InquiryMissionRef
   logged_by?: InquiryUserRef
   notes: InquiryNote[]
@@ -197,11 +205,31 @@ export async function closeInquiry(id: string, payload: InquiryCloseRequest): Pr
   return data.data
 }
 
-/** POST /inquiries/{id}/link — FR-INQ-019 (Stage 2) */
-export async function linkInquiry(id: string, linkedInquiryId: string): Promise<Inquiry> {
-  const { data } = await client.post<ApiEnvelope<Inquiry>>(`/inquiries/${id}/link`, {
-    linked_inquiry_id: linkedInquiryId,
+/**
+ * POST /inquiries/{id}/link — FR-INQ-019. One endpoint serving both halves of the
+ * requirement (App\Http\Controllers\Api\Inquiries\InquiryController::link()):
+ * omitting target_inquiry_id (findInquiryMatches() below) returns suggested
+ * matches without persisting anything; supplying one (linkInquiry() here)
+ * confirms and persists a symmetric link, returning the full InquiryDetailResource
+ * shape, not the list-row Inquiry shape the field was previously typed as.
+ * Body param is `target_inquiry_id` (LinkInquiryRequest), not `linked_inquiry_id`.
+ */
+export async function linkInquiry(id: string, targetInquiryId: string): Promise<InquiryDetail> {
+  const { data } = await client.post<ApiEnvelope<InquiryDetail>>(`/inquiries/${id}/link`, {
+    target_inquiry_id: targetInquiryId,
   })
+  return data.data
+}
+
+/**
+ * POST /inquiries/{id}/link with no target_inquiry_id — FR-INQ-019 AC1.
+ * InquiryMatchingService::findMatches() ranks candidates by ts_rank and the
+ * controller returns InquiryResource::collection() in that same rank order
+ * (highest relevance first); the resource itself carries no numeric score,
+ * so callers use list position as the relevance signal.
+ */
+export async function findInquiryMatches(id: string): Promise<Inquiry[]> {
+  const { data } = await client.post<ApiEnvelope<Inquiry[]>>(`/inquiries/${id}/link`, {})
   return data.data
 }
 

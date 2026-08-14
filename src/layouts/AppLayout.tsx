@@ -10,6 +10,7 @@ import { Button } from '../components/Button'
 
 type NavKey =
   | 'dashboard'
+  | 'search'
   | 'alerts'
   | 'inquiries'
   | 'directives'
@@ -18,7 +19,11 @@ type NavKey =
   | 'config'
   | 'missionActivity'
   | 'mfaAwareness'
-  | 'kpiReports'
+  | 'kpiDashboard'
+  | 'kpiComparison'
+  | 'kpiManualEntry'
+  | 'kpiTargets'
+  | 'hrmdDashboard'
   | 'directivesSummary'
   | 'psDashboard'
   | 'hqWorkspace'
@@ -28,6 +33,7 @@ type NavKey =
 
 const NAV_ITEMS: { key: NavKey; path: string }[] = [
   { key: 'dashboard', path: '/dashboard' },
+  { key: 'search', path: '/search' },
   { key: 'alerts', path: '/alerts' },
   { key: 'inquiries', path: '/inquiries' },
   { key: 'directives', path: '/directives' },
@@ -37,7 +43,11 @@ const NAV_ITEMS: { key: NavKey; path: string }[] = [
   { key: 'config', path: '/config' },
   { key: 'missionActivity', path: '/mission-activity' },
   { key: 'mfaAwareness', path: '/mfa-awareness' },
-  { key: 'kpiReports', path: '/kpi-reports' },
+  { key: 'kpiDashboard', path: '/kpi/dashboard' },
+  { key: 'kpiComparison', path: '/kpi/comparison' },
+  { key: 'kpiManualEntry', path: '/kpi/manual-entry' },
+  { key: 'kpiTargets', path: '/kpi/targets' },
+  { key: 'hrmdDashboard', path: '/sdt/hrmd-dashboard' },
   { key: 'psDashboard', path: '/sdt/ps-dashboard' },
   { key: 'hqWorkspace', path: '/sdt/hq-workspace' },
   { key: 'sdtReportCompliance', path: '/sdt/reports/compliance' },
@@ -61,8 +71,12 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
   // sdtReportCompliance/sdtDirectiveOverview (Session 31): MinistryPolicy::viewPsDashboard()
   // gates both, the same boundary as psDashboard, so they're added alongside it for both
   // Ministry PS and Acting PS below.
+  // kpiDashboard/kpiComparison/kpiTargets (Session 35): KpiPolicy::viewComparison()/
+  // setTarget() grant Ministry HQ Director, Ministry PS, and Acting PS identically — added
+  // to all three below, not just the two roles the session task named literally.
   'Ministry PS': [
     'dashboard',
+    'search',
     'alerts',
     'inquiries',
     'directives',
@@ -70,6 +84,9 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
     'reports',
     'reportsCompliance',
     'config',
+    'kpiDashboard',
+    'kpiComparison',
+    'kpiTargets',
     'psDashboard',
     'sdtReportCompliance',
     'sdtDirectiveOverview',
@@ -82,18 +99,23 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
   // would 403 for this role. Omitted here to match that, not extended by analogy.
   'Acting PS': [
     'dashboard',
+    'search',
     'alerts',
     'inquiries',
     'directives',
     'reports',
     'reportsCompliance',
     'config',
+    'kpiDashboard',
+    'kpiComparison',
+    'kpiTargets',
     'psDashboard',
     'sdtReportCompliance',
     'sdtDirectiveOverview',
   ],
   'Ministry HQ Director': [
     'dashboard',
+    'search',
     'alerts',
     'inquiries',
     'directives',
@@ -101,22 +123,32 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
     'reports',
     'reportsCompliance',
     'config',
+    'kpiDashboard',
+    'kpiComparison',
+    'kpiTargets',
   ],
-  'Ministry HQ Officer': ['dashboard', 'alerts', 'inquiries', 'directives', 'hqWorkspace'],
+  // kpiManualEntry (Session 35): KpiPolicy::recordActual() grants Ministry Attache and
+  // Ministry HQ Officer identically (FR-KPI-007).
+  'Ministry HQ Officer': ['dashboard', 'search', 'alerts', 'inquiries', 'directives', 'hqWorkspace', 'kpiManualEntry'],
   // ReportPolicy::create() (Session 25): draft reports may only ever be started by a
   // Ministry Attache, so 'reports' was already here for that reason. 'directives' is added
   // here for a different reason (Session 30): DirectivePolicy scopes a Ministry Attache to
   // directives that target them, and DirectiveDetailPage is where they acknowledge/progress/
   // complete/cancel one — this role had no nav path to that page at all until now.
-  'Ministry Attache': ['dashboard', 'alerts', 'inquiries', 'directives', 'reports'],
-  'Head of Mission': ['dashboard', 'missionActivity'],
-  'Deputy Head of Mission': ['dashboard', 'missionActivity'],
-  'MFA HQ Officer': ['dashboard', 'mfaAwareness'],
-  'MFA Principal Secretary': ['dashboard', 'mfaAwareness'],
-  'HRM&D Officer': ['dashboard', 'kpiReports'],
+  'Ministry Attache': ['dashboard', 'search', 'alerts', 'inquiries', 'directives', 'reports', 'kpiManualEntry'],
+  'Head of Mission': ['dashboard', 'search', 'missionActivity'],
+  'Deputy Head of Mission': ['dashboard', 'search', 'missionActivity'],
+  'MFA HQ Officer': ['dashboard', 'search', 'mfaAwareness'],
+  'MFA Principal Secretary': ['dashboard', 'search', 'mfaAwareness'],
+  // hrmdDashboard (Session 35): replaces the previously dead 'kpiReports' nav entry, which
+  // pointed at a route ('/kpi-reports') that was never built. KpiPolicy::viewHrmdDashboard()
+  // is HRM&D Officer only. 'search' is deliberately NOT included here: MinistryScope
+  // middleware (Session 33, FR-SDT-018) 403s HRM&D Officer on any request path outside
+  // api/v1/kpi-* / api/v1/sdt/hrmd-dashboard* as a blanket net, GET /search included.
+  'HRM&D Officer': ['dashboard', 'hrmdDashboard'],
 }
 
-const DEFAULT_NAV_KEYS: NavKey[] = ['dashboard']
+const DEFAULT_NAV_KEYS: NavKey[] = ['dashboard', 'search']
 
 /**
  * I18nProvider is scoped here (authenticated subtree only), not mounted globally in
