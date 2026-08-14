@@ -3,6 +3,7 @@ import type { AlertIntelligenceType, AlertStatus } from './alerts'
 import type { InquiryStatus, InquirySubType } from './inquiries'
 import type { Directive, DirectiveSummary } from './directives'
 import type { ComplianceDashboard } from './reports'
+import type { ComparisonKpiRow, KpiComparisonMatrix } from './kpi'
 
 /** SdtService::directiveSummaryForWeek() shape — FR-SDT-001. */
 export interface DirectiveWeekSummary {
@@ -177,5 +178,47 @@ export async function createAieBudgetCode(payload: AieBudgetCodeCreateRequest): 
 /** PATCH /sdt/config/aie-budget-codes/{id} — FR-SDT-022. System Administrator only. */
 export async function updateAieBudgetCode(id: string, payload: AieBudgetCodeUpdateRequest): Promise<AieBudgetCodeEntry> {
   const { data } = await client.patch<ApiEnvelope<AieBudgetCodeEntry>>(`/sdt/config/aie-budget-codes/${id}`, payload)
+  return data.data
+}
+
+/**
+ * GET /sdt/hrmd-dashboard response — App\Services\KpiService::hrmdDashboard(), FR-SDT-016.
+ * Same {cycle_label, missions} shape App\Http\Controllers\Api\Kpi\KpiComparisonController
+ * returns (both wrap KpiService::buildComparisonMatrix() internally), reused here rather
+ * than duplicated.
+ */
+export type HrmdDashboard = KpiComparisonMatrix
+
+/** GET /sdt/hrmd-dashboard/{userId}/summary response — App\Services\KpiService::attachePerformanceSummary(), FR-SDT-017. */
+export interface HrmdAttacheSummary {
+  attache: {
+    id: string
+    full_name: string
+    mission: { id: string; name: string }
+  }
+  cycle_label: string
+  kpis: ComparisonKpiRow[]
+}
+
+/** GET /sdt/hrmd-dashboard — FR-SDT-016, FR-KPI-011. HRM&D Officer only (KpiPolicy::viewHrmdDashboard()). Every access is audit-logged server-side. */
+export async function getHrmdDashboard(cycleLabel: string): Promise<HrmdDashboard> {
+  const { data } = await client.get<ApiEnvelope<HrmdDashboard>>('/sdt/hrmd-dashboard', {
+    params: { cycle_label: cycleLabel },
+  })
+  return data.data
+}
+
+/**
+ * GET /sdt/hrmd-dashboard/{userId}/summary — FR-SDT-017, FR-KPI-011. HRM&D Officer only
+ * (KpiPolicy::generateAttacheSummary()). Note the query param is `period_label`, not
+ * `cycle_label` — App\Http\Controllers\Api\Sdt\HrmdDashboardController::attacheSummary()
+ * names it differently from the dashboard endpoint above even though both accept the same
+ * "Q1 2027"/"H1 2027"-style value. No user-picker endpoint is reachable by this role (GET
+ * /users is System Administrator only), so $userId has to be supplied directly by the caller.
+ */
+export async function getHrmdAttacheSummary(userId: string, periodLabel: string): Promise<HrmdAttacheSummary> {
+  const { data } = await client.get<ApiEnvelope<HrmdAttacheSummary>>(`/sdt/hrmd-dashboard/${userId}/summary`, {
+    params: { period_label: periodLabel },
+  })
   return data.data
 }
