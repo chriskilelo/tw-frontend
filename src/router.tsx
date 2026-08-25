@@ -26,6 +26,12 @@ import HqWorkspacePage from './pages/sdt/HqWorkspacePage'
 import ReportComplianceConsolePage from './pages/sdt/ReportComplianceConsolePage'
 import DirectiveOverviewPage from './pages/sdt/DirectiveOverviewPage'
 import AIEBudgetCodePage from './pages/sdt/config/AIEBudgetCodePage'
+import ConfigHubPage from './pages/sdt/config/ConfigHubPage'
+import AlertFieldsConfigPage from './pages/sdt/config/AlertFieldsConfigPage'
+import InquirySettingsConfigPage from './pages/sdt/config/InquirySettingsConfigPage'
+import DirectiveSettingsConfigPage from './pages/sdt/config/DirectiveSettingsConfigPage'
+import KpiSettingsConfigPage from './pages/sdt/config/KpiSettingsConfigPage'
+import ReferralOrganisationsConfigPage from './pages/sdt/config/ReferralOrganisationsConfigPage'
 import KpiDashboardPage from './pages/kpi/KpiDashboardPage'
 import KpiComparisonPage from './pages/kpi/KpiComparisonPage'
 import ManualKpiEntryPage from './pages/kpi/ManualKpiEntryPage'
@@ -88,7 +94,13 @@ export const router = createBrowserRouter([
           { path: '/sdt/hq-workspace', element: <HqWorkspacePage /> },
           { path: '/sdt/reports/compliance', element: <ReportComplianceConsolePage /> },
           { path: '/sdt/directives/overview', element: <DirectiveOverviewPage /> },
+          { path: '/config', element: <ConfigHubPage /> },
           { path: '/sdt/config/aie-budget-codes', element: <AIEBudgetCodePage /> },
+          { path: '/sdt/config/alert-fields', element: <AlertFieldsConfigPage /> },
+          { path: '/sdt/config/inquiry-settings', element: <InquirySettingsConfigPage /> },
+          { path: '/sdt/config/directive-settings', element: <DirectiveSettingsConfigPage /> },
+          { path: '/sdt/config/kpi-settings', element: <KpiSettingsConfigPage /> },
+          { path: '/sdt/config/referral-organisations', element: <ReferralOrganisationsConfigPage /> },
           { path: '/kpi/dashboard', element: <KpiDashboardPage /> },
           { path: '/kpi/comparison', element: <KpiComparisonPage /> },
           { path: '/kpi/manual-entry', element: <ManualKpiEntryPage /> },

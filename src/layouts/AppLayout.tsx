@@ -74,6 +74,15 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
   // kpiDashboard/kpiComparison/kpiTargets (Session 35): KpiPolicy::viewComparison()/
   // setTarget() grant Ministry HQ Director, Ministry PS, and Acting PS identically — added
   // to all three below, not just the two roles the session task named literally.
+  // 'config' (System Configuration hub, /config -> ConfigHubPage, and its six
+  // /sdt/config/* sub-pages) was previously present on Ministry PS/Acting PS/Ministry HQ
+  // Director's nav below despite pointing at a route that didn't exist at all. Now that the
+  // hub and all six sub-pages are built, 'config' is deliberately NOT restored to these three
+  // roles' lists — every ConfigController action (alert fields, AIE budget codes, inquiry
+  // settings, directive settings, KPI settings, referral organisations) is gated System
+  // Administrator only, including GET (MasterDataEntryPolicy::manage(), KpiPolicy::
+  // manageDefinitions(), ReferralPolicy::manage()), so it stays visible only via
+  // ALL_KEYS on 'System Administrator' below.
   'Ministry PS': [
     'dashboard',
     'search',
@@ -83,7 +92,6 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
     'directivesSummary',
     'reports',
     'reportsCompliance',
-    'config',
     'kpiDashboard',
     'kpiComparison',
     'kpiTargets',
@@ -105,7 +113,6 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
     'directives',
     'reports',
     'reportsCompliance',
-    'config',
     'kpiDashboard',
     'kpiComparison',
     'kpiTargets',
@@ -122,7 +129,6 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
     'directivesSummary',
     'reports',
     'reportsCompliance',
-    'config',
     'kpiDashboard',
     'kpiComparison',
     'kpiTargets',

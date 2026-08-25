@@ -1,9 +1,10 @@
 import client, { type ApiEnvelope } from './client'
-import type { AlertIntelligenceType, AlertStatus } from './alerts'
+import type { AlertIntelligenceType, AlertStatus, MasterDataEntryOption } from './alerts'
 import type { InquiryStatus, InquirySubType } from './inquiries'
 import type { Directive, DirectiveSummary } from './directives'
 import type { ComplianceDashboard } from './reports'
 import type { ComparisonKpiRow, KpiComparisonMatrix } from './kpi'
+import type { ReferralOrganisation } from './referrals'
 
 /** SdtService::directiveSummaryForWeek() shape — FR-SDT-001. */
 export interface DirectiveWeekSummary {
@@ -178,6 +179,217 @@ export async function createAieBudgetCode(payload: AieBudgetCodeCreateRequest): 
 /** PATCH /sdt/config/aie-budget-codes/{id} — FR-SDT-022. System Administrator only. */
 export async function updateAieBudgetCode(id: string, payload: AieBudgetCodeUpdateRequest): Promise<AieBudgetCodeEntry> {
   const { data } = await client.patch<ApiEnvelope<AieBudgetCodeEntry>>(`/sdt/config/aie-budget-codes/${id}`, payload)
+  return data.data
+}
+
+// --- FR-SDT-019: Alert Field Configuration ---------------------------
+// Same MasterDataEntryOption shape (api/alerts.ts) as the public
+// getAlertIntelligenceTypeOptions() dropdown — ConfigController::presentEntry()
+// and MasterDataController::present() return an identical field set.
+
+export interface AlertFieldCreateRequest {
+  ministry_id: string
+  value: string
+  display_order?: number
+  active?: boolean
+}
+
+export interface AlertFieldUpdateRequest {
+  value?: string
+  display_order?: number
+  active?: boolean
+}
+
+/** GET /sdt/config/alert-fields — FR-SDT-019. System Administrator only. */
+export async function getAlertFieldSettings(ministryId?: string): Promise<MasterDataEntryOption[]> {
+  const { data } = await client.get<ApiEnvelope<MasterDataEntryOption[]>>('/sdt/config/alert-fields', {
+    params: ministryId ? { ministry_id: ministryId } : undefined,
+  })
+  return data.data
+}
+
+/** POST /sdt/config/alert-fields — FR-SDT-019. System Administrator only. */
+export async function createAlertFieldSetting(payload: AlertFieldCreateRequest): Promise<MasterDataEntryOption> {
+  const { data } = await client.post<ApiEnvelope<MasterDataEntryOption>>('/sdt/config/alert-fields', payload)
+  return data.data
+}
+
+/** PATCH /sdt/config/alert-fields/{id} — FR-SDT-019. System Administrator only. */
+export async function updateAlertFieldSetting(id: string, payload: AlertFieldUpdateRequest): Promise<MasterDataEntryOption> {
+  const { data } = await client.patch<ApiEnvelope<MasterDataEntryOption>>(`/sdt/config/alert-fields/${id}`, payload)
+  return data.data
+}
+
+// --- FR-SDT-020: Inquiry Category / Workflow Status / Event Type Configuration --
+
+export type InquirySettingCategory = 'inquiry_category' | 'inquiry_workflow_status' | 'inquiry_event_type'
+
+export interface InquirySettingCreateRequest {
+  category: InquirySettingCategory
+  ministry_id: string
+  value: string
+  display_order?: number
+  active?: boolean
+}
+
+export interface InquirySettingUpdateRequest {
+  value?: string
+  display_order?: number
+  active?: boolean
+}
+
+/** GET /sdt/config/inquiry-settings — FR-SDT-020. System Administrator only. */
+export async function getInquirySettings(
+  category?: InquirySettingCategory,
+  ministryId?: string,
+): Promise<MasterDataEntryOption[]> {
+  const { data } = await client.get<ApiEnvelope<MasterDataEntryOption[]>>('/sdt/config/inquiry-settings', {
+    params: { ...(category ? { category } : {}), ...(ministryId ? { ministry_id: ministryId } : {}) },
+  })
+  return data.data
+}
+
+/** POST /sdt/config/inquiry-settings — FR-SDT-020. System Administrator only. */
+export async function createInquirySetting(payload: InquirySettingCreateRequest): Promise<MasterDataEntryOption> {
+  const { data } = await client.post<ApiEnvelope<MasterDataEntryOption>>('/sdt/config/inquiry-settings', payload)
+  return data.data
+}
+
+/** PATCH /sdt/config/inquiry-settings/{id} — FR-SDT-020. System Administrator only. */
+export async function updateInquirySetting(
+  id: string,
+  payload: InquirySettingUpdateRequest,
+): Promise<MasterDataEntryOption> {
+  const { data } = await client.patch<ApiEnvelope<MasterDataEntryOption>>(`/sdt/config/inquiry-settings/${id}`, payload)
+  return data.data
+}
+
+// --- FR-SDT-010: Directive Type Configuration -------------------------
+// Create-only: App\Http\Controllers\Api\Sdt\ConfigController has no GET or
+// PATCH for this category (CLAUDE.md Section 8: directive_type was left
+// deliberately unseeded at go-live). The existing getDirectiveTypeOptions()
+// (api/directives.ts, public GET /master-data?category=directive_type) is
+// the list source for this page.
+
+export interface DirectiveSettingCreateRequest {
+  ministry_id: string
+  value: string
+  display_order?: number
+  active?: boolean
+}
+
+/** POST /sdt/config/directive-settings — FR-SDT-010. System Administrator only. */
+export async function createDirectiveSetting(payload: DirectiveSettingCreateRequest): Promise<MasterDataEntryOption> {
+  const { data } = await client.post<ApiEnvelope<MasterDataEntryOption>>('/sdt/config/directive-settings', payload)
+  return data.data
+}
+
+// --- FR-SDT-021: KPI Definition Configuration --------------------------
+// Wraps the same App\Services\KpiService::defineKpi() the general-purpose
+// Api\Kpi\KpiDefinitionController uses (Session 32/41 note) — KPI Profile
+// management (FR-KPI-002) stays on its own /kpi-profiles endpoints, not
+// duplicated here.
+
+export interface KpiDefinition {
+  id: string
+  ministry_id: string
+  name: string
+  description: string | null
+  unit: string | null
+  calculation_method: 'auto' | 'manual'
+  data_source: string | null
+  reporting_frequency: string
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface KpiDefinitionCreateRequest {
+  ministry_id: string
+  name: string
+  description?: string
+  unit?: string
+  calculation_method: 'auto' | 'manual'
+  data_source?: string
+  reporting_frequency: string
+  active?: boolean
+}
+
+export interface KpiDefinitionUpdateRequest {
+  name?: string
+  description?: string
+  unit?: string
+  calculation_method?: 'auto' | 'manual'
+  data_source?: string
+  reporting_frequency?: string
+  active?: boolean
+}
+
+/** GET /sdt/config/kpi-settings — FR-SDT-021. System Administrator only. */
+export async function getKpiSettings(ministryId?: string): Promise<KpiDefinition[]> {
+  const { data } = await client.get<ApiEnvelope<KpiDefinition[]>>('/sdt/config/kpi-settings', {
+    params: ministryId ? { ministry_id: ministryId } : undefined,
+  })
+  return data.data
+}
+
+/** POST /sdt/config/kpi-settings — FR-SDT-021. System Administrator only. */
+export async function createKpiSetting(payload: KpiDefinitionCreateRequest): Promise<KpiDefinition> {
+  const { data } = await client.post<ApiEnvelope<KpiDefinition>>('/sdt/config/kpi-settings', payload)
+  return data.data
+}
+
+/** PATCH /sdt/config/kpi-settings/{id} — FR-SDT-021. System Administrator only. */
+export async function updateKpiSetting(id: string, payload: KpiDefinitionUpdateRequest): Promise<KpiDefinition> {
+  const { data } = await client.patch<ApiEnvelope<KpiDefinition>>(`/sdt/config/kpi-settings/${id}`, payload)
+  return data.data
+}
+
+// --- FR-SDT-023: Referral Organisation Registry ------------------------
+// Same ReferralOrganisation shape (api/referrals.ts) as the public
+// GET /referral-organisations dropdown — ConfigController::presentOrganisation()
+// returns an identical field set. Named *Setting to avoid colliding with
+// api/referrals.ts's own public-endpoint functions of a similar name.
+
+export interface ReferralOrganisationCreateRequest {
+  ministry_id: string
+  name: string
+  active?: boolean
+}
+
+export interface ReferralOrganisationUpdateRequest {
+  name?: string
+  active?: boolean
+}
+
+/** GET /sdt/config/referral-organisations — FR-SDT-023. System Administrator only. */
+export async function getReferralOrganisationSettings(
+  ministryId?: string,
+  active?: boolean,
+): Promise<ReferralOrganisation[]> {
+  const { data } = await client.get<ApiEnvelope<ReferralOrganisation[]>>('/sdt/config/referral-organisations', {
+    params: { ...(ministryId ? { ministry_id: ministryId } : {}), ...(active !== undefined ? { active } : {}) },
+  })
+  return data.data
+}
+
+/** POST /sdt/config/referral-organisations — FR-SDT-023. System Administrator only. */
+export async function createReferralOrganisationSetting(
+  payload: ReferralOrganisationCreateRequest,
+): Promise<ReferralOrganisation> {
+  const { data } = await client.post<ApiEnvelope<ReferralOrganisation>>('/sdt/config/referral-organisations', payload)
+  return data.data
+}
+
+/** PATCH /sdt/config/referral-organisations/{id} — FR-SDT-023. System Administrator only. */
+export async function updateReferralOrganisationSetting(
+  id: string,
+  payload: ReferralOrganisationUpdateRequest,
+): Promise<ReferralOrganisation> {
+  const { data } = await client.patch<ApiEnvelope<ReferralOrganisation>>(
+    `/sdt/config/referral-organisations/${id}`,
+    payload,
+  )
   return data.data
 }
 
