@@ -39,3 +39,18 @@ export function isReadOnlyRole(roleName: string | undefined | null): boolean {
   }
   return (READ_ONLY_ROLE_NAMES as readonly string[]).includes(roleName)
 }
+
+/**
+ * ADR-006: the two administrator roles. Compared by role name, never by the cosmetic
+ * display title (FR-AUTH-025), which is free to change without affecting access.
+ */
+export const SYSTEM_ADMINISTRATOR = 'System Administrator'
+export const MINISTRY_ADMINISTRATOR = 'Ministry Administrator'
+
+export function isSystemAdministrator(roleName: string | undefined | null): boolean {
+  return roleName === SYSTEM_ADMINISTRATOR
+}
+
+export function isMinistryAdministrator(roleName: string | undefined | null): boolean {
+  return roleName === MINISTRY_ADMINISTRATOR
+}

@@ -10,7 +10,10 @@ import { Table, type TableColumn } from '../../../components/Table'
 import { Badge } from '../../../components/Badge'
 import { Input } from '../../../components/Input'
 import { Button } from '../../../components/Button'
-import en from '../../../i18n/en'
+import { Pagination } from '../../../components/Pagination'
+import { useClientPagination } from '../../../hooks/useClientPagination'
+import { useAuth, isMinistryAdministrator } from '../../../hooks/useAuth'
+import { useI18n } from '../../../i18n/context'
 
 const QUERY_KEY = ['sdt', 'config', 'referral-organisations'] as const
 
@@ -22,11 +25,16 @@ const QUERY_KEY = ['sdt', 'config', 'referral-organisations'] as const
  * authenticated user; this page is the only place entries are added/edited.
  */
 export default function ReferralOrganisationsConfigPage() {
+  const { t } = useI18n()
   const queryClient = useQueryClient()
 
   const listQuery = useQuery({ queryKey: QUERY_KEY, queryFn: () => getReferralOrganisationSettings() })
   const organisations = listQuery.data ?? []
-  const defaultMinistryId = organisations[0]?.ministry_id ?? ''
+  const { user, role } = useAuth()
+  // ADR-006: a Ministry Administrator always writes to its own department (the backend pins
+  // it too), so it never needs the free-text ministry field below.
+  const defaultMinistryId = (isMinistryAdministrator(role?.name) ? user?.ministry_id : null) ?? organisations[0]?.ministry_id ?? ''
+  const organisationsPage = useClientPagination(organisations)
 
   const [newName, setNewName] = useState('')
   const [newMinistryId, setNewMinistryId] = useState('')
@@ -76,37 +84,37 @@ export default function ReferralOrganisationsConfigPage() {
   const columns: TableColumn<ReferralOrganisation>[] = [
     {
       key: 'name',
-      header: en.sdt.referralOrganisations.columnName,
+      header: t.sdt.referralOrganisations.columnName,
       render: (row) =>
         editingId === row.id ? <Input value={editName} onChange={(event) => setEditName(event.target.value)} /> : row.name,
     },
     {
       key: 'active',
-      header: en.sdt.referralOrganisations.columnActive,
+      header: t.sdt.referralOrganisations.columnActive,
       render: (row) => (
-        <Badge variant={row.active ? 'success' : 'neutral'} label={row.active ? en.common.active : en.common.inactive} />
+        <Badge variant={row.active ? 'success' : 'neutral'} label={row.active ? t.common.active : t.common.inactive} />
       ),
     },
     {
       key: 'actions',
-      header: en.sdt.referralOrganisations.columnActions,
+      header: t.sdt.referralOrganisations.columnActions,
       render: (row) =>
         editingId === row.id ? (
           <div className="flex gap-2">
             <Button variant="primary" onClick={() => saveEdit(row.id)} disabled={updateMutation.isPending}>
-              {en.sdt.referralOrganisations.saveButton}
+              {t.sdt.referralOrganisations.saveButton}
             </Button>
             <Button variant="ghost" onClick={() => setEditingId(null)}>
-              {en.sdt.referralOrganisations.cancelButton}
+              {t.sdt.referralOrganisations.cancelButton}
             </Button>
           </div>
         ) : (
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => startEdit(row)}>
-              {en.sdt.referralOrganisations.editButton}
+              {t.sdt.referralOrganisations.editButton}
             </Button>
             <Button variant={row.active ? 'danger' : 'primary'} onClick={() => toggleActive(row)} disabled={updateMutation.isPending}>
-              {row.active ? en.sdt.referralOrganisations.deactivateButton : en.sdt.referralOrganisations.activateButton}
+              {row.active ? t.sdt.referralOrganisations.deactivateButton : t.sdt.referralOrganisations.activateButton}
             </Button>
           </div>
         ),
@@ -115,41 +123,47 @@ export default function ReferralOrganisationsConfigPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-h1 text-primary">{en.sdt.referralOrganisations.title}</h1>
+      <h1 className="text-h1 text-primary">{t.sdt.referralOrganisations.title}</h1>
 
       <div className="mt-6">
         <Table
           columns={columns}
-          data={organisations}
+          data={organisationsPage.pageItems}
           rowKey={(row) => row.id}
-          emptyMessage={en.sdt.referralOrganisations.empty}
+          emptyMessage={t.sdt.referralOrganisations.empty}
+        />
+        <Pagination
+          meta={organisationsPage.meta}
+          onPageChange={organisationsPage.setPage}
+          onPerPageChange={organisationsPage.setPerPage}
+          className="mt-4"
         />
       </div>
 
       <div className="mt-8 max-w-lg rounded-lg border border-border p-4">
-        <h2 className="text-h3 text-primary">{en.sdt.referralOrganisations.addTitle}</h2>
+        <h2 className="text-h3 text-primary">{t.sdt.referralOrganisations.addTitle}</h2>
         <form onSubmit={handleCreateSubmit} className="mt-4 flex flex-col gap-4">
           <Input
-            label={en.sdt.referralOrganisations.nameLabel}
+            label={t.sdt.referralOrganisations.nameLabel}
             required
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
           />
           {!defaultMinistryId && (
             <Input
-              label={en.sdt.referralOrganisations.ministryIdLabel}
+              label={t.sdt.referralOrganisations.ministryIdLabel}
               required
               value={newMinistryId}
               onChange={(event) => setNewMinistryId(event.target.value)}
             />
           )}
-          <p className="text-caption text-text-muted">{en.sdt.referralOrganisations.ministryIdHint}</p>
+          <p className="text-caption text-text-muted">{t.sdt.referralOrganisations.ministryIdHint}</p>
 
-          {createMutation.isError && <p className="text-body-sm text-danger-soft-text">{en.common.genericError}</p>}
+          {createMutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
 
           <div>
             <Button type="submit" disabled={createMutation.isPending || (!newMinistryId && !defaultMinistryId)}>
-              {en.sdt.referralOrganisations.addButton}
+              {t.sdt.referralOrganisations.addButton}
             </Button>
           </div>
         </form>

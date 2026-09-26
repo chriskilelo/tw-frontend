@@ -11,7 +11,10 @@ import { Table, type TableColumn } from '../../../components/Table'
 import { Badge } from '../../../components/Badge'
 import { Input } from '../../../components/Input'
 import { Button } from '../../../components/Button'
-import en from '../../../i18n/en'
+import { Pagination } from '../../../components/Pagination'
+import { useClientPagination } from '../../../hooks/useClientPagination'
+import { useAuth, isMinistryAdministrator } from '../../../hooks/useAuth'
+import { useI18n } from '../../../i18n/context'
 
 const QUERY_KEY = ['sdt', 'config', 'inquiry-settings'] as const
 
@@ -25,6 +28,7 @@ const CATEGORIES: InquirySettingCategory[] = ['inquiry_category', 'inquiry_workf
  * (CLAUDE.md Session 11 note) — this screen only manages the value lists.
  */
 export default function InquirySettingsConfigPage() {
+  const { t } = useI18n()
   const queryClient = useQueryClient()
   const [categoryFilter, setCategoryFilter] = useState<InquirySettingCategory | ''>('')
 
@@ -33,7 +37,11 @@ export default function InquirySettingsConfigPage() {
     queryFn: () => getInquirySettings(categoryFilter || undefined),
   })
   const entries = listQuery.data ?? []
-  const defaultMinistryId = entries[0]?.ministry_id ?? ''
+  const { user, role } = useAuth()
+  // ADR-006: a Ministry Administrator always writes to its own department (the backend pins
+  // it too), so it never needs the free-text ministry field below.
+  const defaultMinistryId = (isMinistryAdministrator(role?.name) ? user?.ministry_id : null) ?? entries[0]?.ministry_id ?? ''
+  const entriesPage = useClientPagination(entries)
 
   const [newCategory, setNewCategory] = useState<InquirySettingCategory>('inquiry_category')
   const [newValue, setNewValue] = useState('')
@@ -92,17 +100,17 @@ export default function InquirySettingsConfigPage() {
   }
 
   const categoryLabel = (category: string) =>
-    en.sdt.inquirySettings.categoryLabels[category as InquirySettingCategory] ?? category
+    t.sdt.inquirySettings.categoryLabels[category as InquirySettingCategory] ?? category
 
   const columns: TableColumn<MasterDataEntryOption>[] = [
     {
       key: 'category',
-      header: en.sdt.inquirySettings.columnCategory,
+      header: t.sdt.inquirySettings.columnCategory,
       render: (row) => categoryLabel(row.category),
     },
     {
       key: 'value',
-      header: en.sdt.inquirySettings.columnValue,
+      header: t.sdt.inquirySettings.columnValue,
       render: (row) =>
         editingId === row.id ? (
           <Input value={editValue} onChange={(event) => setEditValue(event.target.value)} />
@@ -112,7 +120,7 @@ export default function InquirySettingsConfigPage() {
     },
     {
       key: 'display_order',
-      header: en.sdt.inquirySettings.columnDisplayOrder,
+      header: t.sdt.inquirySettings.columnDisplayOrder,
       render: (row) =>
         editingId === row.id ? (
           <Input type="number" value={editDisplayOrder} onChange={(event) => setEditDisplayOrder(event.target.value)} />
@@ -122,31 +130,31 @@ export default function InquirySettingsConfigPage() {
     },
     {
       key: 'active',
-      header: en.sdt.inquirySettings.columnActive,
+      header: t.sdt.inquirySettings.columnActive,
       render: (row) => (
-        <Badge variant={row.active ? 'success' : 'neutral'} label={row.active ? en.common.active : en.common.inactive} />
+        <Badge variant={row.active ? 'success' : 'neutral'} label={row.active ? t.common.active : t.common.inactive} />
       ),
     },
     {
       key: 'actions',
-      header: en.sdt.inquirySettings.columnActions,
+      header: t.sdt.inquirySettings.columnActions,
       render: (row) =>
         editingId === row.id ? (
           <div className="flex gap-2">
             <Button variant="primary" onClick={() => saveEdit(row.id)} disabled={updateMutation.isPending}>
-              {en.sdt.inquirySettings.saveButton}
+              {t.sdt.inquirySettings.saveButton}
             </Button>
             <Button variant="ghost" onClick={() => setEditingId(null)}>
-              {en.sdt.inquirySettings.cancelButton}
+              {t.sdt.inquirySettings.cancelButton}
             </Button>
           </div>
         ) : (
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => startEdit(row)}>
-              {en.sdt.inquirySettings.editButton}
+              {t.sdt.inquirySettings.editButton}
             </Button>
             <Button variant={row.active ? 'danger' : 'primary'} onClick={() => toggleActive(row)} disabled={updateMutation.isPending}>
-              {row.active ? en.sdt.inquirySettings.deactivateButton : en.sdt.inquirySettings.activateButton}
+              {row.active ? t.sdt.inquirySettings.deactivateButton : t.sdt.inquirySettings.activateButton}
             </Button>
           </div>
         ),
@@ -155,16 +163,16 @@ export default function InquirySettingsConfigPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-h1 text-primary">{en.sdt.inquirySettings.title}</h1>
+      <h1 className="text-h1 text-primary">{t.sdt.inquirySettings.title}</h1>
 
       <label className="mt-4 flex max-w-xs flex-col gap-1">
-        <span className="text-body-sm font-semibold text-text-secondary">{en.sdt.inquirySettings.filterLabel}</span>
+        <span className="text-body-sm font-semibold text-text-secondary">{t.sdt.inquirySettings.filterLabel}</span>
         <select
           value={categoryFilter}
           onChange={(event) => setCategoryFilter(event.target.value as InquirySettingCategory | '')}
           className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
         >
-          <option value="">{en.sdt.inquirySettings.filterAll}</option>
+          <option value="">{t.sdt.inquirySettings.filterAll}</option>
           {CATEGORIES.map((category) => (
             <option key={category} value={category}>
               {categoryLabel(category)}
@@ -174,14 +182,25 @@ export default function InquirySettingsConfigPage() {
       </label>
 
       <div className="mt-6">
-        <Table columns={columns} data={entries} rowKey={(row) => row.id} emptyMessage={en.sdt.inquirySettings.empty} />
+        <Table
+          columns={columns}
+          data={entriesPage.pageItems}
+          rowKey={(row) => row.id}
+          emptyMessage={t.sdt.inquirySettings.empty}
+        />
+        <Pagination
+          meta={entriesPage.meta}
+          onPageChange={entriesPage.setPage}
+          onPerPageChange={entriesPage.setPerPage}
+          className="mt-4"
+        />
       </div>
 
       <div className="mt-8 max-w-lg rounded-lg border border-border p-4">
-        <h2 className="text-h3 text-primary">{en.sdt.inquirySettings.addTitle}</h2>
+        <h2 className="text-h3 text-primary">{t.sdt.inquirySettings.addTitle}</h2>
         <form onSubmit={handleCreateSubmit} className="mt-4 flex flex-col gap-4">
           <label className="flex flex-col gap-1">
-            <span className="text-body-sm font-semibold text-text-secondary">{en.sdt.inquirySettings.categoryFieldLabel}</span>
+            <span className="text-body-sm font-semibold text-text-secondary">{t.sdt.inquirySettings.categoryFieldLabel}</span>
             <select
               required
               value={newCategory}
@@ -196,32 +215,32 @@ export default function InquirySettingsConfigPage() {
             </select>
           </label>
           <Input
-            label={en.sdt.inquirySettings.valueLabel}
+            label={t.sdt.inquirySettings.valueLabel}
             required
             value={newValue}
             onChange={(event) => setNewValue(event.target.value)}
           />
           <Input
             type="number"
-            label={en.sdt.inquirySettings.displayOrderLabel}
+            label={t.sdt.inquirySettings.displayOrderLabel}
             value={newDisplayOrder}
             onChange={(event) => setNewDisplayOrder(event.target.value)}
           />
           {!defaultMinistryId && (
             <Input
-              label={en.sdt.inquirySettings.ministryIdLabel}
+              label={t.sdt.inquirySettings.ministryIdLabel}
               required
               value={newMinistryId}
               onChange={(event) => setNewMinistryId(event.target.value)}
             />
           )}
-          <p className="text-caption text-text-muted">{en.sdt.inquirySettings.ministryIdHint}</p>
+          <p className="text-caption text-text-muted">{t.sdt.inquirySettings.ministryIdHint}</p>
 
-          {createMutation.isError && <p className="text-body-sm text-danger-soft-text">{en.common.genericError}</p>}
+          {createMutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
 
           <div>
             <Button type="submit" disabled={createMutation.isPending || (!newMinistryId && !defaultMinistryId)}>
-              {en.sdt.inquirySettings.addButton}
+              {t.sdt.inquirySettings.addButton}
             </Button>
           </div>
         </form>

@@ -48,6 +48,7 @@ function renderAppLayoutAt(initialPath: string) {
           { path: '/dashboard', element: <div>Dashboard Content</div> },
           { path: '/alerts', element: <div>Alerts Content</div> },
           { path: '/mission-activity', element: <div>Mission Activity Content</div> },
+          { path: '/admin/users', element: <div>User Accounts Content</div> },
         ],
       },
     ],
@@ -81,7 +82,7 @@ describe('AppLayout', () => {
     expect(screen.getAllByRole('button', { name: 'English' }).length).toBeGreaterThan(0)
   })
 
-  it('TC-UI-006: Head of Mission sees navigation without write-action buttons', async () => {
+  it('TC-UI-006: Head of Mission sees navigation without write-action nav sections', async () => {
     vi.mocked(authApi.me).mockResolvedValue(meResponseFor('Head of Mission'))
 
     renderAppLayoutAt('/mission-activity')
@@ -90,11 +91,11 @@ describe('AppLayout', () => {
     expect(await screen.findByRole('link', { name: 'Mission Activity' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument()
 
-    // Read-only role: no write-action nav sections (Alerts/Inquiries) or quick-create buttons.
+    // Read-only role: no write-action nav sections (Alerts/Inquiries). The create-record
+    // buttons themselves live on AlertListPage/InquiryListPage now, not the sidebar, so
+    // their own role gating (canCreate) is exercised there, not here.
     expect(screen.queryByRole('link', { name: 'Alerts' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Inquiries' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Submit alert' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Log inquiry' })).not.toBeInTheDocument()
   })
 
   it('TC-FR-I18N-002: clicking the language toggle switches displayed strings', async () => {
@@ -109,5 +110,36 @@ describe('AppLayout', () => {
     expect(await screen.findByRole('link', { name: 'Dashibodi' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument()
     expect(authApi.updatePreferences).toHaveBeenCalledWith({ language_preference: 'sw' })
+  })
+
+  it('TC-FR-AUTH-020: a Ministry Administrator sees only administration navigation', async () => {
+    vi.mocked(authApi.me).mockResolvedValue(meResponseFor('Ministry Administrator'))
+
+    renderAppLayoutAt('/admin/users')
+    expect(await screen.findByText('User Accounts Content')).toBeInTheDocument()
+
+    expect(await screen.findByRole('link', { name: 'User Accounts' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'PS Approvals' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Leadership Switches' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Audit Log' })).toBeInTheDocument()
+
+    // BR-025: no operational sections, not even the dashboard or search.
+    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Alerts' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Search' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Departments' })).not.toBeInTheDocument()
+  })
+
+  it('TC-FR-AUTH-025: the user menu shows the role display title and department, falling back to the role name', async () => {
+    const response = meResponseFor('Ministry Administrator')
+    response.role.display_title = 'Department Keeper'
+    response.user.ministry = { id: 'ministry-1', name: 'State Department for Trade' }
+    vi.mocked(authApi.me).mockResolvedValue(response)
+
+    renderAppLayoutAt('/admin/users')
+    expect(await screen.findByText('Department Keeper')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /Test User/ }))
+    expect(await screen.findByTestId('user-menu-title')).toHaveTextContent('Department Keeper · State Department for Trade')
   })
 })

@@ -107,6 +107,23 @@ export async function deactivateActingPs(ministryId?: string): Promise<ActingPsD
   return data.data
 }
 
+/** POST /sdt/designated-deputy/activate — FR-SDT-003, FR-ALERT-008 (PS, Acting PS or Ministry Administrator). */
+export async function activateDesignatedDeputy(userId: string): Promise<{ ministry_id: string; designated_deputy_user_id: string; active: true }> {
+  const { data } = await client.post<ApiEnvelope<{ ministry_id: string; designated_deputy_user_id: string; active: true }>>(
+    '/sdt/designated-deputy/activate',
+    { user_id: userId },
+  )
+  return data.data
+}
+
+/** POST /sdt/designated-deputy/deactivate — FR-SDT-003. ministry_id only needed from a System Administrator. */
+export async function deactivateDesignatedDeputy(ministryId?: string): Promise<{ ministry_id: string; active: false }> {
+  const { data } = await client.post<ApiEnvelope<{ ministry_id: string; active: false }>>('/sdt/designated-deputy/deactivate', {
+    ...(ministryId ? { ministry_id: ministryId } : {}),
+  })
+  return data.data
+}
+
 /**
  * GET /sdt/reports/compliance — FR-SDT-007. App\Http\Controllers\Api\Sdt\ReportsController::compliance()
  * wraps the identical App\Services\ReportService::getComplianceDashboard() the generic

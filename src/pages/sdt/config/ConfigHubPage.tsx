@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import en from '../../../i18n/en'
+import { useI18n } from '../../../i18n/context'
 
 interface ConfigArea {
   key: string
@@ -15,53 +15,55 @@ interface ConfigArea {
  * which are gated identically server-side (MasterDataEntryPolicy::manage(),
  * KpiPolicy::manageDefinitions(), ReferralPolicy::manage()), so this hub
  * itself carries no separate authorization — AppLayout's ROLE_NAV_KEYS
- * restricts the 'config' nav entry to System Administrator only, matching
- * that same boundary.
+ * restricts the 'config' nav entry to the two administrator roles, matching
+ * that same boundary. ADR-006: a Ministry Administrator reaches the same six
+ * screens, each pinned to its own department server-side.
  */
 export default function ConfigHubPage() {
+  const { t } = useI18n()
   const areas: ConfigArea[] = [
     {
       key: 'alertFields',
       path: '/sdt/config/alert-fields',
-      title: en.sdt.configHub.alertFieldsTitle,
-      description: en.sdt.configHub.alertFieldsDescription,
+      title: t.sdt.configHub.alertFieldsTitle,
+      description: t.sdt.configHub.alertFieldsDescription,
     },
     {
       key: 'aieBudgetCodes',
       path: '/sdt/config/aie-budget-codes',
-      title: en.sdt.configHub.aieBudgetCodesTitle,
-      description: en.sdt.configHub.aieBudgetCodesDescription,
+      title: t.sdt.configHub.aieBudgetCodesTitle,
+      description: t.sdt.configHub.aieBudgetCodesDescription,
     },
     {
       key: 'inquirySettings',
       path: '/sdt/config/inquiry-settings',
-      title: en.sdt.configHub.inquirySettingsTitle,
-      description: en.sdt.configHub.inquirySettingsDescription,
+      title: t.sdt.configHub.inquirySettingsTitle,
+      description: t.sdt.configHub.inquirySettingsDescription,
     },
     {
       key: 'directiveSettings',
       path: '/sdt/config/directive-settings',
-      title: en.sdt.configHub.directiveSettingsTitle,
-      description: en.sdt.configHub.directiveSettingsDescription,
+      title: t.sdt.configHub.directiveSettingsTitle,
+      description: t.sdt.configHub.directiveSettingsDescription,
     },
     {
       key: 'kpiSettings',
       path: '/sdt/config/kpi-settings',
-      title: en.sdt.configHub.kpiSettingsTitle,
-      description: en.sdt.configHub.kpiSettingsDescription,
+      title: t.sdt.configHub.kpiSettingsTitle,
+      description: t.sdt.configHub.kpiSettingsDescription,
     },
     {
       key: 'referralOrganisations',
       path: '/sdt/config/referral-organisations',
-      title: en.sdt.configHub.referralOrganisationsTitle,
-      description: en.sdt.configHub.referralOrganisationsDescription,
+      title: t.sdt.configHub.referralOrganisationsTitle,
+      description: t.sdt.configHub.referralOrganisationsDescription,
     },
   ]
 
   return (
     <div className="p-6">
-      <h1 className="text-h1 text-primary">{en.sdt.configHub.title}</h1>
-      <p className="mt-2 text-body text-text-secondary">{en.sdt.configHub.subtitle}</p>
+      <h1 className="text-h1 text-primary">{t.sdt.configHub.title}</h1>
+      <p className="mt-2 text-body text-text-secondary">{t.sdt.configHub.subtitle}</p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {areas.map((area) => (

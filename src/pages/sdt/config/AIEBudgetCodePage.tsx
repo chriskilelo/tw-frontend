@@ -10,7 +10,10 @@ import { Table, type TableColumn } from '../../../components/Table'
 import { Badge } from '../../../components/Badge'
 import { Input } from '../../../components/Input'
 import { Button } from '../../../components/Button'
-import en from '../../../i18n/en'
+import { Pagination } from '../../../components/Pagination'
+import { useClientPagination } from '../../../hooks/useClientPagination'
+import { useAuth, isMinistryAdministrator } from '../../../hooks/useAuth'
+import { useI18n } from '../../../i18n/context'
 
 const QUERY_KEY = ['sdt', 'config', 'aie-budget-codes'] as const
 
@@ -23,11 +26,16 @@ const QUERY_KEY = ['sdt', 'config', 'aie-budget-codes'] as const
  * field is offered only as a fallback for the empty-list case.
  */
 export default function AIEBudgetCodePage() {
+  const { t } = useI18n()
   const queryClient = useQueryClient()
 
   const listQuery = useQuery({ queryKey: QUERY_KEY, queryFn: () => getAieBudgetCodes() })
   const entries = listQuery.data ?? []
-  const defaultMinistryId = entries[0]?.ministry_id ?? ''
+  const { user, role } = useAuth()
+  // ADR-006: a Ministry Administrator always writes to its own department (the backend pins
+  // it too), so it never needs the free-text ministry field below.
+  const defaultMinistryId = (isMinistryAdministrator(role?.name) ? user?.ministry_id : null) ?? entries[0]?.ministry_id ?? ''
+  const entriesPage = useClientPagination(entries)
 
   const [newValue, setNewValue] = useState('')
   const [newDisplayOrder, setNewDisplayOrder] = useState('')
@@ -86,7 +94,7 @@ export default function AIEBudgetCodePage() {
   const columns: TableColumn<AieBudgetCodeEntry>[] = [
     {
       key: 'value',
-      header: en.sdt.aieBudgetCodes.columnValue,
+      header: t.sdt.aieBudgetCodes.columnValue,
       render: (row) =>
         editingId === row.id ? (
           <Input value={editValue} onChange={(event) => setEditValue(event.target.value)} />
@@ -96,7 +104,7 @@ export default function AIEBudgetCodePage() {
     },
     {
       key: 'display_order',
-      header: en.sdt.aieBudgetCodes.columnDisplayOrder,
+      header: t.sdt.aieBudgetCodes.columnDisplayOrder,
       render: (row) =>
         editingId === row.id ? (
           <Input type="number" value={editDisplayOrder} onChange={(event) => setEditDisplayOrder(event.target.value)} />
@@ -106,31 +114,31 @@ export default function AIEBudgetCodePage() {
     },
     {
       key: 'active',
-      header: en.sdt.aieBudgetCodes.columnActive,
+      header: t.sdt.aieBudgetCodes.columnActive,
       render: (row) => (
-        <Badge variant={row.active ? 'success' : 'neutral'} label={row.active ? en.common.active : en.common.inactive} />
+        <Badge variant={row.active ? 'success' : 'neutral'} label={row.active ? t.common.active : t.common.inactive} />
       ),
     },
     {
       key: 'actions',
-      header: en.sdt.aieBudgetCodes.columnActions,
+      header: t.sdt.aieBudgetCodes.columnActions,
       render: (row) =>
         editingId === row.id ? (
           <div className="flex gap-2">
             <Button variant="primary" onClick={() => saveEdit(row.id)} disabled={updateMutation.isPending}>
-              {en.sdt.aieBudgetCodes.saveButton}
+              {t.sdt.aieBudgetCodes.saveButton}
             </Button>
             <Button variant="ghost" onClick={() => setEditingId(null)}>
-              {en.sdt.aieBudgetCodes.cancelButton}
+              {t.sdt.aieBudgetCodes.cancelButton}
             </Button>
           </div>
         ) : (
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => startEdit(row)}>
-              {en.sdt.aieBudgetCodes.editButton}
+              {t.sdt.aieBudgetCodes.editButton}
             </Button>
             <Button variant={row.active ? 'danger' : 'primary'} onClick={() => toggleActive(row)} disabled={updateMutation.isPending}>
-              {row.active ? en.sdt.aieBudgetCodes.deactivateButton : en.sdt.aieBudgetCodes.activateButton}
+              {row.active ? t.sdt.aieBudgetCodes.deactivateButton : t.sdt.aieBudgetCodes.activateButton}
             </Button>
           </div>
         ),
@@ -139,43 +147,54 @@ export default function AIEBudgetCodePage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-h1 text-primary">{en.sdt.aieBudgetCodes.title}</h1>
+      <h1 className="text-h1 text-primary">{t.sdt.aieBudgetCodes.title}</h1>
 
       <div className="mt-6">
-        <Table columns={columns} data={entries} rowKey={(row) => row.id} emptyMessage={en.sdt.aieBudgetCodes.empty} />
+        <Table
+          columns={columns}
+          data={entriesPage.pageItems}
+          rowKey={(row) => row.id}
+          emptyMessage={t.sdt.aieBudgetCodes.empty}
+        />
+        <Pagination
+          meta={entriesPage.meta}
+          onPageChange={entriesPage.setPage}
+          onPerPageChange={entriesPage.setPerPage}
+          className="mt-4"
+        />
       </div>
 
       <div className="mt-8 max-w-lg rounded-lg border border-border p-4">
-        <h2 className="text-h3 text-primary">{en.sdt.aieBudgetCodes.addTitle}</h2>
+        <h2 className="text-h3 text-primary">{t.sdt.aieBudgetCodes.addTitle}</h2>
         <form onSubmit={handleCreateSubmit} className="mt-4 flex flex-col gap-4">
           <Input
-            label={en.sdt.aieBudgetCodes.valueLabel}
-            placeholder={en.sdt.aieBudgetCodes.valuePlaceholder}
+            label={t.sdt.aieBudgetCodes.valueLabel}
+            placeholder={t.sdt.aieBudgetCodes.valuePlaceholder}
             required
             value={newValue}
             onChange={(event) => setNewValue(event.target.value)}
           />
           <Input
             type="number"
-            label={en.sdt.aieBudgetCodes.displayOrderLabel}
+            label={t.sdt.aieBudgetCodes.displayOrderLabel}
             value={newDisplayOrder}
             onChange={(event) => setNewDisplayOrder(event.target.value)}
           />
           {!defaultMinistryId && (
             <Input
-              label={en.sdt.aieBudgetCodes.ministryIdLabel}
+              label={t.sdt.aieBudgetCodes.ministryIdLabel}
               required
               value={newMinistryId}
               onChange={(event) => setNewMinistryId(event.target.value)}
             />
           )}
-          <p className="text-caption text-text-muted">{en.sdt.aieBudgetCodes.ministryIdHint}</p>
+          <p className="text-caption text-text-muted">{t.sdt.aieBudgetCodes.ministryIdHint}</p>
 
-          {createMutation.isError && <p className="text-body-sm text-danger-soft-text">{en.common.genericError}</p>}
+          {createMutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
 
           <div>
             <Button type="submit" disabled={createMutation.isPending || (!newMinistryId && !defaultMinistryId)}>
-              {en.sdt.aieBudgetCodes.addButton}
+              {t.sdt.aieBudgetCodes.addButton}
             </Button>
           </div>
         </form>

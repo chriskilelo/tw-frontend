@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom'
-import { useAuth } from './hooks/useAuth'
+import { useAuth, isMinistryAdministrator } from './hooks/useAuth'
 import AppLayout from './layouts/AppLayout'
 
 import LoginPage from './pages/auth/LoginPage'
@@ -41,6 +41,13 @@ import HrmdDashboardPage from './pages/sdt/HrmdDashboardPage'
 import SearchResultsPage from './pages/search/SearchResultsPage'
 import CountryProfilePage from './pages/search/CountryProfilePage'
 import NotFoundPage from './pages/NotFoundPage'
+import UserListPage from './pages/admin/UserListPage'
+import UserFormPage from './pages/admin/UserFormPage'
+import ApprovalRequestsPage from './pages/admin/ApprovalRequestsPage'
+import MissionPostingsPage from './pages/admin/MissionPostingsPage'
+import LeadershipSwitchesPage from './pages/admin/LeadershipSwitchesPage'
+import AuditLogPage from './pages/admin/AuditLogPage'
+import MinistriesPage from './pages/admin/MinistriesPage'
 
 /**
  * Redirects unauthenticated users to /login (CLAUDE.md Section 2 decoupled SPA /
@@ -63,6 +70,21 @@ function ProtectedRoute() {
 
 // Route names mirror API-001's endpoint map (14_TW_API_Specification.md Sections 3-12)
 // so a given resource's UI path and API path stay easy to cross-reference.
+/**
+ * ADR-006 / BR-025: a Ministry Administrator has no operational access, so the dashboard
+ * (which calls operational endpoints) is never its landing page — it goes to User Accounts.
+ * Every other role lands on the dashboard as before.
+ */
+function DashboardRoute() {
+  const { role } = useAuth()
+
+  if (isMinistryAdministrator(role?.name)) {
+    return <Navigate to="/admin/users" replace />
+  }
+
+  return <DashboardPage />
+}
+
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
@@ -74,7 +96,7 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: '/', element: <Navigate to="/dashboard" replace /> },
-          { path: '/dashboard', element: <DashboardPage /> },
+          { path: '/dashboard', element: <DashboardRoute /> },
           { path: '/profile', element: <ProfilePage /> },
           { path: '/alerts', element: <AlertListPage /> },
           { path: '/alerts/new', element: <AlertSubmitPage /> },
@@ -110,6 +132,15 @@ export const router = createBrowserRouter([
           { path: '/sdt/hrmd-dashboard', element: <HrmdDashboardPage /> },
           { path: '/search', element: <SearchResultsPage /> },
           { path: '/search/countries/:country', element: <CountryProfilePage /> },
+          { path: '/admin/users', element: <UserListPage /> },
+          { path: '/admin/users/new', element: <UserFormPage /> },
+          { path: '/admin/users/:id', element: <UserFormPage /> },
+          { path: '/admin/approvals', element: <ApprovalRequestsPage /> },
+          { path: '/admin/approvals/:id', element: <ApprovalRequestsPage /> },
+          { path: '/admin/mission-postings', element: <MissionPostingsPage /> },
+          { path: '/admin/leadership', element: <LeadershipSwitchesPage /> },
+          { path: '/admin/audit-log', element: <AuditLogPage /> },
+          { path: '/admin/ministries', element: <MinistriesPage /> },
         ],
       },
     ],
