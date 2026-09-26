@@ -7,6 +7,7 @@ import * as authApi from '../../api/auth'
 import * as missionsApi from '../../api/missions'
 import * as governanceApi from '../../api/governance'
 import type { MeResponse } from '../../api/auth'
+import { I18nProvider } from '../../i18n/context'
 
 vi.mock('../../api/auth', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/auth')>()
@@ -52,9 +53,11 @@ function renderPage() {
   })
   return render(
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <MemoryRouter initialEntries={['/mfa-awareness']}>
         <MfaAwarenessPage />
       </MemoryRouter>
+      </I18nProvider>
     </QueryClientProvider>,
   )
 }

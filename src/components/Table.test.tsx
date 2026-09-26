@@ -33,4 +33,28 @@ describe('Table', () => {
     await userEvent.click(screen.getByText('ALT-202608-00001'))
     expect(onRowClick).toHaveBeenCalledWith(data[0])
   })
+
+  it('bolds an identifier column in the signature navy, and applies the shared row-hover class', () => {
+    const data: Row[] = [{ id: '1', reference: 'ALT-202608-00001' }]
+    render(<Table columns={columns} data={data} rowKey={(row) => row.id} />)
+    const cell = screen.getByText('ALT-202608-00001')
+    expect(cell.className).toContain('font-bold')
+    expect(cell.className).toContain('text-primary')
+    expect(cell.closest('tr')?.className).toContain('tw-table-row')
+  })
+
+  it('does not apply identifier styling to a non-identifier column', () => {
+    interface CountryRow {
+      id: string
+      country: string
+    }
+    const countryColumns: TableColumn<CountryRow>[] = [
+      { key: 'country', header: 'Country', render: (row) => row.country },
+    ]
+    const data: CountryRow[] = [{ id: '1', country: 'Kenya' }]
+    render(<Table columns={countryColumns} data={data} rowKey={(row) => row.id} />)
+    const cell = screen.getByText('Kenya')
+    expect(cell.className).not.toContain('font-bold')
+    expect(cell.className).toContain('text-text-primary')
+  })
 })

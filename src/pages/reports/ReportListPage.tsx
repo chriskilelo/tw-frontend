@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { listPeriodicReports, type PeriodicReport, type PeriodicReportStatus } from '../../api/reports'
 import { useAuth, isReadOnlyRole } from '../../hooks/useAuth'
 import { Table, type TableColumn } from '../../components/Table'
 import { Button } from '../../components/Button'
+import { Pagination, DEFAULT_PER_PAGE } from '../../components/Pagination'
 import { ReportStatusBadge, ReportLateBadge } from './ReportStatusBadge'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 const STATUS_OPTIONS: PeriodicReportStatus[] = ['draft', 'submitted']
 
@@ -23,6 +24,7 @@ const STATUS_OPTIONS: PeriodicReportStatus[] = ['draft', 'submitted']
  * "individual report" entry point the backend's actual response shape supports.
  */
 export default function ReportListPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const { role } = useAuth()
   const readOnly = isReadOnlyRole(role?.name)
@@ -33,11 +35,23 @@ export default function ReportListPage() {
   const periodLabel = searchParams.get('period') ?? undefined
 
   const [status, setStatus] = useState<PeriodicReportStatus | ''>('')
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [status, missionId, periodLabel, perPage])
 
   const listQuery = useQuery({
-    queryKey: ['periodic-reports', { status, missionId, periodLabel }],
+    queryKey: ['periodic-reports', { status, missionId, periodLabel, page, perPage }],
     queryFn: () =>
-      listPeriodicReports({ status: status || undefined, mission_id: missionId, reporting_period_label: periodLabel }),
+      listPeriodicReports({
+        status: status || undefined,
+        mission_id: missionId,
+        reporting_period_label: periodLabel,
+        page,
+        per_page: perPage,
+      }),
   })
 
   const reports = listQuery.data?.data ?? []
@@ -49,17 +63,17 @@ export default function ReportListPage() {
   const columns: TableColumn<PeriodicReport>[] = [
     {
       key: 'mission',
-      header: en.reports.list.columnMission,
+      header: t.reports.list.columnMission,
       render: (row) => row.mission?.name ?? '—',
     },
     {
       key: 'reporting_period_label',
-      header: en.reports.list.columnPeriod,
+      header: t.reports.list.columnPeriod,
       render: (row) => row.reporting_period_label,
     },
     {
       key: 'status',
-      header: en.reports.list.columnStatus,
+      header: t.reports.list.columnStatus,
       render: (row) => (
         <div className="flex flex-wrap items-center gap-2">
           <ReportStatusBadge status={row.status} />
@@ -69,34 +83,34 @@ export default function ReportListPage() {
     },
     {
       key: 'submitted_at',
-      header: en.reports.list.columnSubmittedAt,
-      render: (row) => (row.submitted_at ? new Date(row.submitted_at).toLocaleString() : en.reports.list.notSubmitted),
+      header: t.reports.list.columnSubmittedAt,
+      render: (row) => (row.submitted_at ? new Date(row.submitted_at).toLocaleString() : t.reports.list.notSubmitted),
     },
   ]
 
   return (
     <div className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-h1 text-primary">{en.reports.list.title}</h1>
+        <h1 className="text-h1 text-primary">{t.reports.list.title}</h1>
         {canCreate && (
           <Link to="/reports/new">
-            <Button variant="primary">{en.reports.list.newReportButton}</Button>
+            <Button variant="primary">{t.reports.list.newReportButton}</Button>
           </Link>
         )}
       </div>
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{en.reports.list.filterStatus}</span>
+          <span className="text-body-sm font-semibold text-text-secondary">{t.reports.list.filterStatus}</span>
           <select
             value={status}
             onChange={(event) => setStatus(event.target.value as PeriodicReportStatus | '')}
             className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           >
-            <option value="">{en.reports.list.allStatuses}</option>
+            <option value="">{t.reports.list.allStatuses}</option>
             {STATUS_OPTIONS.map((option) => (
               <option key={option} value={option}>
-                {en.reports.status[option]}
+                {t.reports.status[option]}
               </option>
             ))}
           </select>
@@ -105,9 +119,9 @@ export default function ReportListPage() {
 
       {(missionId || periodLabel) && (
         <p className="mt-3 text-body-sm text-text-secondary">
-          {en.reports.list.filteredFromCompliance}{' '}
+          {t.reports.list.filteredFromCompliance}{' '}
           <Link to="/reports" className="font-semibold text-accent-text underline">
-            {en.reports.list.clearFilter}
+            {t.reports.list.clearFilter}
           </Link>
         </p>
       )}
@@ -117,9 +131,12 @@ export default function ReportListPage() {
           columns={columns}
           data={reports}
           rowKey={(row) => row.id}
-          emptyMessage={en.reports.list.empty}
+          emptyMessage={t.reports.list.empty}
           onRowClick={(row) => goToReport(row.id)}
         />
+        {listQuery.data?.meta && (
+          <Pagination meta={listQuery.data.meta} onPageChange={setPage} onPerPageChange={setPerPage} className="mt-4" />
+        )}
       </div>
     </div>
   )

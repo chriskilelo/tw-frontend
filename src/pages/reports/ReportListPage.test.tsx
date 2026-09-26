@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ReportListPage from './ReportListPage'
 import * as reportsApi from '../../api/reports'
+import { I18nProvider } from '../../i18n/context'
 
 vi.mock('../../api/reports', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/reports')>()
@@ -16,9 +17,11 @@ function renderPage(initialEntry = '/reports') {
   })
   return render(
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <MemoryRouter initialEntries={[initialEntry]}>
         <ReportListPage />
       </MemoryRouter>
+      </I18nProvider>
     </QueryClientProvider>,
   )
 }
@@ -95,6 +98,8 @@ describe('ReportListPage', () => {
       status: undefined,
       mission_id: 'mission-1',
       reporting_period_label: 'Q1 2027',
+      page: 1,
+      per_page: 10,
     })
     expect(screen.getByText('Filtered from the compliance console.')).toBeInTheDocument()
   })

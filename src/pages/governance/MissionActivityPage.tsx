@@ -10,13 +10,18 @@ import {
 } from '../../api/governance'
 import { Table, type TableColumn } from '../../components/Table'
 import { Badge, type BadgeVariant } from '../../components/Badge'
-import en from '../../i18n/en'
+import { Pagination } from '../../components/Pagination'
+import { useClientPagination } from '../../hooks/useClientPagination'
+import { useI18n } from '../../i18n/context'
 
-const TYPE_LABEL: Record<GovernanceItemType, string> = {
-  alert: en.nav.alerts,
-  inquiry: en.nav.inquiries,
-  directive: en.nav.directives,
-  periodic_report: en.nav.reports,
+function typeLabel(t: ReturnType<typeof useI18n>['t'], type: GovernanceItemType): string {
+  const TYPE_LABEL: Record<GovernanceItemType, string> = {
+    alert: t.nav.alerts,
+    inquiry: t.nav.inquiries,
+    directive: t.nav.directives,
+    periodic_report: t.nav.reports,
+  }
+  return TYPE_LABEL[type]
 }
 
 const TYPE_BADGE_VARIANT: Record<GovernanceItemType, BadgeVariant> = {
@@ -32,6 +37,7 @@ const TYPE_BADGE_VARIANT: Record<GovernanceItemType, BadgeVariant> = {
  * enforcement BasePolicy::before() already applies at the API layer for this role.
  */
 export default function MissionActivityPage() {
+  const { t } = useI18n()
   const { user } = useAuth()
 
   const missionsQuery = useQuery({ queryKey: ['missions'], queryFn: listMissions })
@@ -48,37 +54,38 @@ export default function MissionActivityPage() {
   })
 
   const items = feedQuery.data?.data ?? []
-  const title = en.governance.missionActivity.title.replace('{mission}', mission?.name ?? '…')
+  const title = t.governance.missionActivity.title.replace('{mission}', mission?.name ?? '…')
+  const itemsPage = useClientPagination(items)
 
   const columns: TableColumn<GovernanceFeedItem>[] = [
     {
       key: 'type',
-      header: en.governance.missionActivity.columnType,
-      render: (row) => <Badge variant={TYPE_BADGE_VARIANT[row.type]} label={TYPE_LABEL[row.type]} />,
+      header: t.governance.missionActivity.columnType,
+      render: (row) => <Badge variant={TYPE_BADGE_VARIANT[row.type]} label={typeLabel(t, row.type)} />,
     },
     {
       key: 'reference',
-      header: en.governance.missionActivity.columnReference,
+      header: t.governance.missionActivity.columnReference,
       render: (row) => <span className="font-mono">{row.reference}</span>,
     },
     {
       key: 'status',
-      header: en.governance.missionActivity.columnStatus,
+      header: t.governance.missionActivity.columnStatus,
       render: (row) => row.status ?? '—',
     },
     {
       key: 'submitting_officer',
-      header: en.governance.missionActivity.columnOfficer,
+      header: t.governance.missionActivity.columnOfficer,
       render: (row) => row.submitting_officer ?? '—',
     },
     {
       key: 'summary',
-      header: en.governance.missionActivity.columnSummary,
+      header: t.governance.missionActivity.columnSummary,
       render: (row) => row.summary,
     },
     {
       key: 'date',
-      header: en.governance.missionActivity.columnDate,
+      header: t.governance.missionActivity.columnDate,
       render: (row) => new Date(row.date).toLocaleString(),
     },
   ]
@@ -86,26 +93,32 @@ export default function MissionActivityPage() {
   return (
     <div className="p-6">
       <h1 className="text-h1 text-primary">{title}</h1>
-      <Badge variant="neutral" label={en.common.readOnly} className="mt-2" />
+      <Badge variant="neutral" label={t.common.readOnly} className="mt-2" />
 
       <section className="mt-6">
-        <h2 className="text-h3 text-primary">{en.governance.missionActivity.summaryTitle}</h2>
+        <h2 className="text-h3 text-primary">{t.governance.missionActivity.summaryTitle}</h2>
         {summaryQuery.data && (
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <PeriodSummaryCard label={en.governance.missionActivity.currentPeriodLabel} period={summaryQuery.data.current_period} />
-            <PeriodSummaryCard label={en.governance.missionActivity.priorPeriodLabel} period={summaryQuery.data.prior_period} />
+            <PeriodSummaryCard label={t.governance.missionActivity.currentPeriodLabel} period={summaryQuery.data.current_period} />
+            <PeriodSummaryCard label={t.governance.missionActivity.priorPeriodLabel} period={summaryQuery.data.prior_period} />
           </div>
         )}
       </section>
 
       <section className="mt-8">
-        <h2 className="text-h3 text-primary">{en.governance.missionActivity.feedTitle}</h2>
+        <h2 className="text-h3 text-primary">{t.governance.missionActivity.feedTitle}</h2>
         <div className="mt-3">
           <Table
             columns={columns}
-            data={items}
+            data={itemsPage.pageItems}
             rowKey={(row) => `${row.type}-${row.id}`}
-            emptyMessage={en.governance.missionActivity.empty}
+            emptyMessage={t.governance.missionActivity.empty}
+          />
+          <Pagination
+            meta={itemsPage.meta}
+            onPageChange={itemsPage.setPage}
+            onPerPageChange={itemsPage.setPerPage}
+            className="mt-4"
           />
         </div>
       </section>
@@ -114,6 +127,7 @@ export default function MissionActivityPage() {
 }
 
 function PeriodSummaryCard({ label, period }: { label: string; period: GovernanceActivityPeriod }) {
+  const { t } = useI18n()
   return (
     <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
       <p className="text-body-sm text-text-muted">{label}</p>
@@ -124,7 +138,7 @@ function PeriodSummaryCard({ label, period }: { label: string; period: Governanc
       <dl className="mt-3 space-y-1 text-body-sm">
         {Object.entries(period.by_type).map(([type, count]) => (
           <div key={type} className="flex justify-between">
-            <dt className="text-text-secondary">{TYPE_LABEL[type as GovernanceItemType] ?? type}</dt>
+            <dt className="text-text-secondary">{typeLabel(t, type as GovernanceItemType) ?? type}</dt>
             <dd className="font-mono text-text-primary">{count}</dd>
           </div>
         ))}

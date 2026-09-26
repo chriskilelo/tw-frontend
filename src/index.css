@@ -8,3 +8,29 @@ body {
   color: var(--color-text-primary);
   background-color: var(--color-page-bg);
 }
+
+/*
+ * Global table row hover (src/components/Table.tsx, the single shared table component).
+ * A very subtle transform-based "grow" reads as a font-size bump without changing layout:
+ * transform doesn't participate in table reflow, so column widths and row heights never
+ * jump the way an actual font-size change would.
+ * Scoped to real hover-capable pointers (a mouse) so it never sticks on touch/tablet taps.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .tw-table-row {
+    transition: transform 150ms ease-out;
+    transform-origin: left center;
+  }
+
+  .tw-table-row:hover {
+    transform: scale(1.018);
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-table-row {
+    transition: none;
+  }
+}

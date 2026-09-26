@@ -7,6 +7,7 @@ import * as authApi from '../../api/auth'
 import * as missionsApi from '../../api/missions'
 import * as governanceApi from '../../api/governance'
 import type { MeResponse } from '../../api/auth'
+import { I18nProvider } from '../../i18n/context'
 
 vi.mock('../../api/auth', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/auth')>()
@@ -47,9 +48,11 @@ function renderPage() {
   })
   return render(
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <MemoryRouter initialEntries={['/mission-activity']}>
         <MissionActivityPage />
       </MemoryRouter>
+      </I18nProvider>
     </QueryClientProvider>,
   )
 }
@@ -76,7 +79,7 @@ describe('MissionActivityPage', () => {
           date: '2026-08-10T10:00:00Z',
         },
       ],
-      meta: { current_page: 1, per_page: 25, total: 1 },
+      meta: { current_page: 1, per_page: 25, total: 1, last_page: 1 },
     })
     vi.mocked(governanceApi.getMissionActivitySummary).mockReset().mockResolvedValue({
       current_period: {
@@ -110,8 +113,12 @@ describe('MissionActivityPage', () => {
     expect(await screen.findByText('ALT-202608-00001')).toBeInTheDocument()
     expect(screen.getByText('Purity Samanthe')).toBeInTheDocument()
 
-    // UI-006 / CLAUDE.md Rule 2: completely read-only, no action buttons anywhere.
-    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    // UI-006 / CLAUDE.md Rule 2: completely read-only, no *mutating* action buttons anywhere.
+    // The Pagination control's Back/page/Next buttons are navigation, not a write action, so
+    // they're excluded from this check rather than making the page's table unpaginated.
+    const pagination = screen.getByRole('navigation', { name: 'Pagination' })
+    const buttonsOutsidePagination = screen.queryAllByRole('button').filter((button) => !pagination.contains(button))
+    expect(buttonsOutsidePagination).toHaveLength(0)
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 

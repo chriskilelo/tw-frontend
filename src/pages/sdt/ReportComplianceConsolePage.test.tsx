@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ReportComplianceConsolePage from './ReportComplianceConsolePage'
 import * as sdtApi from '../../api/sdt'
+import { I18nProvider } from '../../i18n/context'
 
 vi.mock('../../api/sdt', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/sdt')>()
@@ -16,9 +17,11 @@ function renderPage() {
   })
   return render(
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <MemoryRouter initialEntries={['/sdt/reports/compliance']}>
         <ReportComplianceConsolePage />
       </MemoryRouter>
+      </I18nProvider>
     </QueryClientProvider>,
   )
 }

@@ -6,9 +6,11 @@ import type { AlertStatus } from '../../api/alerts'
 import { Table, type TableColumn } from '../../components/Table'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
+import { Pagination } from '../../components/Pagination'
+import { useClientPagination } from '../../hooks/useClientPagination'
 import { AlertStatusBadge } from '../alerts/AlertStatusBadge'
 import type { CountryProfileAlert } from '../../api/search'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 /**
  * FR-SEARCH-004. App\Services\SearchService::countryProfile() aggregates
@@ -19,6 +21,7 @@ import en from '../../i18n/en'
  * or fabricating a mission-level proxy.
  */
 export default function CountryProfilePage() {
+  const { t } = useI18n()
   const { country: routeCountry } = useParams<{ country: string }>()
   const navigate = useNavigate()
   const country = routeCountry ?? ''
@@ -29,6 +32,8 @@ export default function CountryProfilePage() {
     queryFn: () => getCountryProfile(country),
     enabled: country.trim().length > 0,
   })
+
+  const recentAlertsPage = useClientPagination(profileQuery.data?.recent_alerts ?? [])
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -41,24 +46,24 @@ export default function CountryProfilePage() {
   const columns: TableColumn<CountryProfileAlert>[] = [
     {
       key: 'reference_number',
-      header: en.search.countryProfile.columnReference,
+      header: t.search.countryProfile.columnReference,
       render: (row) => <span className="font-mono">{row.reference_number}</span>,
     },
     {
       key: 'intelligence_type',
-      header: en.search.countryProfile.columnIntelligenceType,
+      header: t.search.countryProfile.columnIntelligenceType,
       render: (row) => row.intelligence_type,
     },
-    { key: 'sector', header: en.search.countryProfile.columnSector, render: (row) => row.sector ?? '—' },
+    { key: 'sector', header: t.search.countryProfile.columnSector, render: (row) => row.sector ?? '—' },
     {
       key: 'status',
-      header: en.search.countryProfile.columnStatus,
+      header: t.search.countryProfile.columnStatus,
       render: (row) => <AlertStatusBadge status={row.status as AlertStatus} />,
     },
-    { key: 'mission', header: en.search.countryProfile.columnMission, render: (row) => row.mission ?? '—' },
+    { key: 'mission', header: t.search.countryProfile.columnMission, render: (row) => row.mission ?? '—' },
     {
       key: 'created_at',
-      header: en.search.countryProfile.columnDate,
+      header: t.search.countryProfile.columnDate,
       render: (row) => new Date(row.created_at).toLocaleString(),
     },
   ]
@@ -66,63 +71,69 @@ export default function CountryProfilePage() {
   return (
     <div className="p-6">
       <Link to="/search" className="text-body-sm font-semibold text-accent-soft-text hover:underline">
-        ← {en.search.countryProfile.backToSearch}
+        ← {t.search.countryProfile.backToSearch}
       </Link>
 
       <h1 className="mt-2 text-h1 text-primary">
-        {en.search.countryProfile.title.replace('{country}', country || '…')}
+        {t.search.countryProfile.title.replace('{country}', country || '…')}
       </h1>
 
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
         <Input
-          label={en.search.countryProfile.countryLabel}
+          label={t.search.countryProfile.countryLabel}
           value={inputValue}
           onChange={(event) => setInputValue(event.target.value)}
           className="sm:w-64"
         />
-        <Button type="submit">{en.search.results.submitButton}</Button>
+        <Button type="submit">{t.search.results.submitButton}</Button>
       </form>
 
-      {profileQuery.isLoading && <p className="mt-6 text-body text-text-muted">{en.common.loading}</p>}
+      {profileQuery.isLoading && <p className="mt-6 text-body text-text-muted">{t.common.loading}</p>}
 
       {profileQuery.data && (
         <>
           <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
-              <p className="text-body-sm text-text-muted">{en.search.countryProfile.totalAlertsLabel}</p>
+              <p className="text-body-sm text-text-muted">{t.search.countryProfile.totalAlertsLabel}</p>
               <p className="mt-1 font-mono text-h1 text-primary">{profileQuery.data.total_alerts}</p>
             </div>
             <BreakdownCard
-              title={en.search.countryProfile.byIntelligenceTypeTitle}
+              title={t.search.countryProfile.byIntelligenceTypeTitle}
               breakdown={profileQuery.data.by_intelligence_type}
             />
-            <BreakdownCard title={en.search.countryProfile.bySectorTitle} breakdown={profileQuery.data.by_sector} />
+            <BreakdownCard title={t.search.countryProfile.bySectorTitle} breakdown={profileQuery.data.by_sector} />
           </section>
 
           <section className="mt-8">
-            <h2 className="text-h3 text-primary">{en.search.countryProfile.recentAlertsTitle}</h2>
+            <h2 className="text-h3 text-primary">{t.search.countryProfile.recentAlertsTitle}</h2>
             <div className="mt-3">
               <Table
                 columns={columns}
-                data={profileQuery.data.recent_alerts}
+                data={recentAlertsPage.pageItems}
                 rowKey={(row) => row.id}
-                emptyMessage={en.search.countryProfile.empty}
+                emptyMessage={t.search.countryProfile.empty}
                 onRowClick={(row) => navigate(`/alerts/${row.id}`)}
+              />
+              <Pagination
+                meta={recentAlertsPage.meta}
+                onPageChange={recentAlertsPage.setPage}
+                onPerPageChange={recentAlertsPage.setPerPage}
+                className="mt-4"
               />
             </div>
           </section>
 
           <section className="mt-8">
-            <h2 className="text-h3 text-primary">{en.search.countryProfile.openInquiriesTitle}</h2>
+            <h2 className="text-h3 text-primary">{t.search.countryProfile.openInquiriesTitle}</h2>
             <p className="mt-2 rounded border border-border bg-section-bg p-3 text-body-sm text-text-muted">
-              {en.search.countryProfile.openInquiriesUnavailable}
+              {t.search.countryProfile.openInquiriesUnavailable}
             </p>
           </section>
 
           <section className="mt-8">
-            <h2 className="text-h3 text-primary">{en.search.countryProfile.recentReportsTitle}</h2>
+            <h2 className="text-h3 text-primary">{t.search.countryProfile.recentReportsTitle}</h2>
             <p className="mt-2 rounded border border-border bg-section-bg p-3 text-body-sm text-text-muted">
-              {en.search.countryProfile.recentReportsUnavailable}
+              {t.search.countryProfile.recentReportsUnavailable}
             </p>
           </section>
         </>

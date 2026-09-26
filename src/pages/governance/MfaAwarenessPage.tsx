@@ -11,7 +11,9 @@ import {
 import { Table, type TableColumn } from '../../components/Table'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
-import en from '../../i18n/en'
+import { Pagination } from '../../components/Pagination'
+import { useClientPagination } from '../../hooks/useClientPagination'
+import { useI18n } from '../../i18n/context'
 
 type Tab = 'aggregate' | 'national'
 
@@ -26,6 +28,7 @@ interface MissionCount {
  * App\Services\GovernanceService::mfaAwarenessSummary()'s aggregate-only response.
  */
 export default function MfaAwarenessPage() {
+  const { t } = useI18n()
   const { role } = useAuth()
   const isMfaPrincipalSecretary = role?.name === 'MFA Principal Secretary'
   const [tab, setTab] = useState<Tab>('aggregate')
@@ -53,19 +56,21 @@ export default function MfaAwarenessPage() {
 
   const selectedMission = missionsQuery.data?.find((mission) => mission.id === selectedMissionId) ?? null
 
+  const missionCountsPage = useClientPagination(missionCounts)
+
   const missionColumns: TableColumn<MissionCount>[] = [
-    { key: 'mission', header: en.governance.mfaAwareness.columnMission, render: (row) => row.mission.name },
+    { key: 'mission', header: t.governance.mfaAwareness.columnMission, render: (row) => row.mission.name },
     {
       key: 'count',
-      header: en.governance.mfaAwareness.columnCount,
+      header: t.governance.mfaAwareness.columnCount,
       render: (row) => <span className="font-mono">{row.count}</span>,
     },
   ]
 
   return (
     <div className="p-6">
-      <h1 className="text-h1 text-primary">{en.governance.mfaAwareness.title}</h1>
-      <Badge variant="neutral" label={en.common.readOnly} className="mt-2" />
+      <h1 className="text-h1 text-primary">{t.governance.mfaAwareness.title}</h1>
+      <Badge variant="neutral" label={t.common.readOnly} className="mt-2" />
 
       {isMfaPrincipalSecretary && (
         <div className="mt-4 flex gap-2">
@@ -73,13 +78,13 @@ export default function MfaAwarenessPage() {
             variant={tab === 'aggregate' ? 'primary' : 'secondary'}
             onClick={() => setTab('aggregate')}
           >
-            {en.governance.mfaAwareness.aggregateTitle}
+            {t.governance.mfaAwareness.aggregateTitle}
           </Button>
           <Button
             variant={tab === 'national' ? 'primary' : 'secondary'}
             onClick={() => setTab('national')}
           >
-            {en.governance.mfaAwareness.nationalOverviewTab}
+            {t.governance.mfaAwareness.nationalOverviewTab}
           </Button>
         </div>
       )}
@@ -88,12 +93,12 @@ export default function MfaAwarenessPage() {
         <>
           {summaryQuery.data && (
             <section className="mt-6">
-              <h2 className="text-h3 text-primary">{en.governance.mfaAwareness.aggregateTitle}</h2>
+              <h2 className="text-h3 text-primary">{t.governance.mfaAwareness.aggregateTitle}</h2>
               <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <StatTile label={en.governance.mfaAwareness.totalLabel} value={summaryQuery.data.total} />
-                <BreakdownTile title={en.governance.mfaAwareness.byTypeTitle} breakdown={summaryQuery.data.by_type} />
+                <StatTile label={t.governance.mfaAwareness.totalLabel} value={summaryQuery.data.total} />
+                <BreakdownTile title={t.governance.mfaAwareness.byTypeTitle} breakdown={summaryQuery.data.by_type} />
                 <BreakdownTile
-                  title={en.governance.mfaAwareness.byPeriodTitle}
+                  title={t.governance.mfaAwareness.byPeriodTitle}
                   breakdown={summaryQuery.data.by_period}
                 />
               </div>
@@ -101,14 +106,20 @@ export default function MfaAwarenessPage() {
           )}
 
           <section className="mt-8">
-            <h2 className="text-h3 text-primary">{en.governance.mfaAwareness.byMissionTitle}</h2>
+            <h2 className="text-h3 text-primary">{t.governance.mfaAwareness.byMissionTitle}</h2>
             <div className="mt-3">
               <Table
                 columns={missionColumns}
-                data={missionCounts}
+                data={missionCountsPage.pageItems}
                 rowKey={(row) => row.mission.id}
-                emptyMessage={en.governance.mfaAwareness.empty}
+                emptyMessage={t.governance.mfaAwareness.empty}
                 onRowClick={(row) => setSelectedMissionId(row.mission.id)}
+              />
+              <Pagination
+                meta={missionCountsPage.meta}
+                onPageChange={missionCountsPage.setPage}
+                onPerPageChange={missionCountsPage.setPerPage}
+                className="mt-4"
               />
             </div>
           </section>
@@ -117,21 +128,21 @@ export default function MfaAwarenessPage() {
             <section className="mt-8">
               <div className="flex items-center justify-between">
                 <h2 className="text-h3 text-primary">
-                  {en.governance.mfaAwareness.missionDrillDownTitle}
+                  {t.governance.mfaAwareness.missionDrillDownTitle}
                   {selectedMission ? ` — ${selectedMission.name}` : ''}
                 </h2>
                 <Button variant="ghost" onClick={() => setSelectedMissionId(null)}>
-                  {en.governance.mfaAwareness.backToOverview}
+                  {t.governance.mfaAwareness.backToOverview}
                 </Button>
               </div>
               {drillDownQuery.data && (
                 <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <PeriodSummaryCard
-                    label={en.governance.mfaAwareness.currentPeriodLabel}
+                    label={t.governance.mfaAwareness.currentPeriodLabel}
                     period={drillDownQuery.data.current_period}
                   />
                   <PeriodSummaryCard
-                    label={en.governance.mfaAwareness.priorPeriodLabel}
+                    label={t.governance.mfaAwareness.priorPeriodLabel}
                     period={drillDownQuery.data.prior_period}
                   />
                 </div>
@@ -143,18 +154,18 @@ export default function MfaAwarenessPage() {
 
       {tab === 'national' && isMfaPrincipalSecretary && (
         <section className="mt-6">
-          <h2 className="text-h3 text-primary">{en.governance.mfaAwareness.nationalOverviewTab}</h2>
+          <h2 className="text-h3 text-primary">{t.governance.mfaAwareness.nationalOverviewTab}</h2>
           <div className="mt-3 flex flex-col gap-4">
             {(nationalOverviewQuery.data?.missions ?? []).map((mission) => (
               <div key={mission.mission_id} className="rounded-lg border border-border bg-white p-4 shadow-sm">
                 <p className="text-body font-semibold text-text-primary">{mission.mission_name}</p>
                 <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <PeriodSummaryCard
-                    label={en.governance.mfaAwareness.currentPeriodLabel}
+                    label={t.governance.mfaAwareness.currentPeriodLabel}
                     period={mission.current_period}
                   />
                   <PeriodSummaryCard
-                    label={en.governance.mfaAwareness.priorPeriodLabel}
+                    label={t.governance.mfaAwareness.priorPeriodLabel}
                     period={mission.prior_period}
                   />
                 </div>

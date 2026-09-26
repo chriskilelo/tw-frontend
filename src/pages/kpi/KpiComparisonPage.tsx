@@ -4,7 +4,9 @@ import { getKpiComparison, getCurrentQuarter, type ComparisonMissionRow } from '
 import { KpiStatusBadge } from './KpiStatusBadge'
 import { Table, type TableColumn } from '../../components/Table'
 import { Input } from '../../components/Input'
-import en from '../../i18n/en'
+import { Pagination } from '../../components/Pagination'
+import { useClientPagination } from '../../hooks/useClientPagination'
+import { useI18n } from '../../i18n/context'
 
 /**
  * FR-KPI-013: cross-mission comparison matrix. Ministry HQ Director / Ministry PS /
@@ -14,6 +16,7 @@ import en from '../../i18n/en'
  * row shares an identical, same-ordered KPI column set.
  */
 export default function KpiComparisonPage() {
+  const { t } = useI18n()
   const [cycleLabel, setCycleLabel] = useState(() => getCurrentQuarter().label)
 
   const comparisonQuery = useQuery({
@@ -24,9 +27,10 @@ export default function KpiComparisonPage() {
 
   const missions = comparisonQuery.data?.missions ?? []
   const kpiColumns = missions[0]?.kpis ?? []
+  const missionsPage = useClientPagination(missions)
 
   const columns: TableColumn<ComparisonMissionRow>[] = [
-    { key: 'mission_name', header: en.kpi.comparison.columnMission, render: (row) => row.mission_name },
+    { key: 'mission_name', header: t.kpi.comparison.columnMission, render: (row) => row.mission_name },
     ...kpiColumns.map(
       (kpiColumn): TableColumn<ComparisonMissionRow> => ({
         key: kpiColumn.kpi_definition_id,
@@ -49,11 +53,11 @@ export default function KpiComparisonPage() {
 
   return (
     <div className="p-6" data-testid="kpi-comparison-page">
-      <h1 className="text-h1 text-primary">{en.kpi.comparison.title}</h1>
+      <h1 className="text-h1 text-primary">{t.kpi.comparison.title}</h1>
 
       <div className="mt-4">
         <Input
-          label={en.kpi.comparison.cycleLabelLabel}
+          label={t.kpi.comparison.cycleLabelLabel}
           value={cycleLabel}
           onChange={(event) => setCycleLabel(event.target.value)}
           className="sm:w-40"
@@ -61,7 +65,18 @@ export default function KpiComparisonPage() {
       </div>
 
       <div className="mt-6">
-        <Table columns={columns} data={missions} rowKey={(row) => row.mission_id} emptyMessage={en.kpi.comparison.empty} />
+        <Table
+          columns={columns}
+          data={missionsPage.pageItems}
+          rowKey={(row) => row.mission_id}
+          emptyMessage={t.kpi.comparison.empty}
+        />
+        <Pagination
+          meta={missionsPage.meta}
+          onPageChange={missionsPage.setPage}
+          onPerPageChange={missionsPage.setPerPage}
+          className="mt-4"
+        />
       </div>
     </div>
   )

@@ -7,6 +7,7 @@ import * as authApi from '../../api/auth'
 import * as alertsApi from '../../api/alerts'
 import * as sdtApi from '../../api/sdt'
 import type { MeResponse } from '../../api/auth'
+import { I18nProvider } from '../../i18n/context'
 
 vi.mock('../../api/auth', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/auth')>()
@@ -47,9 +48,11 @@ function renderPage() {
   })
   return render(
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <MemoryRouter initialEntries={['/sdt/ps-dashboard']}>
         <PsDashboardPage />
       </MemoryRouter>
+      </I18nProvider>
     </QueryClientProvider>,
   )
 }
@@ -58,7 +61,7 @@ describe('PsDashboardPage', () => {
   beforeEach(() => {
     vi.mocked(alertsApi.listAlerts).mockReset().mockResolvedValue({
       data: [],
-      meta: { current_page: 1, per_page: 25, total: 0 },
+      meta: { current_page: 1, per_page: 25, total: 0, last_page: 1 },
     })
     vi.mocked(sdtApi.activateActingPs).mockReset()
     vi.mocked(sdtApi.deactivateActingPs).mockReset()

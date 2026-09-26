@@ -7,7 +7,9 @@ import { Table, type TableColumn } from '../../components/Table'
 import { Badge } from '../../components/Badge'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
-import en from '../../i18n/en'
+import { Pagination } from '../../components/Pagination'
+import { useClientPagination } from '../../hooks/useClientPagination'
+import { useI18n } from '../../i18n/context'
 
 interface DrillDownRequest {
   userId: string
@@ -27,6 +29,7 @@ interface DrillDownRequest {
  * (e.g. the alert delegate picker, Session 21).
  */
 export default function HrmdDashboardPage() {
+  const { t } = useI18n()
   const [cycleLabel, setCycleLabel] = useState(() => getCurrentQuarter().label)
 
   const dashboardQuery = useQuery({
@@ -55,9 +58,10 @@ export default function HrmdDashboardPage() {
 
   const missions = dashboardQuery.data?.missions ?? []
   const kpiColumns = missions[0]?.kpis ?? []
+  const missionsPage = useClientPagination(missions)
 
   const columns: TableColumn<ComparisonMissionRow>[] = [
-    { key: 'mission_name', header: en.sdt.hrmdDashboard.columnMission, render: (row) => row.mission_name },
+    { key: 'mission_name', header: t.sdt.hrmdDashboard.columnMission, render: (row) => row.mission_name },
     ...kpiColumns.map(
       (kpiColumn): TableColumn<ComparisonMissionRow> => ({
         key: kpiColumn.kpi_definition_id,
@@ -80,12 +84,12 @@ export default function HrmdDashboardPage() {
 
   return (
     <div className="p-6" data-testid="hrmd-dashboard-page">
-      <h1 className="text-h1 text-primary">{en.sdt.hrmdDashboard.title}</h1>
-      <Badge variant="neutral" label={en.common.readOnly} className="mt-2" />
+      <h1 className="text-h1 text-primary">{t.sdt.hrmdDashboard.title}</h1>
+      <Badge variant="neutral" label={t.common.readOnly} className="mt-2" />
 
       <div className="mt-4">
         <Input
-          label={en.sdt.hrmdDashboard.cycleLabelLabel}
+          label={t.sdt.hrmdDashboard.cycleLabelLabel}
           value={cycleLabel}
           onChange={(event) => setCycleLabel(event.target.value)}
           className="sm:w-40"
@@ -93,29 +97,40 @@ export default function HrmdDashboardPage() {
       </div>
 
       <div className="mt-6">
-        <Table columns={columns} data={missions} rowKey={(row) => row.mission_id} emptyMessage={en.sdt.hrmdDashboard.empty} />
+        <Table
+          columns={columns}
+          data={missionsPage.pageItems}
+          rowKey={(row) => row.mission_id}
+          emptyMessage={t.sdt.hrmdDashboard.empty}
+        />
+        <Pagination
+          meta={missionsPage.meta}
+          onPageChange={missionsPage.setPage}
+          onPerPageChange={missionsPage.setPerPage}
+          className="mt-4"
+        />
       </div>
 
       <div className="mt-8 max-w-lg rounded-lg border border-border p-4">
-        <h2 className="text-h3 text-primary">{en.sdt.hrmdDashboard.drillDownTitle}</h2>
+        <h2 className="text-h3 text-primary">{t.sdt.hrmdDashboard.drillDownTitle}</h2>
         <form onSubmit={handleDrillDownSubmit} className="mt-4 flex flex-col gap-4">
           <Input
-            label={en.sdt.hrmdDashboard.userIdLabel}
+            label={t.sdt.hrmdDashboard.userIdLabel}
             required
             value={drillDownUserId}
             onChange={(event) => setDrillDownUserId(event.target.value)}
           />
-          <p className="text-caption text-text-muted">{en.sdt.hrmdDashboard.userIdHint}</p>
+          <p className="text-caption text-text-muted">{t.sdt.hrmdDashboard.userIdHint}</p>
 
           <Input
-            label={en.sdt.hrmdDashboard.periodLabelLabel}
+            label={t.sdt.hrmdDashboard.periodLabelLabel}
             required
             value={drillDownPeriodLabel}
             onChange={(event) => setDrillDownPeriodLabel(event.target.value)}
           />
 
           <div>
-            <Button type="submit">{en.sdt.hrmdDashboard.viewSummaryButton}</Button>
+            <Button type="submit">{t.sdt.hrmdDashboard.viewSummaryButton}</Button>
           </div>
         </form>
 
@@ -134,14 +149,14 @@ export default function HrmdDashboardPage() {
                         <KpiStatusBadge status={kpi.status} />
                       </div>
                       <p className="mt-1 text-caption text-text-muted">
-                        {en.kpi.dashboard.actualLabel}: {kpi.actual ?? '—'} · {en.kpi.dashboard.targetLabel}: {kpi.target ?? '—'}
+                        {t.kpi.dashboard.actualLabel}: {kpi.actual ?? '—'} · {t.kpi.dashboard.targetLabel}: {kpi.target ?? '—'}
                       </p>
                     </div>
                   ))}
                 </div>
               </>
             ) : (
-              <p className="text-body text-text-muted">{en.sdt.hrmdDashboard.summaryEmpty}</p>
+              <p className="text-body text-text-muted">{t.sdt.hrmdDashboard.summaryEmpty}</p>
             )}
           </div>
         )}

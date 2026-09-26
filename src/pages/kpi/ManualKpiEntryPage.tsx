@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../hooks/useAuth'
 import { listMissions } from '../../api/missions'
@@ -6,7 +6,8 @@ import { getCurrentQuarter, listKpiActuals, recordKpiActual, type KpiActual } fr
 import { Table, type TableColumn } from '../../components/Table'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
-import en from '../../i18n/en'
+import { Pagination, DEFAULT_PER_PAGE } from '../../components/Pagination'
+import { useI18n } from '../../i18n/context'
 
 /**
  * FR-KPI-006, FR-KPI-007. Ministry Attache / Ministry HQ Officer only
@@ -22,6 +23,7 @@ import en from '../../i18n/en'
  * recordActual() upserts on (mission, kpi_definition, period_start_date) server-side.
  */
 export default function ManualKpiEntryPage() {
+  const { t } = useI18n()
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
@@ -36,10 +38,22 @@ export default function ManualKpiEntryPage() {
 
   const [kpiDefinitionId, setKpiDefinitionId] = useState('')
   const [actualValue, setActualValue] = useState('')
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [effectiveMissionId, periodLabel, perPage])
 
   const actualsQuery = useQuery({
-    queryKey: ['kpi-actuals', 'manual-entry', effectiveMissionId, periodLabel],
-    queryFn: () => listKpiActuals({ mission_id: effectiveMissionId as string, period_label: periodLabel, per_page: 100 }),
+    queryKey: ['kpi-actuals', 'manual-entry', effectiveMissionId, periodLabel, page, perPage],
+    queryFn: () =>
+      listKpiActuals({
+        mission_id: effectiveMissionId as string,
+        period_label: periodLabel,
+        page,
+        per_page: perPage,
+      }),
     enabled: effectiveMissionId !== null && periodLabel.trim() !== '',
   })
 
@@ -76,20 +90,20 @@ export default function ManualKpiEntryPage() {
   }
 
   const columns: TableColumn<KpiActual>[] = [
-    { key: 'kpi', header: en.kpi.manualEntry.columnKpi, render: (row) => row.kpi_definition?.name ?? row.id },
-    { key: 'period', header: en.kpi.manualEntry.columnPeriod, render: (row) => row.period_label },
+    { key: 'kpi', header: t.kpi.manualEntry.columnKpi, render: (row) => row.kpi_definition?.name ?? row.id },
+    { key: 'period', header: t.kpi.manualEntry.columnPeriod, render: (row) => row.period_label },
     {
       key: 'actual',
-      header: en.kpi.manualEntry.columnActual,
+      header: t.kpi.manualEntry.columnActual,
       render: (row) => <span className="font-mono">{row.actual_value}</span>,
     },
-    { key: 'entered_by', header: en.kpi.manualEntry.columnEnteredBy, render: (row) => row.entered_by?.full_name ?? '—' },
+    { key: 'entered_by', header: t.kpi.manualEntry.columnEnteredBy, render: (row) => row.entered_by?.full_name ?? '—' },
     {
       key: 'actions',
-      header: en.common.actions,
+      header: t.common.actions,
       render: (row) => (
         <Button variant="secondary" onClick={() => startEdit(row)}>
-          {en.kpi.manualEntry.editButton}
+          {t.kpi.manualEntry.editButton}
         </Button>
       ),
     },
@@ -97,13 +111,13 @@ export default function ManualKpiEntryPage() {
 
   return (
     <div className="p-6" data-testid="manual-kpi-entry-page">
-      <h1 className="text-h1 text-primary">{en.kpi.manualEntry.title}</h1>
+      <h1 className="text-h1 text-primary">{t.kpi.manualEntry.title}</h1>
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
         {ownMissionId === null && (
           <div className="flex flex-col gap-1">
             <label htmlFor="manual-kpi-mission" className="text-body-sm font-semibold text-text-secondary">
-              {en.kpi.dashboard.missionLabel}
+              {t.kpi.dashboard.missionLabel}
             </label>
             <select
               id="manual-kpi-mission"
@@ -121,14 +135,14 @@ export default function ManualKpiEntryPage() {
         )}
 
         <Input
-          label={en.kpi.manualEntry.periodLabelLabel}
+          label={t.kpi.manualEntry.periodLabelLabel}
           value={periodLabel}
           onChange={(event) => setPeriodLabel(event.target.value)}
           className="sm:w-40"
         />
         <Input
           type="date"
-          label={en.kpi.manualEntry.periodStartLabel}
+          label={t.kpi.manualEntry.periodStartLabel}
           value={periodStartDate}
           onChange={(event) => setPeriodStartDate(event.target.value)}
           className="sm:w-48"
@@ -140,36 +154,39 @@ export default function ManualKpiEntryPage() {
           columns={columns}
           data={actualsQuery.data?.data ?? []}
           rowKey={(row) => row.id}
-          emptyMessage={en.kpi.manualEntry.empty}
+          emptyMessage={t.kpi.manualEntry.empty}
         />
+        {actualsQuery.data?.meta && (
+          <Pagination meta={actualsQuery.data.meta} onPageChange={setPage} onPerPageChange={setPerPage} className="mt-4" />
+        )}
       </div>
 
       <div className="mt-8 max-w-lg rounded-lg border border-border p-4">
-        <h2 className="text-h3 text-primary">{en.kpi.manualEntry.recordButton}</h2>
+        <h2 className="text-h3 text-primary">{t.kpi.manualEntry.recordButton}</h2>
         <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
           <Input
-            label={en.kpi.manualEntry.kpiDefinitionIdLabel}
+            label={t.kpi.manualEntry.kpiDefinitionIdLabel}
             required
             value={kpiDefinitionId}
             onChange={(event) => setKpiDefinitionId(event.target.value)}
           />
-          <p className="text-caption text-text-muted">{en.kpi.manualEntry.kpiDefinitionIdHint}</p>
+          <p className="text-caption text-text-muted">{t.kpi.manualEntry.kpiDefinitionIdHint}</p>
 
           <Input
             type="number"
             step="any"
-            label={en.kpi.manualEntry.actualValueLabel}
+            label={t.kpi.manualEntry.actualValueLabel}
             required
             value={actualValue}
             onChange={(event) => setActualValue(event.target.value)}
           />
 
-          {recordMutation.isError && <p className="text-body-sm text-danger-soft-text">{en.common.genericError}</p>}
-          {recordMutation.isSuccess && <p className="text-body-sm text-success-soft-text">{en.kpi.manualEntry.successMessage}</p>}
+          {recordMutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
+          {recordMutation.isSuccess && <p className="text-body-sm text-success-soft-text">{t.kpi.manualEntry.successMessage}</p>}
 
           <div>
             <Button type="submit" disabled={recordMutation.isPending || effectiveMissionId === null}>
-              {en.kpi.manualEntry.recordButton}
+              {t.kpi.manualEntry.recordButton}
             </Button>
           </div>
         </form>

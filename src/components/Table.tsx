@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { isIdentifierColumn } from '../lib/identifierColumn'
 
 export interface TableColumn<T> {
   key: string
@@ -67,14 +68,20 @@ export function Table<T>({
               tabIndex={onRowClick ? 0 : undefined}
               role={onRowClick ? 'button' : undefined}
               className={[
-                onRowClick ? 'cursor-pointer hover:bg-section-bg focus-visible:outline-none' : '',
+                'tw-table-row hover:bg-section-bg',
+                onRowClick ? 'cursor-pointer focus-visible:outline-none' : '',
                 getRowClassName?.(row) ?? '',
               ]
                 .filter(Boolean)
                 .join(' ') || undefined}
             >
               {columns.map((column) => (
-                <td key={column.key} className={`px-4 py-2 text-text-primary ${column.className ?? ''}`}>
+                <td
+                  key={column.key}
+                  className={`px-4 py-2 ${
+                    isIdentifierColumn(column.key) ? 'font-bold text-primary' : 'text-text-primary'
+                  } ${column.className ?? ''}`}
+                >
                   {column.render(row)}
                 </td>
               ))}

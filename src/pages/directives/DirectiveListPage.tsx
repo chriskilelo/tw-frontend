@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { listDirectives, type Directive, type DirectiveStatus } from '../../api/directives'
@@ -6,8 +6,9 @@ import { listMissions } from '../../api/missions'
 import { useAuth, isReadOnlyRole } from '../../hooks/useAuth'
 import { Table, type TableColumn } from '../../components/Table'
 import { Button } from '../../components/Button'
+import { Pagination, DEFAULT_PER_PAGE } from '../../components/Pagination'
 import { DirectiveStatusBadge, DirectiveStaleBadge } from './DirectiveStatusBadge'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 const STATUS_OPTIONS: DirectiveStatus[] = ['issued', 'acknowledged', 'in_progress', 'completed', 'cancelled']
 
@@ -37,6 +38,7 @@ function isOverdue(row: Directive): boolean {
  * role (Ministry Attache: own as target; Ministry HQ Officer: own issued; PS/HQ Director/
  * Acting PS/System Administrator: all) — this page renders whatever the server returns. */
 export default function DirectiveListPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const { role } = useAuth()
   const readOnly = isReadOnlyRole(role?.name)
@@ -45,12 +47,19 @@ export default function DirectiveListPage() {
   const [status, setStatus] = useState<DirectiveStatus | ''>('')
   const [missionId, setMissionId] = useState('')
   const [overdueOnly, setOverdueOnly] = useState(false)
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [status, missionId, perPage])
 
   const missionsQuery = useQuery({ queryKey: ['missions'], queryFn: listMissions })
 
   const listQuery = useQuery({
-    queryKey: ['directives', { status, missionId }],
-    queryFn: () => listDirectives({ status: status || undefined, mission_id: missionId || undefined }),
+    queryKey: ['directives', { status, missionId, page, perPage }],
+    queryFn: () =>
+      listDirectives({ status: status || undefined, mission_id: missionId || undefined, page, per_page: perPage }),
   })
 
   const directives = (listQuery.data?.data ?? []).filter((row) => !overdueOnly || isOverdue(row))
@@ -62,30 +71,30 @@ export default function DirectiveListPage() {
   const columns: TableColumn<Directive>[] = [
     {
       key: 'reference',
-      header: en.directives.list.columnReference,
+      header: t.directives.list.columnReference,
       // No reference_number column exists on directives (CLAUDE.md Section 6), unlike
       // alerts/inquiries — the id's leading segment stands in as a stable, distinguishing label.
       render: (row) => <span className="font-mono">{row.id.slice(0, 8).toUpperCase()}</span>,
     },
-    { key: 'mission', header: en.directives.list.columnMission, render: (row) => row.mission?.name ?? '—' },
+    { key: 'mission', header: t.directives.list.columnMission, render: (row) => row.mission?.name ?? '—' },
     {
       key: 'target_user',
-      header: en.directives.list.columnTargetAttache,
+      header: t.directives.list.columnTargetAttache,
       render: (row) => row.target_user?.full_name ?? '—',
     },
     {
       key: 'status',
-      header: en.directives.list.columnStatus,
+      header: t.directives.list.columnStatus,
       render: (row) => <DirectiveStatusBadge status={row.status} />,
     },
     {
       key: 'target_completion_date',
-      header: en.directives.list.columnDueDate,
+      header: t.directives.list.columnDueDate,
       render: (row) => (row.target_completion_date ? new Date(row.target_completion_date).toLocaleDateString() : '—'),
     },
     {
       key: 'stale',
-      header: en.directives.list.columnStale,
+      header: t.directives.list.columnStale,
       render: (row) => (isStale(row) ? <DirectiveStaleBadge /> : <span className="text-text-muted">—</span>),
     },
   ]
@@ -93,39 +102,39 @@ export default function DirectiveListPage() {
   return (
     <div className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-h1 text-primary">{en.directives.list.title}</h1>
+        <h1 className="text-h1 text-primary">{t.directives.list.title}</h1>
         {canIssue && (
           <Link to="/directives/new">
-            <Button variant="primary">{en.directives.list.newDirectiveButton}</Button>
+            <Button variant="primary">{t.directives.list.newDirectiveButton}</Button>
           </Link>
         )}
       </div>
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{en.directives.list.filterStatus}</span>
+          <span className="text-body-sm font-semibold text-text-secondary">{t.directives.list.filterStatus}</span>
           <select
             value={status}
             onChange={(event) => setStatus(event.target.value as DirectiveStatus | '')}
             className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           >
-            <option value="">{en.directives.list.allStatuses}</option>
+            <option value="">{t.directives.list.allStatuses}</option>
             {STATUS_OPTIONS.map((option) => (
               <option key={option} value={option}>
-                {en.directives.status[option]}
+                {t.directives.status[option]}
               </option>
             ))}
           </select>
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{en.directives.list.filterMission}</span>
+          <span className="text-body-sm font-semibold text-text-secondary">{t.directives.list.filterMission}</span>
           <select
             value={missionId}
             onChange={(event) => setMissionId(event.target.value)}
             className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           >
-            <option value="">{en.directives.list.allMissions}</option>
+            <option value="">{t.directives.list.allMissions}</option>
             {(missionsQuery.data ?? []).map((mission) => (
               <option key={mission.id} value={mission.id}>
                 {mission.name}
@@ -141,7 +150,7 @@ export default function DirectiveListPage() {
             onChange={(event) => setOverdueOnly(event.target.checked)}
             className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
           />
-          <span className="text-body-sm text-text-secondary">{en.directives.list.filterOverdue}</span>
+          <span className="text-body-sm text-text-secondary">{t.directives.list.filterOverdue}</span>
         </label>
       </div>
 
@@ -150,9 +159,12 @@ export default function DirectiveListPage() {
           columns={columns}
           data={directives}
           rowKey={(row) => row.id}
-          emptyMessage={en.directives.list.empty}
+          emptyMessage={t.directives.list.empty}
           onRowClick={(row) => goToDirective(row.id)}
         />
+        {listQuery.data?.meta && (
+          <Pagination meta={listQuery.data.meta} onPageChange={setPage} onPerPageChange={setPerPage} className="mt-4" />
+        )}
       </div>
     </div>
   )

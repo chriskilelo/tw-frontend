@@ -7,6 +7,7 @@ import AlertListPage from './AlertListPage'
 import * as alertsApi from '../../api/alerts'
 import * as searchApi from '../../api/search'
 import type { SearchResult } from '../../api/search'
+import { I18nProvider } from '../../i18n/context'
 
 vi.mock('../../api/alerts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/alerts')>()
@@ -24,9 +25,11 @@ function renderPage() {
   })
   return render(
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <MemoryRouter initialEntries={['/alerts']}>
         <AlertListPage />
       </MemoryRouter>
+      </I18nProvider>
     </QueryClientProvider>,
   )
 }
@@ -48,7 +51,7 @@ describe('AlertListPage', () => {
           created_at: '2026-08-13T00:00:00Z',
         },
       ],
-      meta: { current_page: 1, per_page: 25, total: 1 },
+      meta: { current_page: 1, per_page: 25, total: 1, last_page: 1 },
     })
     vi.mocked(searchApi.search).mockReset()
   })

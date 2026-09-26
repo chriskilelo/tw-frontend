@@ -5,13 +5,24 @@ import axios, { type AxiosError } from 'axios'
  * `errors` is a flat array of message strings, not field-keyed objects — confirmed against
  * the actual backend implementation in Session 17's FormRequest::failedValidation() override.
  */
+/**
+ * Matches the real shape every paginated controller returns
+ * (AlertController, InquiryController, DirectiveController,
+ * PeriodicReportController, KpiActualController, Admin\UserController,
+ * Admin\AuditLogController) — `last_page` is present on every one of them,
+ * even though the abbreviated PaginationMeta schema in the OpenAPI excerpt
+ * (14_TW_API_Specification.md) omits it.
+ */
+export interface PaginationMeta {
+  current_page: number
+  per_page: number
+  total: number
+  last_page: number
+}
+
 export interface ApiEnvelope<T> {
   data: T
-  meta?: {
-    current_page: number
-    per_page: number
-    total: number
-  }
+  meta?: PaginationMeta
 }
 
 export interface ApiErrorEnvelope {

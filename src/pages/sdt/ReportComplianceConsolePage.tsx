@@ -6,18 +6,14 @@ import type { ComplianceMissionRow, ReportComplianceStatus } from '../../api/rep
 import { Table, type TableColumn } from '../../components/Table'
 import { Badge, type BadgeVariant } from '../../components/Badge'
 import { Input } from '../../components/Input'
-import en from '../../i18n/en'
+import { Pagination } from '../../components/Pagination'
+import { useClientPagination } from '../../hooks/useClientPagination'
+import { useI18n } from '../../i18n/context'
 
 const STATUS_VARIANT: Record<ReportComplianceStatus, BadgeVariant> = {
   submitted_on_time: 'success',
   submitted_late: 'danger',
   not_yet_submitted: 'neutral',
-}
-
-const STATUS_LABEL: Record<ReportComplianceStatus, string> = {
-  submitted_on_time: en.sdt.reportCompliance.statusOnTime,
-  submitted_late: en.sdt.reportCompliance.statusLate,
-  not_yet_submitted: en.sdt.reportCompliance.statusPending,
 }
 
 const TILE_VARIANT_CLASSES: Record<'success' | 'danger' | 'neutral', string> = {
@@ -43,6 +39,12 @@ function SummaryTile({ variant, label, value }: { variant: 'success' | 'danger' 
  * client-side, matching ComplianceDashboardPage's established precedent.
  */
 export default function ReportComplianceConsolePage() {
+  const { t } = useI18n()
+  const STATUS_LABEL: Record<ReportComplianceStatus, string> = {
+    submitted_on_time: t.sdt.reportCompliance.statusOnTime,
+    submitted_late: t.sdt.reportCompliance.statusLate,
+    not_yet_submitted: t.sdt.reportCompliance.statusPending,
+  }
   const [periodLabel, setPeriodLabel] = useState('')
 
   const complianceQuery = useQuery({
@@ -52,17 +54,18 @@ export default function ReportComplianceConsolePage() {
 
   const dashboard = complianceQuery.data
   const missions = dashboard?.missions ?? []
+  const missionsPage = useClientPagination(missions)
 
   const columns: TableColumn<ComplianceMissionRow>[] = [
-    { key: 'mission_name', header: en.sdt.reportCompliance.columnMission, render: (row) => row.mission_name },
+    { key: 'mission_name', header: t.sdt.reportCompliance.columnMission, render: (row) => row.mission_name },
     {
       key: 'status',
-      header: en.sdt.reportCompliance.columnStatus,
+      header: t.sdt.reportCompliance.columnStatus,
       render: (row) => <Badge variant={STATUS_VARIANT[row.status]} label={STATUS_LABEL[row.status]} />,
     },
     {
       key: 'submitted_at',
-      header: en.sdt.reportCompliance.columnSubmittedAt,
+      header: t.sdt.reportCompliance.columnSubmittedAt,
       render: (row) => (row.submitted_at ? new Date(row.submitted_at).toLocaleString() : '—'),
     },
     {
@@ -73,7 +76,7 @@ export default function ReportComplianceConsolePage() {
           to={`/reports?mission_id=${row.mission_id}${dashboard ? `&period=${encodeURIComponent(dashboard.period_label)}` : ''}`}
           className="font-semibold text-accent-text underline"
         >
-          {en.sdt.reportCompliance.reviewLink}
+          {t.sdt.reportCompliance.reviewLink}
         </Link>
       ),
     },
@@ -81,11 +84,11 @@ export default function ReportComplianceConsolePage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-h1 text-primary">{en.sdt.reportCompliance.title}</h1>
+      <h1 className="text-h1 text-primary">{t.sdt.reportCompliance.title}</h1>
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <Input
-          label={en.sdt.reportCompliance.columnStatus}
+          label={t.sdt.reportCompliance.columnStatus}
           placeholder={dashboard?.period_label}
           value={periodLabel}
           onChange={(event) => setPeriodLabel(event.target.value)}
@@ -95,11 +98,11 @@ export default function ReportComplianceConsolePage() {
 
       {dashboard && (
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <SummaryTile variant="success" label={en.sdt.reportCompliance.summaryOnTime} value={dashboard.summary.submitted_on_time} />
-          <SummaryTile variant="danger" label={en.sdt.reportCompliance.summaryLate} value={dashboard.summary.submitted_late} />
+          <SummaryTile variant="success" label={t.sdt.reportCompliance.summaryOnTime} value={dashboard.summary.submitted_on_time} />
+          <SummaryTile variant="danger" label={t.sdt.reportCompliance.summaryLate} value={dashboard.summary.submitted_late} />
           <SummaryTile
             variant="neutral"
-            label={en.sdt.reportCompliance.summaryPending}
+            label={t.sdt.reportCompliance.summaryPending}
             value={dashboard.summary.not_yet_submitted}
           />
         </div>
@@ -108,10 +111,16 @@ export default function ReportComplianceConsolePage() {
       <div className="mt-6">
         <Table
           columns={columns}
-          data={missions}
+          data={missionsPage.pageItems}
           rowKey={(row) => row.mission_id}
-          emptyMessage={en.sdt.reportCompliance.empty}
+          emptyMessage={t.sdt.reportCompliance.empty}
           getRowClassName={(row) => (row.status === 'submitted_late' ? 'bg-danger-soft' : undefined)}
+        />
+        <Pagination
+          meta={missionsPage.meta}
+          onPageChange={missionsPage.setPage}
+          onPerPageChange={missionsPage.setPerPage}
+          className="mt-4"
         />
       </div>
     </div>
