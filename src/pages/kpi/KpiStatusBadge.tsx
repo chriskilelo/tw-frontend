@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Badge, type BadgeVariant } from '../../components/Badge'
 import type { PerformanceStatus } from '../../api/kpi'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 /**
  * FR-KPI-008, CLAUDE.md Section 4 Rule 9/10: on_track is success green (#0F7A3D),
@@ -61,7 +61,8 @@ const STATUS_ICON: Record<PerformanceStatus, ReactNode> = {
 }
 
 export function KpiStatusBadge({ status, testId }: { status: PerformanceStatus; testId?: string }) {
+  const { t } = useI18n()
   return (
-    <Badge variant={STATUS_VARIANT[status]} icon={STATUS_ICON[status]} label={en.kpi.status[status]} testId={testId} />
+    <Badge variant={STATUS_VARIANT[status]} icon={STATUS_ICON[status]} label={t.kpi.status[status]} testId={testId} />
   )
 }

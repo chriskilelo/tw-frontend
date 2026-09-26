@@ -6,6 +6,7 @@ import { InquiryMatchingPanel } from './InquiryMatchingPanel'
 import * as inquiriesApi from '../api/inquiries'
 import * as useAuthModule from '../hooks/useAuth'
 import type { InquiryDetail } from '../api/inquiries'
+import { I18nProvider } from '../i18n/context'
 
 vi.mock('../api/inquiries', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/inquiries')>()
@@ -70,9 +71,11 @@ function renderPanel() {
   })
   return render(
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <MemoryRouter>
         <InquiryMatchingPanel inquiry={SOURCE_INQUIRY} onLinked={vi.fn()} />
       </MemoryRouter>
+      </I18nProvider>
     </QueryClientProvider>,
   )
 }

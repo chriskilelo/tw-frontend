@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Badge, type BadgeVariant } from '../../components/Badge'
 import type { PeriodicReportStatus } from '../../api/reports'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 /** CLAUDE.md Section 4 Rule 9: every status badge pairs colour with an icon and a text label. */
 const STATUS_VARIANT: Record<PeriodicReportStatus, BadgeVariant> = {
@@ -31,7 +31,8 @@ const STATUS_ICON: Record<PeriodicReportStatus, ReactNode> = {
 }
 
 export function ReportStatusBadge({ status, testId }: { status: PeriodicReportStatus; testId?: string }) {
-  return <Badge variant={STATUS_VARIANT[status]} icon={STATUS_ICON[status]} label={en.reports.status[status]} testId={testId} />
+  const { t } = useI18n()
+  return <Badge variant={STATUS_VARIANT[status]} icon={STATUS_ICON[status]} label={t.reports.status[status]} testId={testId} />
 }
 
 /**
@@ -41,10 +42,11 @@ export function ReportStatusBadge({ status, testId }: { status: PeriodicReportSt
  * to encode two independent facts.
  */
 export function ReportLateBadge() {
+  const { t } = useI18n()
   return (
     <Badge
       variant="atrisk"
-      label={en.reports.list.lateLabel}
+      label={t.reports.list.lateLabel}
       icon={
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />

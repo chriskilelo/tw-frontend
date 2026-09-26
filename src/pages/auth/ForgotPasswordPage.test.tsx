@@ -24,8 +24,8 @@ describe('ForgotPasswordPage', () => {
     const { container } = renderPage()
 
     expect(screen.getByRole('heading', { name: 'Reset your password' })).toBeInTheDocument()
-    // Shares AuthLayout's responsive w-full/max-w-sm card shell (see LoginPage.test.tsx).
-    expect(container.querySelector('.max-w-sm.w-full')).not.toBeNull()
+    // Shares AuthLayout's responsive w-full/max-w-md logo+card column (see LoginPage.test.tsx).
+    expect(container.querySelector('.max-w-md.w-full')).not.toBeNull()
     expect(container.querySelectorAll('[style*="width"]')).toHaveLength(0)
   })
 })

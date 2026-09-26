@@ -4,7 +4,7 @@ import { listMissions } from '../../api/missions'
 import { getKpiComparison, getCurrentQuarter, setKpiTarget } from '../../api/kpi'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 /**
  * FR-KPI-004, FR-KPI-005, BR-019. Ministry HQ Director / Ministry PS / Acting PS only
@@ -18,6 +18,7 @@ import en from '../../i18n/en'
  * additive (a new row), never a destructive overwrite, so this is a set-only form.
  */
 export default function SetKpiTargetsPage() {
+  const { t } = useI18n()
   const missionsQuery = useQuery({ queryKey: ['missions'], queryFn: listMissions })
   const catalogueQuery = useQuery({
     queryKey: ['kpi-comparison', 'catalogue'],
@@ -62,17 +63,17 @@ export default function SetKpiTargetsPage() {
 
   return (
     <div className="p-6" data-testid="set-kpi-targets-page">
-      <h1 className="text-h1 text-primary">{en.kpi.setTargets.title}</h1>
-      <p className="mt-2 text-caption text-text-muted">{en.kpi.setTargets.catalogueHint}</p>
+      <h1 className="text-h1 text-primary">{t.kpi.setTargets.title}</h1>
+      <p className="mt-2 text-caption text-text-muted">{t.kpi.setTargets.catalogueHint}</p>
 
       {kpiOptions.length === 0 && !catalogueQuery.isLoading ? (
-        <p className="mt-6 text-body text-text-muted">{en.kpi.setTargets.empty}</p>
+        <p className="mt-6 text-body text-text-muted">{t.kpi.setTargets.empty}</p>
       ) : (
         <div className="mt-6 max-w-lg rounded-lg border border-border p-4">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <label htmlFor="set-target-mission" className="text-body-sm font-semibold text-text-secondary">
-                {en.kpi.setTargets.missionLabel}
+                {t.kpi.setTargets.missionLabel}
               </label>
               <select
                 id="set-target-mission"
@@ -90,7 +91,7 @@ export default function SetKpiTargetsPage() {
 
             <div className="flex flex-col gap-1">
               <label htmlFor="set-target-kpi" className="text-body-sm font-semibold text-text-secondary">
-                {en.kpi.setTargets.kpiLabel}
+                {t.kpi.setTargets.kpiLabel}
               </label>
               <select
                 id="set-target-kpi"
@@ -107,7 +108,7 @@ export default function SetKpiTargetsPage() {
             </div>
 
             <Input
-              label={en.kpi.setTargets.cycleLabelLabel}
+              label={t.kpi.setTargets.cycleLabelLabel}
               placeholder="Q2 2027"
               required
               value={cycleLabel}
@@ -115,7 +116,7 @@ export default function SetKpiTargetsPage() {
             />
             <Input
               type="date"
-              label={en.kpi.setTargets.cycleStartLabel}
+              label={t.kpi.setTargets.cycleStartLabel}
               required
               value={cycleStartDate}
               onChange={(event) => setCycleStartDate(event.target.value)}
@@ -123,20 +124,20 @@ export default function SetKpiTargetsPage() {
             <Input
               type="number"
               step="any"
-              label={en.kpi.setTargets.targetValueLabel}
+              label={t.kpi.setTargets.targetValueLabel}
               required
               value={targetValue}
               onChange={(event) => setTargetValue(event.target.value)}
             />
 
-            {setTargetMutation.isError && <p className="text-body-sm text-danger-soft-text">{en.common.genericError}</p>}
+            {setTargetMutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
             {setTargetMutation.isSuccess && (
-              <p className="text-body-sm text-success-soft-text">{en.kpi.setTargets.successMessage}</p>
+              <p className="text-body-sm text-success-soft-text">{t.kpi.setTargets.successMessage}</p>
             )}
 
             <div>
               <Button type="submit" disabled={setTargetMutation.isPending || !effectiveMissionId || !effectiveKpiDefinitionId}>
-                {en.kpi.setTargets.setButton}
+                {t.kpi.setTargets.setButton}
               </Button>
             </div>
           </form>

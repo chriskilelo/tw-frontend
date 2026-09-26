@@ -13,7 +13,7 @@ import { useAuth, isReadOnlyRole } from '../../hooks/useAuth'
 import { Button } from '../../components/Button'
 import { Modal } from '../../components/Modal'
 import { DirectiveStatusBadge } from './DirectiveStatusBadge'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 /**
  * Inverse of App\Services\DirectiveService::ALLOWED_TRANSITIONS (Session 27): the set of
@@ -30,14 +30,14 @@ const NEXT_STATUSES: Record<DirectiveStatus, DirectiveActionableStatus[]> = {
   closed: [],
 }
 
-const ACTION_LABEL: Record<DirectiveActionableStatus, string> = {
-  acknowledged: en.directives.detail.acknowledgeButton,
-  in_progress: en.directives.detail.inProgressButton,
-  completed: en.directives.detail.completeButton,
-  cancelled: en.directives.detail.cancelButton,
-}
-
 export default function DirectiveDetailPage() {
+  const { t } = useI18n()
+  const ACTION_LABEL: Record<DirectiveActionableStatus, string> = {
+    acknowledged: t.directives.detail.acknowledgeButton,
+    in_progress: t.directives.detail.inProgressButton,
+    completed: t.directives.detail.completeButton,
+    cancelled: t.directives.detail.cancelButton,
+  }
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
   const { user, role } = useAuth()
@@ -68,7 +68,7 @@ export default function DirectiveDetailPage() {
   if (directiveQuery.isLoading || !directiveQuery.data) {
     return (
       <div className="p-6">
-        <p className="text-body text-text-muted">{en.common.loading}</p>
+        <p className="text-body text-text-muted">{t.common.loading}</p>
       </div>
     )
   }
@@ -87,7 +87,7 @@ export default function DirectiveDetailPage() {
   return (
     <div className="p-6">
       <Link to="/directives" className="text-body-sm font-semibold text-accent-soft-text hover:underline">
-        ← {en.directives.detail.backToList}
+        ← {t.directives.detail.backToList}
       </Link>
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
@@ -121,9 +121,9 @@ export default function DirectiveDetailPage() {
           )}
 
           <section className="mt-8">
-            <h2 className="text-h3 text-primary">{en.directives.detail.notesTitle}</h2>
+            <h2 className="text-h3 text-primary">{t.directives.detail.notesTitle}</h2>
             {directive.notes.length === 0 ? (
-              <p className="mt-2 text-body-sm text-text-muted">{en.directives.detail.notesEmpty}</p>
+              <p className="mt-2 text-body-sm text-text-muted">{t.directives.detail.notesEmpty}</p>
             ) : (
               <ul className="mt-2 flex flex-col gap-3">
                 {directive.notes.map((note) => (
@@ -148,17 +148,17 @@ export default function DirectiveDetailPage() {
                 }}
               >
                 <label className="flex flex-col gap-1">
-                  <span className="sr-only">{en.directives.detail.notesPlaceholder}</span>
+                  <span className="sr-only">{t.directives.detail.notesPlaceholder}</span>
                   <textarea
                     value={noteContent}
                     onChange={(event) => setNoteContent(event.target.value)}
-                    placeholder={en.directives.detail.notesPlaceholder}
+                    placeholder={t.directives.detail.notesPlaceholder}
                     rows={3}
                     className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 </label>
                 <Button type="submit" disabled={noteMutation.isPending} className="self-start">
-                  {en.directives.detail.addNoteButton}
+                  {t.directives.detail.addNoteButton}
                 </Button>
               </form>
             )}
@@ -182,25 +182,26 @@ export default function DirectiveDetailPage() {
 }
 
 function DirectiveInfoPanel({ directive }: { directive: DirectiveDetail }) {
+  const { t } = useI18n()
   const rows: { label: string; value: string | null }[] = [
-    { label: en.directives.detail.descriptionLabel, value: directive.description },
-    { label: en.directives.detail.typeCategoryLabel, value: directive.type_category },
-    { label: en.directives.detail.missionLabel, value: directive.mission?.name ?? null },
-    { label: en.directives.detail.targetAttacheLabel, value: directive.target_user?.full_name ?? null },
-    { label: en.directives.detail.issuedByLabel, value: directive.issued_by?.full_name ?? null },
+    { label: t.directives.detail.descriptionLabel, value: directive.description },
+    { label: t.directives.detail.typeCategoryLabel, value: directive.type_category },
+    { label: t.directives.detail.missionLabel, value: directive.mission?.name ?? null },
+    { label: t.directives.detail.targetAttacheLabel, value: directive.target_user?.full_name ?? null },
+    { label: t.directives.detail.issuedByLabel, value: directive.issued_by?.full_name ?? null },
     {
-      label: en.directives.detail.targetCompletionDateLabel,
+      label: t.directives.detail.targetCompletionDateLabel,
       value: directive.target_completion_date ? new Date(directive.target_completion_date).toLocaleDateString() : null,
     },
     {
-      label: en.directives.detail.lastProgressUpdateLabel,
+      label: t.directives.detail.lastProgressUpdateLabel,
       value: directive.last_progress_update_at ? new Date(directive.last_progress_update_at).toLocaleString() : null,
     },
   ]
 
   return (
     <section>
-      <h2 className="text-h3 text-primary">{en.directives.detail.infoTitle}</h2>
+      <h2 className="text-h3 text-primary">{t.directives.detail.infoTitle}</h2>
       <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
         {rows
           .filter((row) => row.value)
@@ -213,7 +214,7 @@ function DirectiveInfoPanel({ directive }: { directive: DirectiveDetail }) {
       </dl>
       {directive.completion_summary && (
         <div className="mt-4">
-          <dt className="text-caption text-text-muted">{en.directives.detail.completionSummaryLabel}</dt>
+          <dt className="text-caption text-text-muted">{t.directives.detail.completionSummaryLabel}</dt>
           <dd className="text-body text-text-primary">{directive.completion_summary}</dd>
         </div>
       )}
@@ -233,6 +234,7 @@ function CompleteDirectiveModal({
   onClose: () => void
   onCompleted: (updated: DirectiveDetail) => void
 }) {
+  const { t } = useI18n()
   const [completionSummary, setCompletionSummary] = useState('')
 
   const mutation = useMutation({
@@ -248,11 +250,11 @@ function CompleteDirectiveModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={en.directives.detail.completeModalTitle}>
+    <Modal open={open} onClose={onClose} title={t.directives.detail.completeModalTitle}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1">
           <span className="text-body-sm font-semibold text-text-secondary">
-            {en.directives.detail.completionSummaryRequiredLabel}
+            {t.directives.detail.completionSummaryRequiredLabel}
           </span>
           <textarea
             required
@@ -264,10 +266,10 @@ function CompleteDirectiveModal({
         </label>
         <div className="flex gap-3">
           <Button type="submit" disabled={mutation.isPending || completionSummary.trim() === ''}>
-            {en.directives.detail.completeSubmitButton}
+            {t.directives.detail.completeSubmitButton}
           </Button>
           <Button type="button" variant="ghost" onClick={onClose}>
-            {en.common.cancel}
+            {t.common.cancel}
           </Button>
         </div>
       </form>

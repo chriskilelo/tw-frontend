@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Badge, type BadgeVariant } from '../../components/Badge'
 import type { AlertStatus } from '../../api/alerts'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 /**
  * CLAUDE.md Section 4 Rule 9: every status badge pairs colour with an icon
@@ -49,5 +49,6 @@ const STATUS_ICON: Record<AlertStatus, ReactNode> = {
 }
 
 export function AlertStatusBadge({ status, testId }: { status: AlertStatus; testId?: string }) {
-  return <Badge variant={STATUS_VARIANT[status]} icon={STATUS_ICON[status]} label={en.alerts.status[status]} testId={testId} />
+  const { t } = useI18n()
+  return <Badge variant={STATUS_VARIANT[status]} icon={STATUS_ICON[status]} label={t.alerts.status[status]} testId={testId} />
 }

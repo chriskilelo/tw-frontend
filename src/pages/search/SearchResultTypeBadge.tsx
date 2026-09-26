@@ -1,6 +1,6 @@
 import { Badge, type BadgeVariant } from '../../components/Badge'
 import type { SearchResultType } from '../../api/search'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 /**
  * CLAUDE.md Section 4 Rule 9: colour + icon + label, never colour alone.
@@ -51,5 +51,6 @@ const TYPE_ICON: Record<SearchResultType, ReturnType<typeof AlertIcon>> = {
 }
 
 export function SearchResultTypeBadge({ type, testId }: { type: SearchResultType; testId?: string }) {
-  return <Badge variant={TYPE_VARIANT[type]} icon={TYPE_ICON[type]} label={en.search.type[type]} testId={testId} />
+  const { t } = useI18n()
+  return <Badge variant={TYPE_VARIANT[type]} icon={TYPE_ICON[type]} label={t.search.type[type]} testId={testId} />
 }

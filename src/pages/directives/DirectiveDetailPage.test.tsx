@@ -7,6 +7,7 @@ import DirectiveDetailPage from './DirectiveDetailPage'
 import * as directivesApi from '../../api/directives'
 import * as useAuthModule from '../../hooks/useAuth'
 import type { DirectiveDetail } from '../../api/directives'
+import { I18nProvider } from '../../i18n/context'
 
 vi.mock('../../api/directives', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/directives')>()
@@ -45,11 +46,13 @@ function renderPage() {
   })
   return render(
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <MemoryRouter initialEntries={['/directives/directive-1']}>
         <Routes>
           <Route path="/directives/:id" element={<DirectiveDetailPage />} />
         </Routes>
       </MemoryRouter>
+      </I18nProvider>
     </QueryClientProvider>,
   )
 }

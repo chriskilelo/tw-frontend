@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Badge, type BadgeVariant } from '../../components/Badge'
 import type { DirectiveStatus } from '../../api/directives'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 /** CLAUDE.md Section 4 Rule 9: every status badge pairs colour with an icon and a text label. */
 const STATUS_VARIANT: Record<DirectiveStatus, BadgeVariant> = {
@@ -85,7 +85,8 @@ const STATUS_ICON: Record<DirectiveStatus, ReactNode> = {
 }
 
 export function DirectiveStatusBadge({ status }: { status: DirectiveStatus }) {
-  return <Badge variant={STATUS_VARIANT[status]} icon={STATUS_ICON[status]} label={en.directives.status[status]} />
+  const { t } = useI18n()
+  return <Badge variant={STATUS_VARIANT[status]} icon={STATUS_ICON[status]} label={t.directives.status[status]} />
 }
 
 /**
@@ -96,10 +97,11 @@ export function DirectiveStatusBadge({ status }: { status: DirectiveStatus }) {
  * trying to encode two independent facts.
  */
 export function DirectiveStaleBadge() {
+  const { t } = useI18n()
   return (
     <Badge
       variant="atrisk"
-      label={en.directives.list.staleLabel}
+      label={t.directives.list.staleLabel}
       icon={
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />

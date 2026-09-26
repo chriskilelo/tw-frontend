@@ -18,13 +18,15 @@ import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Modal } from '../../components/Modal'
 import { ReportStatusBadge, ReportLateBadge } from './ReportStatusBadge'
-import en from '../../i18n/en'
+import { isIdentifierColumn } from '../../lib/identifierColumn'
+import { useI18n } from '../../i18n/context'
 
 const AUTOSAVE_DEBOUNCE_MS = 2000
 
 function RequiredMark() {
+  const { t } = useI18n()
   return (
-    <span aria-label={en.reports.form.requiredIndicator} className="text-danger">
+    <span aria-label={t.reports.form.requiredIndicator} className="text-danger">
       *
     </span>
   )
@@ -53,6 +55,7 @@ export default function ReportFormPage() {
 }
 
 function CreateDraftReportForm() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [periodLabel, setPeriodLabel] = useState('')
   const [periodStart, setPeriodStart] = useState('')
@@ -76,16 +79,16 @@ function CreateDraftReportForm() {
   return (
     <div className="p-6">
       <Link to="/reports" className="text-body-sm font-semibold text-accent-soft-text hover:underline">
-        ← {en.reports.form.backToList}
+        ← {t.reports.form.backToList}
       </Link>
 
-      <h1 className="mt-2 text-h1 text-primary">{en.reports.form.newTitle}</h1>
+      <h1 className="mt-2 text-h1 text-primary">{t.reports.form.newTitle}</h1>
 
       <form onSubmit={handleSubmit} data-testid="report-form" className="mt-6 flex max-w-md flex-col gap-4">
         <Input
           label={
             <>
-              {en.reports.form.periodLabelLabel} <RequiredMark />
+              {t.reports.form.periodLabelLabel} <RequiredMark />
             </>
           }
           required
@@ -98,7 +101,7 @@ function CreateDraftReportForm() {
           type="date"
           label={
             <>
-              {en.reports.form.periodStartLabel} <RequiredMark />
+              {t.reports.form.periodStartLabel} <RequiredMark />
             </>
           }
           required
@@ -110,7 +113,7 @@ function CreateDraftReportForm() {
           type="date"
           label={
             <>
-              {en.reports.form.periodEndLabel} <RequiredMark />
+              {t.reports.form.periodEndLabel} <RequiredMark />
             </>
           }
           required
@@ -119,10 +122,10 @@ function CreateDraftReportForm() {
           onChange={(event) => setPeriodEnd(event.target.value)}
         />
 
-        {mutation.isError && <p className="text-body-sm text-danger-soft-text">{en.common.genericError}</p>}
+        {mutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
 
         <Button type="submit" disabled={mutation.isPending} className="self-start">
-          {en.reports.form.createButton}
+          {t.reports.form.createButton}
         </Button>
       </form>
     </div>
@@ -130,6 +133,7 @@ function CreateDraftReportForm() {
 }
 
 function ReportEditor({ reportId }: { reportId: string }) {
+  const { t } = useI18n()
   const queryClient = useQueryClient()
   const { user, role } = useAuth()
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false)
@@ -157,7 +161,7 @@ function ReportEditor({ reportId }: { reportId: string }) {
   if (reportQuery.isLoading || !reportQuery.data) {
     return (
       <div className="p-6">
-        <p className="text-body text-text-muted">{en.common.loading}</p>
+        <p className="text-body text-text-muted">{t.common.loading}</p>
       </div>
     )
   }
@@ -172,7 +176,7 @@ function ReportEditor({ reportId }: { reportId: string }) {
   return (
     <div className="p-6" data-testid="report-form">
       <Link to="/reports" className="text-body-sm font-semibold text-accent-soft-text hover:underline">
-        ← {en.reports.form.backToList}
+        ← {t.reports.form.backToList}
       </Link>
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
@@ -185,12 +189,12 @@ function ReportEditor({ reportId }: { reportId: string }) {
 
       <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-2">
         <div>
-          <dt className="text-caption text-text-muted">{en.reports.form.missionLabel}</dt>
+          <dt className="text-caption text-text-muted">{t.reports.form.missionLabel}</dt>
           <dd className="text-body-sm text-text-primary">{report.mission?.name ?? '—'}</dd>
         </div>
         {report.submitted_at && (
           <div>
-            <dt className="text-caption text-text-muted">{en.reports.form.submittedAtLabel}</dt>
+            <dt className="text-caption text-text-muted">{t.reports.form.submittedAtLabel}</dt>
             <dd className="text-body-sm text-text-primary">{new Date(report.submitted_at).toLocaleString()}</dd>
           </div>
         )}
@@ -215,19 +219,19 @@ function ReportEditor({ reportId }: { reportId: string }) {
       {canEdit && (
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Button variant="primary" onClick={() => setConfirmSubmitOpen(true)}>
-            {en.reports.form.submitButton}
+            {t.reports.form.submitButton}
           </Button>
         </div>
       )}
 
-      <Modal open={confirmSubmitOpen} onClose={() => setConfirmSubmitOpen(false)} title={en.reports.form.submitModalTitle}>
-        <p className="text-body text-text-secondary">{en.reports.form.submitModalBody}</p>
+      <Modal open={confirmSubmitOpen} onClose={() => setConfirmSubmitOpen(false)} title={t.reports.form.submitModalTitle}>
+        <p className="text-body text-text-secondary">{t.reports.form.submitModalBody}</p>
         <div className="mt-4 flex gap-3">
           <Button variant="primary" disabled={submitMutation.isPending} onClick={() => submitMutation.mutate()}>
-            {en.reports.form.submitConfirmButton}
+            {t.reports.form.submitConfirmButton}
           </Button>
           <Button variant="ghost" onClick={() => setConfirmSubmitOpen(false)}>
-            {en.common.cancel}
+            {t.common.cancel}
           </Button>
         </div>
       </Modal>
@@ -236,12 +240,13 @@ function ReportEditor({ reportId }: { reportId: string }) {
 }
 
 function SaveIndicator({ state }: { state: 'idle' | 'saving' | 'saved' }) {
+  const { t } = useI18n()
   if (state === 'idle') {
     return null
   }
   return (
     <span className="text-caption text-text-muted" role="status">
-      {state === 'saving' ? en.reports.form.savingIndicator : en.reports.form.savedIndicator}
+      {state === 'saving' ? t.reports.form.savingIndicator : t.reports.form.savedIndicator}
     </span>
   )
 }
@@ -264,6 +269,7 @@ function NarrativeSection({
   canEdit: boolean
   onUpdated: (updated: PeriodicReport) => void
 }) {
+  const { t } = useI18n()
   const [content, setContent] = useState(section.content ?? '')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const lastSavedRef = useRef(section.content ?? '')
@@ -305,7 +311,7 @@ function NarrativeSection({
             className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent disabled:bg-section-bg"
           />
         </label>
-        <p className="text-caption text-text-muted">{en.reports.form.charCountLabel.replace('{count}', String(content.length))}</p>
+        <p className="text-caption text-text-muted">{t.reports.form.charCountLabel.replace('{count}', String(content.length))}</p>
       </div>
       {section.guidance_text && (
         <aside className="rounded border border-border bg-section-bg p-3 text-body-sm text-text-secondary sm:mt-9">
@@ -323,7 +329,7 @@ function NarrativeSection({
  * having no draft concept of their own). Reorder is local-only: no PATCH-style reorder
  * endpoint exists on the backend (ReportService::reorderDataRow() has no controller
  * route, Session 25 note) — the move buttons only change on-screen order for this
- * viewing session, per en.reports.form.reorderHint below.
+ * viewing session, per t.reports.form.reorderHint below.
  */
 function StructuredTableSection({
   report,
@@ -336,6 +342,7 @@ function StructuredTableSection({
   canEdit: boolean
   onUpdated: (updated: PeriodicReport) => void
 }) {
+  const { t } = useI18n()
   const columns = section.column_schema ?? []
   const serverRows = [...(section.data_rows ?? [])].sort((a, b) => a.row_order - b.row_order)
   const rowIdsKey = serverRows.map((row) => row.id).join(',')
@@ -356,7 +363,7 @@ function StructuredTableSection({
       setNewRow({})
       setRowError(null)
     },
-    onError: () => setRowError(en.common.genericError),
+    onError: () => setRowError(t.common.genericError),
   })
 
   const removeRowMutation = useMutation({
@@ -372,7 +379,7 @@ function StructuredTableSection({
   function handleAddRow() {
     const missing = columns.filter((column) => column.mandatory && !(newRow[column.name] ?? '').trim())
     if (missing.length > 0) {
-      setRowError(`${en.reports.form.requiredIndicator}: ${missing.map((column) => column.name).join(', ')}`)
+      setRowError(`${t.reports.form.requiredIndicator}: ${missing.map((column) => column.name).join(', ')}`)
       return
     }
     setRowError(null)
@@ -402,7 +409,7 @@ function StructuredTableSection({
         <h2 className="text-h3 text-primary">{section.section_title}</h2>
         {canEdit && (
           <Button variant="secondary" disabled={carryForwardMutation.isPending} onClick={() => carryForwardMutation.mutate()}>
-            {en.reports.form.carryForwardButton}
+            {t.reports.form.carryForwardButton}
           </Button>
         )}
       </div>
@@ -423,14 +430,19 @@ function StructuredTableSection({
             {orderedRows.length === 0 && (
               <tr>
                 <td colSpan={columns.length + 1} className="px-3 py-4 text-center text-text-muted">
-                  {en.reports.form.noRows}
+                  {t.reports.form.noRows}
                 </td>
               </tr>
             )}
             {orderedRows.map((row, index) => (
-              <tr key={row.id}>
+              <tr key={row.id} className="tw-table-row hover:bg-section-bg">
                 {columns.map((column) => (
-                  <td key={column.name} className="px-3 py-2 text-text-primary">
+                  <td
+                    key={column.name}
+                    className={`px-3 py-2 ${
+                      isIdentifierColumn(column.name) ? 'font-bold text-primary' : 'text-text-primary'
+                    }`}
+                  >
                     {row.row_data[column.name] ?? ''}
                   </td>
                 ))}
@@ -439,7 +451,7 @@ function StructuredTableSection({
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        aria-label={en.reports.form.moveRowUpButton}
+                        aria-label={t.reports.form.moveRowUpButton}
                         disabled={index === 0}
                         onClick={() => moveRow(row.id, -1)}
                         className="rounded px-1 text-text-secondary hover:bg-section-bg disabled:opacity-30"
@@ -448,7 +460,7 @@ function StructuredTableSection({
                       </button>
                       <button
                         type="button"
-                        aria-label={en.reports.form.moveRowDownButton}
+                        aria-label={t.reports.form.moveRowDownButton}
                         disabled={index === orderedRows.length - 1}
                         onClick={() => moveRow(row.id, 1)}
                         className="rounded px-1 text-text-secondary hover:bg-section-bg disabled:opacity-30"
@@ -457,7 +469,7 @@ function StructuredTableSection({
                       </button>
                       <button
                         type="button"
-                        aria-label={en.reports.form.removeRowButton}
+                        aria-label={t.reports.form.removeRowButton}
                         disabled={removeRowMutation.isPending}
                         onClick={() => removeRowMutation.mutate(row.id)}
                         className="rounded px-1 text-danger-soft-text hover:bg-danger-soft"
@@ -478,7 +490,7 @@ function StructuredTableSection({
                     <label className="flex flex-col gap-1">
                       <span className="sr-only">
                         {column.name}
-                        {column.mandatory ? ` (${en.reports.form.requiredIndicator})` : ''}
+                        {column.mandatory ? ` (${t.reports.form.requiredIndicator})` : ''}
                       </span>
                       <input
                         type={column.type === 'integer' || column.type === 'numeric' ? 'number' : 'text'}
@@ -492,7 +504,7 @@ function StructuredTableSection({
                 ))}
                 <td className="px-3 py-2">
                   <Button variant="secondary" disabled={addRowMutation.isPending} onClick={handleAddRow}>
-                    {en.reports.form.addRowButton}
+                    {t.reports.form.addRowButton}
                   </Button>
                 </td>
               </tr>
@@ -501,7 +513,7 @@ function StructuredTableSection({
         </table>
       </div>
       {rowError && <p className="mt-1 text-caption text-danger-soft-text">{rowError}</p>}
-      {canEdit && orderedRows.length > 1 && <p className="mt-1 text-caption text-text-muted">{en.reports.form.reorderHint}</p>}
+      {canEdit && orderedRows.length > 1 && <p className="mt-1 text-caption text-text-muted">{t.reports.form.reorderHint}</p>}
     </section>
   )
 }

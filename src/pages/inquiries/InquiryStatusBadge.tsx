@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Badge, type BadgeVariant } from '../../components/Badge'
 import type { InquiryStatus } from '../../api/inquiries'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 /** CLAUDE.md Section 4 Rule 9: every status badge pairs colour with an icon and a text label. */
 const STATUS_VARIANT: Record<InquiryStatus, BadgeVariant> = {
@@ -84,5 +84,6 @@ const STATUS_ICON: Record<InquiryStatus, ReactNode> = {
 }
 
 export function InquiryStatusBadge({ status }: { status: InquiryStatus }) {
-  return <Badge variant={STATUS_VARIANT[status]} icon={STATUS_ICON[status]} label={en.inquiries.status[status]} />
+  const { t } = useI18n()
+  return <Badge variant={STATUS_VARIANT[status]} icon={STATUS_ICON[status]} label={t.inquiries.status[status]} />
 }

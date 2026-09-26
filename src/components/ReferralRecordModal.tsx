@@ -4,7 +4,7 @@ import { getReferralOrganisations, recordReferral, uploadReferralAttachment, typ
 import { Input } from './Input'
 import { Button } from './Button'
 import { Modal } from './Modal'
-import en from '../i18n/en'
+import { useI18n } from '../i18n/context'
 
 export interface ReferralRecordModalProps {
   inquiryId: string
@@ -13,8 +13,18 @@ export interface ReferralRecordModalProps {
   onRecorded: (referral: ReferralEntry) => void
 }
 
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
+// Must match StoreReferralAttachmentRequest's 'extensions' allowlist exactly (NFR-SEC-004,
+// Session 38). This control previously had no accept attribute, no size/format hint, and
+// no client-side validation at all (UI-007 gap, closed here) — a wrong file would only
+// have been caught by the backend's 422 after the referral record itself was already
+// created, matching the same class of gap AlertSubmitPage had.
+const ACCEPTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'pdf', 'mp4', 'log']
+const ACCEPTED_ATTACHMENT_TYPES = ACCEPTED_EXTENSIONS.map((ext) => `.${ext}`).join(',')
+
 /** FR-REF-001 to 004. Records a referral against an inquiry, with an optional supporting attachment. */
 export function ReferralRecordModal({ inquiryId, open, onClose, onRecorded }: ReferralRecordModalProps) {
+  const { t } = useI18n()
   const organisationsQuery = useQuery({
     queryKey: ['referral-organisations'],
     queryFn: getReferralOrganisations,
@@ -27,6 +37,7 @@ export function ReferralRecordModal({ inquiryId, open, onClose, onRecorded }: Re
   const [contactPerson, setContactPerson] = useState('')
   const [remarks, setRemarks] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -54,7 +65,27 @@ export function ReferralRecordModal({ inquiryId, open, onClose, onRecorded }: Re
   })
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    setFile(event.target.files?.[0] ?? null)
+    const selected = event.target.files?.[0] ?? null
+
+    if (!selected) {
+      setFile(null)
+      setFileError(null)
+      return
+    }
+
+    if (selected.size > MAX_ATTACHMENT_BYTES) {
+      setFileError(t.referrals.record.attachmentSizeError)
+      return
+    }
+
+    const extension = selected.name.split('.').pop()?.toLowerCase()
+    if (!extension || !ACCEPTED_EXTENSIONS.includes(extension)) {
+      setFileError(t.referrals.record.attachmentTypeError)
+      return
+    }
+
+    setFileError(null)
+    setFile(selected)
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -63,10 +94,10 @@ export function ReferralRecordModal({ inquiryId, open, onClose, onRecorded }: Re
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={en.referrals.record.title}>
+    <Modal open={open} onClose={onClose} title={t.referrals.record.title}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{en.referrals.record.organisationLabel}</span>
+          <span className="text-body-sm font-semibold text-text-secondary">{t.referrals.record.organisationLabel}</span>
           <select
             required
             value={organisationId}
@@ -74,7 +105,7 @@ export function ReferralRecordModal({ inquiryId, open, onClose, onRecorded }: Re
             className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           >
             <option value="" disabled>
-              {en.common.required}
+              {t.common.required}
             </option>
             {(organisationsQuery.data ?? []).map((organisation) => (
               <option key={organisation.id} value={organisation.id}>
@@ -86,26 +117,26 @@ export function ReferralRecordModal({ inquiryId, open, onClose, onRecorded }: Re
 
         <Input
           type="date"
-          label={en.referrals.record.dateLabel}
+          label={t.referrals.record.dateLabel}
           required
           value={referralDate}
           onChange={(event) => setReferralDate(event.target.value)}
         />
 
         <Input
-          label={en.referrals.record.methodLabel}
+          label={t.referrals.record.methodLabel}
           value={referralMethod}
           onChange={(event) => setReferralMethod(event.target.value)}
         />
 
         <Input
-          label={en.referrals.record.contactLabel}
+          label={t.referrals.record.contactLabel}
           value={contactPerson}
           onChange={(event) => setContactPerson(event.target.value)}
         />
 
         <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{en.referrals.record.remarksLabel}</span>
+          <span className="text-body-sm font-semibold text-text-secondary">{t.referrals.record.remarksLabel}</span>
           <textarea
             value={remarks}
             onChange={(event) => setRemarks(event.target.value)}
@@ -115,18 +146,30 @@ export function ReferralRecordModal({ inquiryId, open, onClose, onRecorded }: Re
         </label>
 
         <div className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{en.referrals.record.attachmentLabel}</span>
-          <input type="file" onChange={handleFileChange} className="text-body-sm text-text-secondary" />
+          {/* Previously a <div>/<span> pair with no real label association (an
+              accessibility gap distinct from the UI-007 hint text this session added) —
+              every other field in this form already uses <label>; this one now matches. */}
+          <label className="flex flex-col gap-1">
+            <span className="text-body-sm font-semibold text-text-secondary">{t.referrals.record.attachmentLabel}</span>
+            <input
+              type="file"
+              accept={ACCEPTED_ATTACHMENT_TYPES}
+              onChange={handleFileChange}
+              className="text-body-sm text-text-secondary"
+            />
+          </label>
+          <p className="text-caption text-text-muted">{t.referrals.record.attachmentHint}</p>
+          {fileError && <p className="text-caption text-danger-soft-text">{fileError}</p>}
         </div>
 
-        {mutation.isError && <p className="text-body-sm text-danger-soft-text">{en.common.genericError}</p>}
+        {mutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
 
         <div className="flex gap-3">
           <Button type="submit" disabled={mutation.isPending}>
-            {en.referrals.record.button}
+            {t.referrals.record.button}
           </Button>
           <Button type="button" variant="ghost" onClick={onClose}>
-            {en.common.cancel}
+            {t.common.cancel}
           </Button>
         </div>
       </form>

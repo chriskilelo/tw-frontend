@@ -17,7 +17,7 @@ import { InquiryStatusBadge } from './InquiryStatusBadge'
 import { InquirySubTypeBadge } from './InquirySubTypeBadge'
 import { ReferralRecordModal } from '../../components/ReferralRecordModal'
 import { InquiryMatchingPanel } from '../../components/InquiryMatchingPanel'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 /** CLAUDE.md Section 8 Workflow Statuses and Transitions. `resolved -> closed` is
  * deliberately excluded — that transition only happens through the dedicated
@@ -33,6 +33,7 @@ const NEXT_STATUSES: Record<InquiryStatus, InquiryStatus[]> = {
 }
 
 export default function InquiryDetailPage() {
+  const { t } = useI18n()
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
   const { user, role } = useAuth()
@@ -65,7 +66,7 @@ export default function InquiryDetailPage() {
   if (inquiryQuery.isLoading || !inquiryQuery.data) {
     return (
       <div className="p-6">
-        <p className="text-body text-text-muted">{en.common.loading}</p>
+        <p className="text-body text-text-muted">{t.common.loading}</p>
       </div>
     )
   }
@@ -81,7 +82,7 @@ export default function InquiryDetailPage() {
   return (
     <div className="p-6">
       <Link to="/inquiries" className="text-body-sm font-semibold text-accent-soft-text hover:underline">
-        ← {en.inquiries.detail.backToList}
+        ← {t.inquiries.detail.backToList}
       </Link>
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
@@ -106,28 +107,28 @@ export default function InquiryDetailPage() {
                     disabled={transitionMutation.isPending}
                     onClick={() => transitionMutation.mutate(next)}
                   >
-                    {en.inquiries.detail.moveToPrefix} {en.inquiries.status[next]}
+                    {t.inquiries.detail.moveToPrefix} {t.inquiries.status[next]}
                   </Button>
                 ))}
               {canClose && (
                 <Button variant="primary" onClick={() => setCloseModalOpen(true)}>
-                  {en.inquiries.detail.closeButton}
+                  {t.inquiries.detail.closeButton}
                 </Button>
               )}
             </div>
           )}
 
           <section className="mt-8">
-            <h2 className="text-h3 text-primary">{en.inquiries.detail.timelineTitle}</h2>
+            <h2 className="text-h3 text-primary">{t.inquiries.detail.timelineTitle}</h2>
             {inquiry.events.length === 0 ? (
-              <p className="mt-2 text-body-sm text-text-muted">{en.inquiries.detail.timelineEmpty}</p>
+              <p className="mt-2 text-body-sm text-text-muted">{t.inquiries.detail.timelineEmpty}</p>
             ) : (
               <ul className="mt-2 flex flex-col gap-2">
                 {[...inquiry.events]
                   .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                   .map((event) => (
                     <li key={event.id} className="rounded border border-border bg-white p-3 text-body-sm">
-                      <p className="font-semibold text-text-primary">{en.inquiries.eventType[event.event_type]}</p>
+                      <p className="font-semibold text-text-primary">{t.inquiries.eventType[event.event_type]}</p>
                       {event.note && <p className="mt-1 text-text-secondary">{event.note}</p>}
                       <p className="mt-1 text-caption text-text-muted">{new Date(event.created_at).toLocaleString()}</p>
                     </li>
@@ -137,9 +138,9 @@ export default function InquiryDetailPage() {
           </section>
 
           <section className="mt-8">
-            <h2 className="text-h3 text-primary">{en.inquiries.detail.notesTitle}</h2>
+            <h2 className="text-h3 text-primary">{t.inquiries.detail.notesTitle}</h2>
             {inquiry.notes.length === 0 ? (
-              <p className="mt-2 text-body-sm text-text-muted">{en.inquiries.detail.notesEmpty}</p>
+              <p className="mt-2 text-body-sm text-text-muted">{t.inquiries.detail.notesEmpty}</p>
             ) : (
               <ul className="mt-2 flex flex-col gap-3">
                 {inquiry.notes.map((note) => (
@@ -162,17 +163,17 @@ export default function InquiryDetailPage() {
                 }}
               >
                 <label className="flex flex-col gap-1">
-                  <span className="sr-only">{en.inquiries.detail.notesPlaceholder}</span>
+                  <span className="sr-only">{t.inquiries.detail.notesPlaceholder}</span>
                   <textarea
                     value={noteContent}
                     onChange={(event) => setNoteContent(event.target.value)}
-                    placeholder={en.inquiries.detail.notesPlaceholder}
+                    placeholder={t.inquiries.detail.notesPlaceholder}
                     rows={3}
                     className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 </label>
                 <Button type="submit" disabled={noteMutation.isPending} className="self-start">
-                  {en.inquiries.detail.addNoteButton}
+                  {t.inquiries.detail.addNoteButton}
                 </Button>
               </form>
             )}
@@ -180,15 +181,15 @@ export default function InquiryDetailPage() {
 
           <section className="mt-8">
             <div className="flex items-center justify-between">
-              <h2 className="text-h3 text-primary">{en.inquiries.detail.referralsTitle}</h2>
+              <h2 className="text-h3 text-primary">{t.inquiries.detail.referralsTitle}</h2>
               {canRecordReferral && (
                 <Button variant="secondary" onClick={() => setReferralModalOpen(true)}>
-                  {en.inquiries.detail.recordReferralButton}
+                  {t.inquiries.detail.recordReferralButton}
                 </Button>
               )}
             </div>
             {recordedReferrals.length === 0 ? (
-              <p className="mt-2 text-body-sm text-text-muted">{en.inquiries.detail.referralsEmpty}</p>
+              <p className="mt-2 text-body-sm text-text-muted">{t.inquiries.detail.referralsEmpty}</p>
             ) : (
               <ul className="mt-2 flex flex-col gap-3">
                 {recordedReferrals.map((referral) => (
@@ -242,22 +243,23 @@ export default function InquiryDetailPage() {
 }
 
 function InquiryInfoPanel({ inquiry }: { inquiry: InquiryDetail }) {
+  const { t } = useI18n()
   const rows: { label: string; value: string | null }[] = [
-    { label: en.inquiries.log.categoryLabel, value: inquiry.category },
-    { label: en.inquiries.log.inquirerNameLabel, value: inquiry.inquirer_name },
-    { label: en.inquiries.log.inquirerOrganisationLabel, value: inquiry.inquirer_organisation },
-    { label: en.inquiries.log.inquirerEmailLabel, value: inquiry.inquirer_email },
-    { label: en.inquiries.log.inquirerPhoneLabel, value: inquiry.inquirer_phone },
-    { label: en.inquiries.log.productOrSectorLabel, value: inquiry.product_or_sector },
-    { label: en.inquiries.log.descriptionLabel, value: inquiry.description },
-    { label: en.inquiries.log.dateReceivedLabel, value: new Date(inquiry.date_received).toLocaleDateString() },
-    { label: en.inquiries.detail.mission, value: inquiry.mission?.name ?? null },
-    { label: en.inquiries.detail.loggedBy, value: inquiry.logged_by?.full_name ?? null },
+    { label: t.inquiries.log.categoryLabel, value: inquiry.category },
+    { label: t.inquiries.log.inquirerNameLabel, value: inquiry.inquirer_name },
+    { label: t.inquiries.log.inquirerOrganisationLabel, value: inquiry.inquirer_organisation },
+    { label: t.inquiries.log.inquirerEmailLabel, value: inquiry.inquirer_email },
+    { label: t.inquiries.log.inquirerPhoneLabel, value: inquiry.inquirer_phone },
+    { label: t.inquiries.log.productOrSectorLabel, value: inquiry.product_or_sector },
+    { label: t.inquiries.log.descriptionLabel, value: inquiry.description },
+    { label: t.inquiries.log.dateReceivedLabel, value: new Date(inquiry.date_received).toLocaleDateString() },
+    { label: t.inquiries.detail.mission, value: inquiry.mission?.name ?? null },
+    { label: t.inquiries.detail.loggedBy, value: inquiry.logged_by?.full_name ?? null },
   ]
 
   return (
     <section>
-      <h2 className="text-h3 text-primary">{en.inquiries.detail.infoTitle}</h2>
+      <h2 className="text-h3 text-primary">{t.inquiries.detail.infoTitle}</h2>
       <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
         {rows
           .filter((row) => row.value)
@@ -270,7 +272,7 @@ function InquiryInfoPanel({ inquiry }: { inquiry: InquiryDetail }) {
       </dl>
       {inquiry.high_value_flag && (
         <div className="mt-4 rounded border border-border bg-section-bg p-3">
-          <p className="text-body-sm font-semibold text-text-primary">{en.inquiries.detail.highValueLabel}</p>
+          <p className="text-body-sm font-semibold text-text-primary">{t.inquiries.detail.highValueLabel}</p>
           {inquiry.high_value_justification && (
             <p className="mt-1 text-body-sm text-text-secondary">{inquiry.high_value_justification}</p>
           )}
@@ -278,7 +280,7 @@ function InquiryInfoPanel({ inquiry }: { inquiry: InquiryDetail }) {
       )}
       {inquiry.resolution_summary && (
         <div className="mt-4">
-          <dt className="text-caption text-text-muted">{en.inquiries.detail.resolutionSummaryLabel}</dt>
+          <dt className="text-caption text-text-muted">{t.inquiries.detail.resolutionSummaryLabel}</dt>
           <dd className="text-body text-text-primary">{inquiry.resolution_summary}</dd>
         </div>
       )}
@@ -297,6 +299,7 @@ function CloseInquiryModal({
   onClose: () => void
   onClosed: (updated: InquiryDetail) => void
 }) {
+  const { t } = useI18n()
   const [resolutionSummary, setResolutionSummary] = useState('')
 
   const mutation = useMutation({
@@ -312,11 +315,11 @@ function CloseInquiryModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={en.inquiries.detail.closeModalTitle}>
+    <Modal open={open} onClose={onClose} title={t.inquiries.detail.closeModalTitle}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1">
           <span className="text-body-sm font-semibold text-text-secondary">
-            {en.inquiries.detail.resolutionSummaryLabel}
+            {t.inquiries.detail.resolutionSummaryLabel}
           </span>
           <textarea
             required
@@ -328,10 +331,10 @@ function CloseInquiryModal({
         </label>
         <div className="flex gap-3">
           <Button type="submit" disabled={mutation.isPending}>
-            {en.inquiries.detail.closeSubmitButton}
+            {t.inquiries.detail.closeSubmitButton}
           </Button>
           <Button type="button" variant="ghost" onClick={onClose}>
-            {en.common.cancel}
+            {t.common.cancel}
           </Button>
         </div>
       </form>

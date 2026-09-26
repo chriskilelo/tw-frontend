@@ -6,6 +6,7 @@ import InquiryDetailPage from './InquiryDetailPage'
 import * as inquiriesApi from '../../api/inquiries'
 import * as useAuthModule from '../../hooks/useAuth'
 import type { InquiryDetail } from '../../api/inquiries'
+import { I18nProvider } from '../../i18n/context'
 
 vi.mock('../../api/inquiries', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/inquiries')>()
@@ -54,11 +55,13 @@ function renderPage() {
   })
   return render(
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <MemoryRouter initialEntries={['/inquiries/inquiry-1']}>
         <Routes>
           <Route path="/inquiries/:id" element={<InquiryDetailPage />} />
         </Routes>
       </MemoryRouter>
+      </I18nProvider>
     </QueryClientProvider>,
   )
 }

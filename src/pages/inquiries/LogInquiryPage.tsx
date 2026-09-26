@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getInquiryCategories, logInquiry, type InquiryCreateRequest, type InquirySubType } from '../../api/inquiries'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -12,6 +12,7 @@ function today(): string {
 
 /** FR-INQ-002, FR-INQ-003, FR-INQ-022. country, mission, and logged_by are system-derived (BR-014), not collected here. */
 export default function LogInquiryPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -55,37 +56,37 @@ export default function LogInquiryPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-h1 text-primary">{en.inquiries.log.title}</h1>
+      <h1 className="text-h1 text-primary">{t.inquiries.log.title}</h1>
 
       <form onSubmit={handleSubmit} className="mt-6 flex max-w-2xl flex-col gap-4">
         <Input
-          label={en.inquiries.log.inquirerNameLabel}
+          label={t.inquiries.log.inquirerNameLabel}
           required
           value={inquirerName}
           onChange={(event) => setInquirerName(event.target.value)}
         />
 
         <Input
-          label={en.inquiries.log.inquirerOrganisationLabel}
+          label={t.inquiries.log.inquirerOrganisationLabel}
           value={inquirerOrganisation}
           onChange={(event) => setInquirerOrganisation(event.target.value)}
         />
 
         <Input
           type="email"
-          label={en.inquiries.log.inquirerEmailLabel}
+          label={t.inquiries.log.inquirerEmailLabel}
           value={inquirerEmail}
           onChange={(event) => setInquirerEmail(event.target.value)}
         />
 
         <Input
-          label={en.inquiries.log.inquirerPhoneLabel}
+          label={t.inquiries.log.inquirerPhoneLabel}
           value={inquirerPhone}
           onChange={(event) => setInquirerPhone(event.target.value)}
         />
 
         <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{en.inquiries.log.categoryLabel}</span>
+          <span className="text-body-sm font-semibold text-text-secondary">{t.inquiries.log.categoryLabel}</span>
           <select
             required
             value={category}
@@ -93,7 +94,7 @@ export default function LogInquiryPage() {
             className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           >
             <option value="" disabled>
-              {en.common.required}
+              {t.common.required}
             </option>
             {(categoriesQuery.data ?? []).map((option) => (
               <option key={option.id} value={option.value}>
@@ -104,7 +105,7 @@ export default function LogInquiryPage() {
         </label>
 
         <fieldset className="flex flex-col gap-2">
-          <legend className="text-body-sm font-semibold text-text-secondary">{en.inquiries.log.subTypeLabel}</legend>
+          <legend className="text-body-sm font-semibold text-text-secondary">{t.inquiries.log.subTypeLabel}</legend>
           <div className="flex gap-4">
             <label className="flex items-center gap-2">
               <input
@@ -115,7 +116,7 @@ export default function LogInquiryPage() {
                 onChange={() => setSubType('standard')}
                 className="h-4 w-4 border-border text-accent focus:ring-accent"
               />
-              <span className="text-body text-text-primary">{en.inquiries.subType.standard}</span>
+              <span className="text-body text-text-primary">{t.inquiries.subType.standard}</span>
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -126,19 +127,19 @@ export default function LogInquiryPage() {
                 onChange={() => setSubType('dispute_or_complaint')}
                 className="h-4 w-4 border-border text-accent focus:ring-accent"
               />
-              <span className="text-body text-text-primary">{en.inquiries.subType.dispute_or_complaint}</span>
+              <span className="text-body text-text-primary">{t.inquiries.subType.dispute_or_complaint}</span>
             </label>
           </div>
         </fieldset>
 
         <Input
-          label={en.inquiries.log.productOrSectorLabel}
+          label={t.inquiries.log.productOrSectorLabel}
           value={productOrSector}
           onChange={(event) => setProductOrSector(event.target.value)}
         />
 
         <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{en.inquiries.log.descriptionLabel}</span>
+          <span className="text-body-sm font-semibold text-text-secondary">{t.inquiries.log.descriptionLabel}</span>
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
@@ -149,16 +150,16 @@ export default function LogInquiryPage() {
 
         <Input
           type="date"
-          label={en.inquiries.log.dateReceivedLabel}
+          label={t.inquiries.log.dateReceivedLabel}
           required
           value={dateReceived}
           onChange={(event) => setDateReceived(event.target.value)}
         />
 
-        {mutation.isError && <p className="text-body-sm text-danger-soft-text">{en.common.genericError}</p>}
+        {mutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
 
         <Button type="submit" disabled={mutation.isPending} className="self-start">
-          {en.inquiries.log.button}
+          {t.inquiries.log.button}
         </Button>
       </form>
     </div>

@@ -63,10 +63,10 @@ describe('LoginPage', () => {
 
     const { container } = renderLoginPage()
 
-    // The card is responsive (w-full, capped by max-w-sm) rather than a fixed pixel
+    // The logo+card column is responsive (w-full, capped by max-w-md) rather than a fixed pixel
     // width, so it never forces horizontal overflow at the 320-375px mobile viewport
     // class (CLAUDE.md Section 2 / NFR-RESP-001, tailwind.config.ts's `sm` breakpoint).
-    expect(container.querySelector('.max-w-sm.w-full')).not.toBeNull()
+    expect(container.querySelector('.max-w-md.w-full')).not.toBeNull()
     expect(container.querySelectorAll('[style*="width"]')).toHaveLength(0)
   })
 })

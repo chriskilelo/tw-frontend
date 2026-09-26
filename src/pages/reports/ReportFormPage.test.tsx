@@ -7,6 +7,7 @@ import ReportFormPage from './ReportFormPage'
 import * as reportsApi from '../../api/reports'
 import * as useAuthModule from '../../hooks/useAuth'
 import type { PeriodicReport } from '../../api/reports'
+import { I18nProvider } from '../../i18n/context'
 
 vi.mock('../../api/reports', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/reports')>()
@@ -77,11 +78,13 @@ function renderPage() {
   })
   return render(
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <MemoryRouter initialEntries={['/reports/report-1']}>
         <Routes>
           <Route path="/reports/:id" element={<ReportFormPage />} />
         </Routes>
       </MemoryRouter>
+      </I18nProvider>
     </QueryClientProvider>,
   )
 }

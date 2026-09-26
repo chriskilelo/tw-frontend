@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { findInquiryMatches, linkInquiry, type Inquiry, type InquiryDetail } from '../api/inquiries'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from './Button'
-import en from '../i18n/en'
+import { useI18n } from '../i18n/context'
 
 /**
  * FR-INQ-019 (Match and Flag Cross-Mission Inquiries). InquiryPolicy::link()
@@ -27,6 +27,7 @@ export function InquiryMatchingPanel({
   inquiry: InquiryDetail
   onLinked: (updated: InquiryDetail) => void
 }) {
+  const { t } = useI18n()
   const { role } = useAuth()
   const queryClient = useQueryClient()
   const canMatch = role?.name === 'Ministry HQ Officer'
@@ -53,12 +54,12 @@ export function InquiryMatchingPanel({
 
   return (
     <section className="mt-8" data-testid="inquiry-matching-panel">
-      <h2 className="text-h3 text-primary">{en.inquiries.matching.title}</h2>
-      <p className="mt-1 text-body-sm text-text-muted">{en.inquiries.matching.hint}</p>
+      <h2 className="text-h3 text-primary">{t.inquiries.matching.title}</h2>
+      <p className="mt-1 text-body-sm text-text-muted">{t.inquiries.matching.hint}</p>
 
       {inquiry.linked_inquiry && (
         <p className="mt-2 text-body-sm text-text-secondary">
-          {en.inquiries.detail.linkedToLabel}:{' '}
+          {t.inquiries.detail.linkedToLabel}:{' '}
           <Link to={`/inquiries/${inquiry.linked_inquiry.id}`} className="font-mono text-accent-soft-text hover:underline">
             {inquiry.linked_inquiry.reference_number}
           </Link>
@@ -67,9 +68,9 @@ export function InquiryMatchingPanel({
       )}
 
       {matchesQuery.isLoading ? (
-        <p className="mt-3 text-body-sm text-text-muted">{en.common.loading}</p>
+        <p className="mt-3 text-body-sm text-text-muted">{t.common.loading}</p>
       ) : matches.length === 0 ? (
-        <p className="mt-3 text-body-sm text-text-muted">{en.inquiries.matching.empty}</p>
+        <p className="mt-3 text-body-sm text-text-muted">{t.inquiries.matching.empty}</p>
       ) : (
         <ul className="mt-3 flex flex-col gap-3">
           {matches.map((match, index) => (
@@ -88,15 +89,15 @@ export function InquiryMatchingPanel({
   )
 }
 
-function relevanceLabel(rank: number, total: number): string {
+function relevanceLabel(t: ReturnType<typeof useI18n>['t'], rank: number, total: number): string {
   const percentile = total <= 1 ? 0 : rank / (total - 1)
   if (percentile <= 0.33) {
-    return en.inquiries.matching.relevanceHigh
+    return t.inquiries.matching.relevanceHigh
   }
   if (percentile <= 0.66) {
-    return en.inquiries.matching.relevanceMedium
+    return t.inquiries.matching.relevanceMedium
   }
-  return en.inquiries.matching.relevanceLow
+  return t.inquiries.matching.relevanceLow
 }
 
 function MatchRow({
@@ -112,6 +113,7 @@ function MatchRow({
   disabled: boolean
   onLink: () => void
 }) {
+  const { t } = useI18n()
   return (
     <li className="rounded border border-border bg-white p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -124,10 +126,10 @@ function MatchRow({
         </div>
         <div className="flex flex-col items-end gap-2">
           <span className="text-caption text-text-muted">
-            {en.inquiries.matching.relevanceLabel}: {relevanceLabel(rank, total)}
+            {t.inquiries.matching.relevanceLabel}: {relevanceLabel(t, rank, total)}
           </span>
           <Button variant="secondary" disabled={disabled} onClick={onLink}>
-            {en.inquiries.matching.linkButton}
+            {t.inquiries.matching.linkButton}
           </Button>
         </div>
       </div>

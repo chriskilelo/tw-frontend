@@ -24,7 +24,7 @@ describe('ResetPasswordPage', () => {
     const { container } = renderPage()
 
     expect(screen.getByRole('heading', { name: 'Choose a new password' })).toBeInTheDocument()
-    expect(container.querySelector('.max-w-sm.w-full')).not.toBeNull()
+    expect(container.querySelector('.max-w-md.w-full')).not.toBeNull()
     expect(container.querySelectorAll('[style*="width"]')).toHaveLength(0)
   })
 })

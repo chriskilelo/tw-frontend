@@ -6,7 +6,7 @@ import { listMissions } from '../../api/missions'
 import { useAuth } from '../../hooks/useAuth'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 /**
  * FR-DIR-002, FR-DIR-003. Mirrors App\Policies\DirectivePolicy::create() exactly: Ministry
@@ -18,12 +18,13 @@ import en from '../../i18n/en'
 const ISSUING_ROLES = ['Ministry HQ Officer', 'Ministry PS']
 
 export default function IssueDirectivePage() {
+  const { t } = useI18n()
   const { role } = useAuth()
 
   if (!role || !ISSUING_ROLES.includes(role.name)) {
     return (
       <div className="p-6">
-        <p className="text-body text-text-secondary">{en.common.forbidden}</p>
+        <p className="text-body text-text-secondary">{t.common.forbidden}</p>
       </div>
     )
   }
@@ -32,6 +33,7 @@ export default function IssueDirectivePage() {
 }
 
 function IssueDirectiveForm() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -68,11 +70,11 @@ function IssueDirectiveForm() {
 
   return (
     <div className="p-6">
-      <h1 className="text-h1 text-primary">{en.directives.issue.title}</h1>
+      <h1 className="text-h1 text-primary">{t.directives.issue.title}</h1>
 
       <form onSubmit={handleSubmit} className="mt-6 flex max-w-2xl flex-col gap-4">
         <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{en.directives.issue.missionLabel}</span>
+          <span className="text-body-sm font-semibold text-text-secondary">{t.directives.issue.missionLabel}</span>
           <select
             required
             value={missionId}
@@ -80,7 +82,7 @@ function IssueDirectiveForm() {
             className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           >
             <option value="" disabled>
-              {en.common.required}
+              {t.common.required}
             </option>
             {(missionsQuery.data ?? []).map((mission) => (
               <option key={mission.id} value={mission.id}>
@@ -92,22 +94,22 @@ function IssueDirectiveForm() {
 
         <div className="flex flex-col gap-1">
           <Input
-            label={en.directives.issue.targetUserIdLabel}
+            label={t.directives.issue.targetUserIdLabel}
             required
             value={targetUserId}
             onChange={(event) => setTargetUserId(event.target.value)}
           />
-          <p className="text-caption text-text-muted">{en.directives.issue.targetUserIdHint}</p>
+          <p className="text-caption text-text-muted">{t.directives.issue.targetUserIdHint}</p>
         </div>
 
         <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{en.directives.issue.typeCategoryLabel}</span>
+          <span className="text-body-sm font-semibold text-text-secondary">{t.directives.issue.typeCategoryLabel}</span>
           <select
             value={typeCategory}
             onChange={(event) => setTypeCategory(event.target.value)}
             className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           >
-            <option value="">{en.directives.issue.typeCategoryNone}</option>
+            <option value="">{t.directives.issue.typeCategoryNone}</option>
             {(typeOptionsQuery.data ?? []).map((option) => (
               <option key={option.id} value={option.value}>
                 {option.value}
@@ -117,7 +119,7 @@ function IssueDirectiveForm() {
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{en.directives.issue.descriptionLabel}</span>
+          <span className="text-body-sm font-semibold text-text-secondary">{t.directives.issue.descriptionLabel}</span>
           <textarea
             required
             value={description}
@@ -129,15 +131,15 @@ function IssueDirectiveForm() {
 
         <Input
           type="date"
-          label={en.directives.issue.targetCompletionDateLabel}
+          label={t.directives.issue.targetCompletionDateLabel}
           value={targetCompletionDate}
           onChange={(event) => setTargetCompletionDate(event.target.value)}
         />
 
-        {mutation.isError && <p className="text-body-sm text-danger-soft-text">{en.common.genericError}</p>}
+        {mutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
 
         <Button type="submit" disabled={mutation.isPending} className="self-start">
-          {en.directives.issue.button}
+          {t.directives.issue.button}
         </Button>
       </form>
     </div>

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Badge, type BadgeVariant } from '../../components/Badge'
 import type { InquirySubType } from '../../api/inquiries'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 const SUB_TYPE_VARIANT: Record<InquirySubType, BadgeVariant> = {
   standard: 'neutral',
@@ -31,5 +31,6 @@ const SUB_TYPE_ICON: Record<InquirySubType, ReactNode> = {
 }
 
 export function InquirySubTypeBadge({ subType }: { subType: InquirySubType }) {
-  return <Badge variant={SUB_TYPE_VARIANT[subType]} icon={SUB_TYPE_ICON[subType]} label={en.inquiries.subType[subType]} />
+  const { t } = useI18n()
+  return <Badge variant={SUB_TYPE_VARIANT[subType]} icon={SUB_TYPE_ICON[subType]} label={t.inquiries.subType[subType]} />
 }

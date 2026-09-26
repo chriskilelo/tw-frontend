@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import KpiDashboardPage from './KpiDashboardPage'
 import * as kpiApi from '../../api/kpi'
 import * as missionsApi from '../../api/missions'
+import { I18nProvider } from '../../i18n/context'
 
 vi.mock('../../api/kpi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/kpi')>()
@@ -39,9 +40,11 @@ function renderPage() {
   })
   return render(
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <MemoryRouter initialEntries={['/kpi/dashboard']}>
         <KpiDashboardPage />
       </MemoryRouter>
+      </I18nProvider>
     </QueryClientProvider>,
   )
 }

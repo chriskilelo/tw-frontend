@@ -4,16 +4,9 @@ import { listMissions } from '../../api/missions'
 import { getKpiComparison, getCurrentQuarter, listKpiActuals, type ComparisonKpiRow, type KpiActual } from '../../api/kpi'
 import { KpiStatusBadge } from './KpiStatusBadge'
 import { Input } from '../../components/Input'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 type Trend = 'up' | 'down' | 'flat' | 'none'
-
-const TREND_LABEL: Record<Trend, string> = {
-  up: en.kpi.dashboard.trendUp,
-  down: en.kpi.dashboard.trendDown,
-  flat: en.kpi.dashboard.trendFlat,
-  none: en.kpi.dashboard.trendNone,
-}
 
 const TREND_CLASS: Record<Trend, string> = {
   up: 'text-success',
@@ -23,6 +16,14 @@ const TREND_CLASS: Record<Trend, string> = {
 }
 
 function TrendArrow({ trend }: { trend: Trend }) {
+  const { t } = useI18n()
+  const TREND_LABEL: Record<Trend, string> = {
+    up: t.kpi.dashboard.trendUp,
+    down: t.kpi.dashboard.trendDown,
+    flat: t.kpi.dashboard.trendFlat,
+    none: t.kpi.dashboard.trendNone,
+  }
+
   if (trend === 'none') {
     return (
       <span className={`inline-flex items-center gap-1 text-caption ${TREND_CLASS[trend]}`}>
@@ -56,6 +57,7 @@ function TrendArrow({ trend }: { trend: Trend }) {
  * period_start_date desc) are compared to derive up/down/flat.
  */
 export default function KpiDashboardPage() {
+  const { t } = useI18n()
   const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null)
   const [cycleLabel, setCycleLabel] = useState(() => getCurrentQuarter().label)
 
@@ -80,12 +82,12 @@ export default function KpiDashboardPage() {
 
   return (
     <div className="p-6" data-testid="kpi-dashboard-page">
-      <h1 className="text-h1 text-primary">{en.kpi.dashboard.title}</h1>
+      <h1 className="text-h1 text-primary">{t.kpi.dashboard.title}</h1>
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
           <label htmlFor="kpi-dashboard-mission" className="text-body-sm font-semibold text-text-secondary">
-            {en.kpi.dashboard.missionLabel}
+            {t.kpi.dashboard.missionLabel}
           </label>
           <select
             id="kpi-dashboard-mission"
@@ -102,7 +104,7 @@ export default function KpiDashboardPage() {
         </div>
 
         <Input
-          label={en.kpi.dashboard.cycleLabelLabel}
+          label={t.kpi.dashboard.cycleLabelLabel}
           value={cycleLabel}
           onChange={(event) => setCycleLabel(event.target.value)}
           className="sm:w-40"
@@ -110,7 +112,7 @@ export default function KpiDashboardPage() {
       </div>
 
       {missionRow && missionRow.kpis.length === 0 && (
-        <p className="mt-6 text-body text-text-muted">{en.kpi.dashboard.empty}</p>
+        <p className="mt-6 text-body text-text-muted">{t.kpi.dashboard.empty}</p>
       )}
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -123,6 +125,7 @@ export default function KpiDashboardPage() {
 }
 
 function KpiCard({ kpi, trend }: { kpi: ComparisonKpiRow; trend: Trend }) {
+  const { t } = useI18n()
   return (
     <div className="rounded-lg border border-border p-4" data-testid={`kpi-card-${kpi.kpi_definition_id}`}>
       <div className="flex items-start justify-between gap-2">
@@ -132,11 +135,11 @@ function KpiCard({ kpi, trend }: { kpi: ComparisonKpiRow; trend: Trend }) {
 
       <dl className="mt-3 grid grid-cols-2 gap-2">
         <div>
-          <dt className="text-caption text-text-muted">{en.kpi.dashboard.actualLabel}</dt>
+          <dt className="text-caption text-text-muted">{t.kpi.dashboard.actualLabel}</dt>
           <dd className="text-h3 font-bold text-text-primary">{kpi.actual ?? '—'}</dd>
         </div>
         <div>
-          <dt className="text-caption text-text-muted">{en.kpi.dashboard.targetLabel}</dt>
+          <dt className="text-caption text-text-muted">{t.kpi.dashboard.targetLabel}</dt>
           <dd className="text-h3 font-bold text-text-primary">{kpi.target ?? '—'}</dd>
         </div>
       </dl>

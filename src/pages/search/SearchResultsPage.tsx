@@ -6,15 +6,9 @@ import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
 import { SearchSnippet } from '../../components/SearchSnippet'
 import { SearchResultTypeBadge } from './SearchResultTypeBadge'
-import en from '../../i18n/en'
+import { useI18n } from '../../i18n/context'
 
 const GROUP_ORDER: SearchResultType[] = ['alert', 'inquiry', 'periodic_report']
-
-const GROUP_TITLE: Record<SearchResultType, string> = {
-  alert: en.search.results.groupAlerts,
-  inquiry: en.search.results.groupInquiries,
-  periodic_report: en.search.results.groupReports,
-}
 
 /**
  * FR-SEARCH-001 to 003. GET /api/v1/search?q={query} merges alerts,
@@ -23,6 +17,7 @@ const GROUP_TITLE: Record<SearchResultType, string> = {
  * preserving each group's internal relevance order.
  */
 export default function SearchResultsPage() {
+  const { t } = useI18n()
   const [searchParams, setSearchParams] = useSearchParams()
   const query = searchParams.get('q') ?? ''
   const [inputValue, setInputValue] = useState(query)
@@ -47,26 +42,26 @@ export default function SearchResultsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-h1 text-primary">{en.search.results.title}</h1>
+      <h1 className="text-h1 text-primary">{t.search.results.title}</h1>
 
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
         <Input
-          label={en.common.search}
-          placeholder={en.search.results.placeholder}
+          label={t.common.search}
+          placeholder={t.search.results.placeholder}
           value={inputValue}
           onChange={(event) => setInputValue(event.target.value)}
           className="sm:w-96"
         />
-        <Button type="submit">{en.search.results.submitButton}</Button>
+        <Button type="submit">{t.search.results.submitButton}</Button>
       </form>
 
       <div className="mt-6">
         {query.trim().length === 0 ? (
-          <p className="text-body text-text-muted">{en.search.results.prompt}</p>
+          <p className="text-body text-text-muted">{t.search.results.prompt}</p>
         ) : searchQuery.isLoading ? (
-          <p className="text-body text-text-muted">{en.common.loading}</p>
+          <p className="text-body text-text-muted">{t.common.loading}</p>
         ) : grouped.length === 0 ? (
-          <p className="text-body text-text-muted">{en.search.results.empty}</p>
+          <p className="text-body text-text-muted">{t.search.results.empty}</p>
         ) : (
           <div className="flex flex-col gap-8">
             {grouped.map((group) => (
@@ -80,13 +75,19 @@ export default function SearchResultsPage() {
 }
 
 function SearchResultGroup({ type, items }: { type: SearchResultType; items: SearchResult[] }) {
+  const { t } = useI18n()
+  const GROUP_TITLE: Record<SearchResultType, string> = {
+    alert: t.search.results.groupAlerts,
+    inquiry: t.search.results.groupInquiries,
+    periodic_report: t.search.results.groupReports,
+  }
   return (
     <section>
       <div className="flex items-center gap-2">
         <SearchResultTypeBadge type={type} />
         <h2 className="text-h3 text-primary">{GROUP_TITLE[type]}</h2>
         <span className="text-caption text-text-muted">
-          {en.search.results.resultsCountLabel.replace('{count}', String(items.length))}
+          {t.search.results.resultsCountLabel.replace('{count}', String(items.length))}
         </span>
       </div>
       <ul className="mt-3 flex flex-col gap-3">
