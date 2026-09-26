@@ -6,6 +6,7 @@ import LoginPage from './pages/auth/LoginPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import DashboardPage from './pages/DashboardPage'
+import ProfilePage from './pages/ProfilePage'
 import AlertListPage from './pages/alerts/AlertListPage'
 import AlertSubmitPage from './pages/alerts/AlertSubmitPage'
 import AlertDetailPage from './pages/alerts/AlertDetailPage'
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/', element: <Navigate to="/dashboard" replace /> },
           { path: '/dashboard', element: <DashboardPage /> },
+          { path: '/profile', element: <ProfilePage /> },
           { path: '/alerts', element: <AlertListPage /> },
           { path: '/alerts/new', element: <AlertSubmitPage /> },
           { path: '/alerts/:id', element: <AlertDetailPage /> },

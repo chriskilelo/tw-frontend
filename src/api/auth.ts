@@ -6,6 +6,13 @@ export interface Role {
   name: string
   layer: string
   scope: 'platform' | 'ministry' | 'mission'
+  /** FR-AUTH-025: cosmetic title shown under the user's name; never used for access decisions. */
+  display_title?: string | null
+}
+
+export interface NamedRef {
+  id: string
+  name: string
 }
 
 export interface AuthUser {
@@ -18,6 +25,17 @@ export interface AuthUser {
   status: 'activation_pending' | 'active' | 'locked' | 'deactivated'
   language_preference: LanguagePreference
   email_notification_preferences: Record<string, boolean> | null
+  /**
+   * Optional/nullable: added for ProfilePage. System Administrator / MFA-scoped roles carry
+   * neither (CLAUDE.md Section 6); optional (not just nullable) so the many pre-existing
+   * AuthUser test fixtures across the suite that predate this field don't all need updating.
+   */
+  mission?: (NamedRef & { host_country?: string }) | null
+  ministry?: NamedRef | null
+  /** ADR-006: display-only home department of a System Administrator. */
+  home_ministry?: NamedRef | null
+  /** FR-AUTH-019: signed, time-limited URL; null until a photo is uploaded (BR-024). */
+  avatar_url?: string | null
 }
 
 export interface MeResponse {
@@ -73,6 +91,21 @@ export async function me(): Promise<MeResponse> {
 export async function updatePreferences(payload: UpdatePreferencesRequest): Promise<AuthUser> {
   const { data } = await client.patch<ApiEnvelope<{ user: AuthUser }>>('/me/preferences', payload)
   return data.data.user
+}
+
+/** POST /me/avatar — FR-AUTH-019 */
+export async function uploadAvatar(file: File): Promise<AuthUser> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const { data } = await client.post<ApiEnvelope<{ user: AuthUser }>>('/me/avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data.data.user
+}
+
+/** DELETE /me/avatar — FR-AUTH-019, BR-024 */
+export async function deleteAvatar(): Promise<void> {
+  await client.delete('/me/avatar')
 }
 
 /** POST /password/forgot — FR-AUTH-011 */
