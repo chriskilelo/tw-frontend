@@ -187,6 +187,14 @@ export async function uploadAlertAttachment(id: string, file: File): Promise<Ale
   return data.data
 }
 
+/** GET /alerts/{id}/attachments/{attachmentId} — a signed download URL that expires after 15 minutes (NFR-SEC-004). */
+export async function getAlertAttachmentDownloadUrl(id: string, attachmentId: string): Promise<string> {
+  const { data } = await client.get<ApiEnvelope<{ url: string; expires_at: string }>>(
+    `/alerts/${id}/attachments/${attachmentId}`,
+  )
+  return data.data.url
+}
+
 /** POST /alerts/{id}/delegate — FR-ALERT-007, FR-SDT-002. Returns the AlertDetailResource shape. */
 export async function delegateAlert(id: string, payload: AlertDelegateRequest): Promise<AlertDetail> {
   const { data } = await client.post<ApiEnvelope<AlertDetail>>(`/alerts/${id}/delegate`, payload)
