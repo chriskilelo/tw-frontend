@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getCountryProfile } from '../../api/search'
 import type { AlertStatus } from '../../api/alerts'
@@ -70,11 +70,7 @@ export default function CountryProfilePage() {
 
   return (
     <div className="p-6">
-      <Link to="/search" className="text-body-sm font-semibold text-accent-soft-text hover:underline">
-        ← {t.search.countryProfile.backToSearch}
-      </Link>
-
-      <h1 className="mt-2 text-h1 text-primary">
+      <h1 className="text-h1 text-primary">
         {t.search.countryProfile.title.replace('{country}', country || '…')}
       </h1>
 
