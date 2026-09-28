@@ -67,6 +67,27 @@ export interface InquiryLinkRef {
   mission: string | null
 }
 
+/** One entry of InquiryDetailResource's `referrals` history, ordered by referral date (FR-REF-006). */
+export interface InquiryReferral {
+  id: string
+  referral_organisation: { id: string; name: string } | null
+  contact_person: string | null
+  referral_date: string
+  referral_method: string | null
+  reference_number: string | null
+  remarks: string | null
+  created_by: InquiryUserRef | null
+  attachments: InquiryReferralAttachment[]
+  created_at: string
+}
+
+export interface InquiryReferralAttachment {
+  id: string
+  original_filename: string
+  file_size_bytes: number
+  mime_type: string
+}
+
 export interface InquiryEvent {
   id: string
   event_type: InquiryEventType
@@ -98,6 +119,7 @@ export interface InquiryDetail {
   logged_by?: InquiryUserRef
   notes: InquiryNote[]
   events: InquiryEvent[]
+  referrals: InquiryReferral[]
   created_at: string
   updated_at: string
 }
@@ -124,11 +146,24 @@ export interface InquiryCreateRequest {
   product_or_sector?: string
   description?: string
   date_received: string
+  high_value_flag?: boolean
+  high_value_justification?: string
 }
 
-export type InquiryUpdateRequest = Partial<
-  Omit<InquiryCreateRequest, 'sub_type'> & { high_value_flag: boolean; high_value_justification: string }
->
+/** PATCH /inquiries/{id} — UpdateInquiryRequest accepts every create field as `sometimes`, sub_type included; nullable fields may be cleared with null. */
+export interface InquiryUpdateRequest {
+  category?: string
+  sub_type?: InquirySubType
+  inquirer_name?: string
+  inquirer_organisation?: string | null
+  inquirer_email?: string | null
+  inquirer_phone?: string | null
+  product_or_sector?: string | null
+  description?: string | null
+  date_received?: string
+  high_value_flag?: boolean
+  high_value_justification?: string | null
+}
 
 export interface InquiryStatusTransitionRequest {
   status: InquiryStatus
@@ -139,6 +174,14 @@ export interface InquiryEventRequest {
   note?: string
 }
 
+/** POST /inquiries/{id}/notes' own response — flatter than the notes embedded in InquiryDetail. */
+export interface PostedInquiryNote {
+  id: string
+  content: string
+  authored_by_user_id: string
+  created_at: string
+}
+
 export interface InquiryNoteRequest {
   content: string
 }
@@ -147,9 +190,16 @@ export interface InquiryCloseRequest {
   resolution_summary: string
 }
 
-/** GET /inquiry-categories — FR-INQ-001 */
+/**
+ * GET /master-data?category=inquiry_category — FR-INQ-001. There is no
+ * `/inquiry-categories` route on the backend (it 404s); the configured
+ * categories are master-data rows, served by the same public endpoint the
+ * alert form uses for its intelligence types.
+ */
 export async function getInquiryCategories(): Promise<InquiryCategory[]> {
-  const { data } = await client.get<ApiEnvelope<InquiryCategory[]>>('/inquiry-categories')
+  const { data } = await client.get<ApiEnvelope<InquiryCategory[]>>('/master-data', {
+    params: { category: 'inquiry_category', active: 1 },
+  })
   return data.data
 }
 
@@ -187,15 +237,15 @@ export async function transitionInquiryStatus(id: string, payload: InquiryStatus
   return data.data
 }
 
-/** POST /inquiries/{id}/events — FR-INQ-008 */
-export async function logInquiryEvent(id: string, payload: InquiryEventRequest): Promise<InquiryEvent> {
-  const { data } = await client.post<ApiEnvelope<InquiryEvent>>(`/inquiries/${id}/events`, payload)
+/** POST /inquiries/{id}/events — FR-INQ-008. Returns the updated InquiryDetailResource, not the bare event. */
+export async function logInquiryEvent(id: string, payload: InquiryEventRequest): Promise<InquiryDetail> {
+  const { data } = await client.post<ApiEnvelope<InquiryDetail>>(`/inquiries/${id}/events`, payload)
   return data.data
 }
 
 /** POST /inquiries/{id}/notes — FR-INQ-014 */
-export async function addInquiryNote(id: string, payload: InquiryNoteRequest): Promise<InquiryNote> {
-  const { data } = await client.post<ApiEnvelope<InquiryNote>>(`/inquiries/${id}/notes`, payload)
+export async function addInquiryNote(id: string, payload: InquiryNoteRequest): Promise<PostedInquiryNote> {
+  const { data } = await client.post<ApiEnvelope<PostedInquiryNote>>(`/inquiries/${id}/notes`, payload)
   return data.data
 }
 
