@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   addReportDataRow,
@@ -19,6 +19,7 @@ import { Input } from '../../components/Input'
 import { Modal } from '../../components/Modal'
 import { ReportStatusBadge, ReportLateBadge } from './ReportStatusBadge'
 import { isIdentifierColumn } from '../../lib/identifierColumn'
+import { useBreadcrumbLabel } from '../../hooks/useBreadcrumbs'
 import { useI18n } from '../../i18n/context'
 
 const AUTOSAVE_DEBOUNCE_MS = 2000
@@ -78,11 +79,7 @@ function CreateDraftReportForm() {
 
   return (
     <div className="p-6">
-      <Link to="/reports" className="text-body-sm font-semibold text-accent-soft-text hover:underline">
-        ← {t.reports.form.backToList}
-      </Link>
-
-      <h1 className="mt-2 text-h1 text-primary">{t.reports.form.newTitle}</h1>
+      <h1 className="text-h1 text-primary">{t.reports.form.newTitle}</h1>
 
       <form onSubmit={handleSubmit} data-testid="report-form" className="mt-6 flex max-w-md flex-col gap-4">
         <Input
@@ -145,6 +142,10 @@ function ReportEditor({ reportId }: { reportId: string }) {
     queryFn: () => getPeriodicReport(reportId),
   })
 
+  useBreadcrumbLabel(
+    reportQuery.data ? [reportQuery.data.reporting_period_label, reportQuery.data.mission?.name].filter(Boolean).join(' · ') : undefined,
+  )
+
   function applyUpdate(updated: PeriodicReport) {
     queryClient.setQueryData(queryKey, updated)
   }
@@ -175,11 +176,7 @@ function ReportEditor({ reportId }: { reportId: string }) {
 
   return (
     <div className="p-6" data-testid="report-form">
-      <Link to="/reports" className="text-body-sm font-semibold text-accent-soft-text hover:underline">
-        ← {t.reports.form.backToList}
-      </Link>
-
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-h1 text-primary">{report.reporting_period_label}</h1>
         <div className="flex items-center gap-2">
           <ReportStatusBadge status={report.status} testId="report-status-badge" />

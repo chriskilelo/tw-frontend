@@ -14,11 +14,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col bg-page-bg">
       <header className="bg-primary px-4 py-4 sm:px-6">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-5xl text-center sm:text-left">
           <span className="text-h3 font-bold text-white">{en.nav.brandTitle}</span>
           <p className="mt-1 text-body-sm text-white/70">
             <span className="font-bold text-accent">{taglineHighlight}</span>
-            {taglineRest ? ` — ${taglineRest}` : ''}
+            {taglineRest ? <span className="hidden sm:inline"> — {taglineRest}</span> : null}
           </p>
         </div>
       </header>

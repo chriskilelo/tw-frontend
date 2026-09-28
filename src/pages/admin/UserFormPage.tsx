@@ -8,6 +8,7 @@ import { Input } from '../../components/Input'
 import { Select } from '../../components/Select'
 import { Button } from '../../components/Button'
 import { useAuth, isMinistryAdministrator, isSystemAdministrator, SYSTEM_ADMINISTRATOR } from '../../hooks/useAuth'
+import { useBreadcrumbLabel } from '../../hooks/useBreadcrumbs'
 import { useI18n } from '../../i18n/context'
 import { apiErrorMessages } from '../../lib/apiErrors'
 
@@ -40,6 +41,7 @@ export default function UserFormPage() {
   const missionsQuery = useQuery({ queryKey: ['missions'], queryFn: listMissions })
   const departmentsQuery = useQuery({ queryKey: ['admin', 'ministries'], queryFn: listDepartments, enabled: systemAdministrator })
   const userQuery = useQuery({ queryKey: ['admin', 'users', id], queryFn: () => getUser(id as string), enabled: isEdit })
+  useBreadcrumbLabel(userQuery.data?.full_name)
 
   useEffect(() => {
     const existing = userQuery.data

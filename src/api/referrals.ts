@@ -1,17 +1,9 @@
 import client, { type ApiEnvelope } from './client'
 
 /**
- * Referral Register Engine (API-001 Section 10, FR-REF-001 to 006).
- *
- * There is no `GET` endpoint that lists a given inquiry's referral entries
- * (App\Http\Controllers\Api\Referrals\ReferralController has no `index`
- * scoped to an inquiry, and InquiryDetailResource does not embed referrals)
- * — only `POST /inquiries/{id}/referrals` exists. InquiryDetailPage
- * therefore renders referrals recorded during the current session (from
- * this POST's own response) rather than a persisted, refetchable list; a
- * future session adding a real list endpoint should replace that with a
- * proper query, following the same pattern as prior documented backend
- * gaps (e.g. AlertDetailPage's delegate-picker note).
+ * Referral Register Engine (API-001 Section 10, FR-REF-001 to 006). An
+ * inquiry's referral history is embedded in GET /inquiries/{id}
+ * (InquiryDetail.referrals); there is no separate list endpoint.
  */
 
 export interface ReferralOrganisation {
@@ -93,4 +85,12 @@ export async function uploadReferralAttachment(referralId: string, file: File): 
 export async function getReferralSummary(): Promise<ReferralSummary> {
   const { data } = await client.get<ApiEnvelope<ReferralSummary>>('/referrals/summary')
   return data.data
+}
+
+/** GET /referrals/{id}/attachments/{attachmentId} — a signed download URL that expires after 15 minutes (NFR-SEC-004). */
+export async function getReferralAttachmentDownloadUrl(referralId: string, attachmentId: string): Promise<string> {
+  const { data } = await client.get<ApiEnvelope<{ url: string; expires_at: string }>>(
+    `/referrals/${referralId}/attachments/${attachmentId}`,
+  )
+  return data.data.url
 }
