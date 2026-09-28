@@ -7,7 +7,6 @@ import {
   type DragEvent,
   type FormEvent,
   type KeyboardEvent,
-  type ReactNode,
 } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -25,7 +24,7 @@ import {
   PaperClipIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline'
-import { CheckIcon, XMarkIcon } from '@heroicons/react/20/solid'
+import { XMarkIcon } from '@heroicons/react/20/solid'
 import {
   getAlertIntelligenceTypeOptions,
   submitAlert,
@@ -33,17 +32,29 @@ import {
   type AlertCreateRequest,
 } from '../../api/alerts'
 import { Button } from '../../components/Button'
+import { ChoiceTile } from '../../components/ChoiceTile'
+import { NEUTRAL_TONE, type TileTone } from '../../components/choiceTileTones'
+import {
+  FORM_INPUT_CLASS,
+  FieldLabel,
+  FormReadinessPanel,
+  FormSection,
+  FormSectionNav,
+  FormSidePanel,
+  FormSubmitBar,
+  OptionalMarker,
+  RequiredMarker,
+  TimelineStep,
+} from '../../components/FormLayout'
 import { useAuth } from '../../hooks/useAuth'
 import { useI18n } from '../../i18n/context'
-import { ChoiceTile, SignalStrength } from './AlertChoiceTile'
+import { SignalStrength } from './SignalStrength'
 import {
   CONFIDENCE_VALUES,
-  NEUTRAL_TONE,
   URGENCY_ICONS,
   URGENCY_TONES,
   URGENCY_VALUES,
   type ConfidenceValue,
-  type TileTone,
   type UrgencyValue,
 } from './alertAssessment'
 
@@ -170,25 +181,24 @@ export default function AlertSubmitPage() {
     { key: 'tags', label: copy.tagsLabel, isRequired: false, isDone: tags.length > 0 },
     { key: 'evidence', label: copy.attachmentsLabel, isRequired: false, isDone: files.length > 0 },
   ]
-  const completedFieldCount = fieldCompletion.filter((field) => field.isDone).length
   const missingRequiredCount = fieldCompletion.filter((field) => field.isRequired && !field.isDone).length
   const canSubmit = missingRequiredCount === 0
 
-  const sectionCompletion: Record<SectionKey, boolean> = {
-    type: intelligenceType !== '',
-    market: country.trim() !== '' && (sector.trim() !== '' || productCategory.trim() !== ''),
-    intelligence: productDescription.trim() !== '' && intelligenceSource.trim() !== '',
-    assessment: urgency !== '' && confidenceRating !== '',
-    evidence: tags.length > 0 || files.length > 0,
-  }
-  const sections: { key: SectionKey; label: string }[] = [
-    { key: 'type', label: copy.steps.type },
-    { key: 'market', label: copy.steps.market },
-    { key: 'intelligence', label: copy.steps.intelligence },
-    { key: 'assessment', label: copy.steps.assessment },
-    { key: 'evidence', label: copy.steps.evidence },
+  const sections: { key: SectionKey; label: string; isDone: boolean }[] = [
+    { key: 'type', label: copy.steps.type, isDone: intelligenceType !== '' },
+    {
+      key: 'market',
+      label: copy.steps.market,
+      isDone: country.trim() !== '' && (sector.trim() !== '' || productCategory.trim() !== ''),
+    },
+    {
+      key: 'intelligence',
+      label: copy.steps.intelligence,
+      isDone: productDescription.trim() !== '' && intelligenceSource.trim() !== '',
+    },
+    { key: 'assessment', label: copy.steps.assessment, isDone: urgency !== '' && confidenceRating !== '' },
+    { key: 'evidence', label: copy.steps.evidence, isDone: tags.length > 0 || files.length > 0 },
   ]
-  const currentSection = sections.find((section) => !sectionCompletion[section.key])?.key
   const sectionId = (key: SectionKey) => `${idPrefix}-section-${key}`
 
   function scrollToSection(key: SectionKey) {
@@ -283,9 +293,6 @@ export default function AlertSubmitPage() {
     })
   }
 
-  const inputClassName =
-    'w-full rounded-lg border border-border-muted bg-white px-3 py-2 text-body text-text-primary placeholder:text-text-muted hover:border-text-muted focus:border-info focus:outline-none focus:ring-4 focus:ring-info-soft'
-
   return (
     <div className="mx-auto w-full max-w-310 px-4 py-6 sm:px-7">
       <header className="mb-6">
@@ -295,41 +302,9 @@ export default function AlertSubmitPage() {
 
       <div className="grid gap-6 min-[1200px]:grid-cols-[minmax(0,1fr)_320px] min-[1200px]:items-start">
         <form onSubmit={handleSubmit} data-testid="alert-form" noValidate className="flex min-w-0 flex-col gap-5">
-          <nav
-            aria-label={copy.stepsLabel}
-            className="flex gap-1 rounded-xl border border-border bg-white p-1.5 shadow-sm"
-          >
-            {sections.map((section, index) => {
-              const isDone = sectionCompletion[section.key]
-              const isCurrent = section.key === currentSection
-              return (
-                <button
-                  key={section.key}
-                  type="button"
-                  onClick={() => scrollToSection(section.key)}
-                  aria-current={isCurrent ? 'step' : undefined}
-                  className={`flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2 text-body-sm font-semibold sm:justify-start ${
-                    isCurrent ? 'bg-section-bg text-primary' : isDone ? 'text-success' : 'text-text-muted'
-                  }`}
-                >
-                  <span
-                    className={`grid size-5.5 shrink-0 place-items-center rounded-full border-[1.5px] font-mono text-[0.6875rem] ${
-                      isDone
-                        ? 'border-success bg-success text-white'
-                        : isCurrent
-                          ? 'border-primary text-primary'
-                          : 'border-border-muted'
-                    }`}
-                  >
-                    {isDone ? <CheckIcon className="size-3.5" aria-hidden="true" /> : index + 1}
-                  </span>
-                  <span className="sr-only md:not-sr-only md:truncate">{section.label}</span>
-                </button>
-              )
-            })}
-          </nav>
+          <FormSectionNav label={copy.stepsLabel} sections={sections} onSelect={scrollToSection} />
 
-          <SectionCard
+          <FormSection
             id={sectionId('type')}
             icon={<ArrowTrendingUpIcon className="size-4.5" aria-hidden="true" />}
             title={copy.typeSection.title}
@@ -365,9 +340,9 @@ export default function AlertSubmitPage() {
                 </div>
               )}
             </fieldset>
-          </SectionCard>
+          </FormSection>
 
-          <SectionCard
+          <FormSection
             id={sectionId('market')}
             icon={<GlobeAltIcon className="size-4.5" aria-hidden="true" />}
             title={copy.marketSection.title}
@@ -408,7 +383,7 @@ export default function AlertSubmitPage() {
                     required
                     value={country}
                     onChange={(event) => setCountryOverride(event.target.value)}
-                    className={inputClassName}
+                    className={FORM_INPUT_CLASS}
                   />
                 </FieldLabel>
               )}
@@ -421,7 +396,7 @@ export default function AlertSubmitPage() {
                 onChange={(event) => setSector(event.target.value)}
                 placeholder={copy.sectorPlaceholder}
                 maxLength={100}
-                className={inputClassName}
+                className={FORM_INPUT_CLASS}
               />
             </FieldLabel>
 
@@ -437,12 +412,12 @@ export default function AlertSubmitPage() {
                 onChange={(event) => setProductCategory(event.target.value)}
                 placeholder={copy.productCategoryPlaceholder}
                 maxLength={150}
-                className={inputClassName}
+                className={FORM_INPUT_CLASS}
               />
             </FieldLabel>
-          </SectionCard>
+          </FormSection>
 
-          <SectionCard
+          <FormSection
             id={sectionId('intelligence')}
             icon={<DocumentTextIcon className="size-4.5" aria-hidden="true" />}
             title={copy.intelligenceSection.title}
@@ -467,7 +442,7 @@ export default function AlertSubmitPage() {
                 rows={5}
                 placeholder={copy.productDescriptionPlaceholder}
                 aria-describedby={`${idPrefix}-description-hint`}
-                className={`${inputClassName} min-h-30 resize-y`}
+                className={`${FORM_INPUT_CLASS} min-h-30 resize-y`}
               />
               <p id={`${idPrefix}-description-hint`} className="mt-1.5 text-caption text-text-muted">
                 {copy.productDescriptionHint}
@@ -486,12 +461,12 @@ export default function AlertSubmitPage() {
                 onChange={(event) => setIntelligenceSource(event.target.value)}
                 placeholder={copy.intelligenceSourcePlaceholder}
                 maxLength={255}
-                className={inputClassName}
+                className={FORM_INPUT_CLASS}
               />
             </FieldLabel>
-          </SectionCard>
+          </FormSection>
 
-          <SectionCard
+          <FormSection
             id={sectionId('assessment')}
             icon={<ClipboardDocumentCheckIcon className="size-4.5" aria-hidden="true" />}
             title={copy.assessmentSection.title}
@@ -577,9 +552,9 @@ export default function AlertSubmitPage() {
                 )}
               </span>
             </div>
-          </SectionCard>
+          </FormSection>
 
-          <SectionCard
+          <FormSection
             id={sectionId('evidence')}
             icon={<PaperClipIcon className="size-4.5" aria-hidden="true" />}
             title={copy.evidenceSection.title}
@@ -717,184 +692,63 @@ export default function AlertSubmitPage() {
                 </ul>
               )}
             </div>
-          </SectionCard>
+          </FormSection>
 
           {mutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
 
-          <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
-            <p className="flex items-center gap-2 text-body-sm text-text-secondary" aria-live="polite">
-              {canSubmit ? (
-                <>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-0.5 text-caption font-semibold text-success-soft-text">
-                    <CheckIcon className="size-3.5" aria-hidden="true" />
-                    {copy.status.ready}
-                  </span>
-                  <span className="hidden sm:inline">{copy.status.readyNote}</span>
-                </>
-              ) : (
-                <>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-atrisk-soft px-2.5 py-0.5 text-caption font-semibold text-atrisk-soft-text">
-                    <ExclamationCircleIcon className="size-3.5" aria-hidden="true" />
-                    {copy.status.missing(missingRequiredCount)}
-                  </span>
-                  <span className="hidden sm:inline">{copy.status.missingNote}</span>
-                </>
-              )}
-            </p>
-            <div className="flex w-full gap-2.5 sm:w-auto">
-              <Button variant="secondary" onClick={() => navigate('/alerts')} className="flex-1 sm:flex-none">
-                {t.common.cancel}
-              </Button>
-              <Button type="submit" disabled={!canSubmit || mutation.isPending} className="flex-1 sm:flex-none">
-                {copy.button}
-                <ArrowRightIcon className="size-3.5" aria-hidden="true" />
-              </Button>
-            </div>
-          </div>
+          <FormSubmitBar
+            isReady={canSubmit}
+            statusLabel={canSubmit ? copy.status.ready : copy.status.missing(missingRequiredCount)}
+            statusNote={canSubmit ? copy.status.readyNote : copy.status.missingNote}
+          >
+            <Button variant="secondary" onClick={() => navigate('/alerts')} className="flex-1 sm:flex-none">
+              {t.common.cancel}
+            </Button>
+            <Button type="submit" disabled={!canSubmit || mutation.isPending} className="flex-1 sm:flex-none">
+              {copy.button}
+              <ArrowRightIcon className="size-3.5" aria-hidden="true" />
+            </Button>
+          </FormSubmitBar>
         </form>
 
-        <aside className="grid gap-4 sm:grid-cols-2 min-[1200px]:sticky min-[1200px]:top-5 min-[1200px]:grid-cols-1">
-          <SidePanel title={copy.readiness.title} className="sm:col-span-2 min-[1200px]:col-span-1">
-            <div className="flex justify-between text-caption text-text-muted">
-              <span>{copy.readiness.progressLabel}</span>
-              <span className="font-mono font-medium text-text-primary">
-                {completedFieldCount} / {fieldCompletion.length}
-              </span>
-            </div>
-            <div
-              className="mb-3.5 mt-1 h-1.5 overflow-hidden rounded-full bg-section-bg"
-              role="progressbar"
-              aria-label={copy.readiness.progressLabel}
-              aria-valuemin={0}
-              aria-valuemax={fieldCompletion.length}
-              aria-valuenow={completedFieldCount}
-            >
-              <span
-                className="block h-full origin-left bg-success transition-transform duration-300"
-                style={{ transform: `scaleX(${completedFieldCount / fieldCompletion.length})` }}
-              />
-            </div>
-            <ul className="flex flex-col gap-2" data-testid="alert-readiness-checklist">
-              {fieldCompletion.map((field) => (
-                <li
-                  key={field.key}
-                  className={`flex items-start gap-2 text-body-sm ${field.isDone ? 'text-text-primary' : 'text-text-secondary'}`}
-                >
-                  <span
-                    className={`mt-px grid size-4.5 shrink-0 place-items-center rounded-full border-[1.5px] ${
-                      field.isDone ? 'border-success bg-success text-white' : 'border-border-muted'
-                    }`}
-                    aria-hidden="true"
-                  >
-                    {field.isDone && <CheckIcon className="size-3" />}
-                  </span>
-                  <span>
-                    {field.label}
-                    {field.isRequired && <RequiredMarker />}
-                    <span className="sr-only">{field.isDone ? ` (${copy.status.ready})` : ''}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 border-t border-border pt-2.5 text-caption text-text-muted">
-              <span className="text-danger" aria-hidden="true">
-                *
-              </span>{' '}
-              {copy.readiness.requiredNote}
-            </p>
-          </SidePanel>
+        <aside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:sticky min-[1200px]:top-5 min-[1200px]:grid-cols-1">
+          <FormReadinessPanel
+            title={copy.readiness.title}
+            progressLabel={copy.readiness.progressLabel}
+            requiredNote={copy.readiness.requiredNote}
+            doneText={copy.status.ready}
+            fields={fieldCompletion}
+            testId="alert-readiness-checklist"
+            className="sm:col-span-2 min-[1200px]:col-span-1"
+          />
 
-          <SidePanel title={copy.routing.title}>
+          <FormSidePanel title={copy.routing.title}>
             <ol className="flex flex-col">
-              <RouteStep
+              <TimelineStep
                 badge={initials(user?.full_name ?? '')}
                 isHighlighted
                 title={copy.routing.you}
                 note={[role?.name, user?.mission?.name].filter(Boolean).join(' · ')}
               />
-              <RouteStep badge="PS" title={copy.routing.principalSecretary} note={copy.routing.principalSecretaryNote} />
-              <RouteStep badge="HQ" title={copy.routing.delegatedOfficer} note={copy.routing.delegatedOfficerNote} isLast />
+              <TimelineStep badge="PS" title={copy.routing.principalSecretary} note={copy.routing.principalSecretaryNote} />
+              <TimelineStep badge="HQ" title={copy.routing.delegatedOfficer} note={copy.routing.delegatedOfficerNote} isLast />
             </ol>
             <p className="flex gap-2 rounded-lg bg-atrisk-soft px-3 py-2 text-caption leading-snug text-atrisk-soft-text">
               <InformationCircleIcon className="mt-px size-4 shrink-0" aria-hidden="true" />
               {copy.routing.immutableNote}
             </p>
-          </SidePanel>
+          </FormSidePanel>
 
-          <SidePanel title={copy.afterSubmit.title}>
+          <FormSidePanel title={copy.afterSubmit.title}>
             <p className="text-body-sm text-text-secondary">
               {copy.afterSubmit.referenceBefore}{' '}
               <span className="rounded bg-section-bg px-2 py-0.5 font-mono text-primary">{exampleReferenceNumber()}</span>{' '}
               {copy.afterSubmit.referenceAfter}
             </p>
-          </SidePanel>
+          </FormSidePanel>
         </aside>
       </div>
     </div>
-  )
-}
-
-function RequiredMarker() {
-  return (
-    <span className="ml-0.5 font-bold text-danger" aria-hidden="true">
-      *
-    </span>
-  )
-}
-
-function OptionalMarker({ text }: { text: string }) {
-  return <span className="text-caption font-normal text-text-muted">{text}</span>
-}
-
-interface FieldLabelProps {
-  htmlFor: string
-  label: string
-  isRequired?: boolean
-  optionalText?: string
-  trailing?: ReactNode
-  className?: string
-  children: ReactNode
-}
-
-function FieldLabel({ htmlFor, label, isRequired = false, optionalText, trailing, className = '', children }: FieldLabelProps) {
-  return (
-    <div className={`flex min-w-0 flex-col ${className}`}>
-      <label htmlFor={htmlFor} className="mb-1.5 flex items-baseline gap-1.5 text-body-sm font-semibold text-text-secondary">
-        <span>
-          {label}
-          {isRequired && <RequiredMarker />}
-        </span>
-        {optionalText && <OptionalMarker text={optionalText} />}
-        {trailing}
-      </label>
-      {children}
-    </div>
-  )
-}
-
-interface SectionCardProps {
-  id: string
-  icon: ReactNode
-  title: string
-  subtitle: string
-  children: ReactNode
-}
-
-function SectionCard({ id, icon, title, subtitle, children }: SectionCardProps) {
-  const headingId = `${id}-heading`
-  return (
-    <section id={id} aria-labelledby={headingId} className="scroll-mt-5 rounded-xl border border-border bg-white shadow-sm">
-      <div className="flex items-start gap-3.5 px-4 pt-4 sm:px-5.5 sm:pt-5">
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-section-bg text-primary">{icon}</span>
-        <div>
-          <h2 id={headingId} className="text-h3 text-primary">
-            {title}
-          </h2>
-          <p className="text-body-sm text-text-muted">{subtitle}</p>
-        </div>
-      </div>
-      <div className="grid gap-x-5 gap-y-4.5 p-4 sm:grid-cols-2 sm:p-5.5">{children}</div>
-    </section>
   )
 }
 
@@ -910,39 +764,3 @@ function SummaryPill({ text, isEmpty }: { text: string; isEmpty: boolean }) {
   )
 }
 
-function SidePanel({ title, className = '', children }: { title: string; className?: string; children: ReactNode }) {
-  return (
-    <section className={`flex flex-col gap-3 rounded-xl border border-border bg-white p-4.5 shadow-sm ${className}`}>
-      <h3 className="text-h4 text-primary">{title}</h3>
-      {children}
-    </section>
-  )
-}
-
-interface RouteStepProps {
-  badge: string
-  title: string
-  note: string
-  isHighlighted?: boolean
-  isLast?: boolean
-}
-
-function RouteStep({ badge, title, note, isHighlighted = false, isLast = false }: RouteStepProps) {
-  return (
-    <li className="relative grid grid-cols-[28px_1fr] gap-2.5 pb-3.5 last:pb-0">
-      {!isLast && <span className="absolute bottom-0 left-3.25 top-7 w-0.5 bg-border" aria-hidden="true" />}
-      <span
-        className={`grid size-7 place-items-center rounded-full text-[0.6875rem] font-bold ${
-          isHighlighted ? 'bg-accent text-accent-text' : 'bg-section-bg text-primary'
-        }`}
-        aria-hidden="true"
-      >
-        {badge}
-      </span>
-      <span>
-        <span className="block text-body-sm font-semibold leading-tight text-text-primary">{title}</span>
-        {note && <span className="block text-caption text-text-muted">{note}</span>}
-      </span>
-    </li>
-  )
-}

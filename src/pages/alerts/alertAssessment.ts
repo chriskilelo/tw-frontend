@@ -1,4 +1,5 @@
 import { ClockIcon, ExclamationTriangleIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
+import type { TileTone } from '../../components/choiceTileTones'
 
 // Urgency tiers and the confidence scale are not yet defined by SDT (CLAUDE.md Section 8,
 // Alert Field Schema); the backend stores both as free-text strings, so these fixed values
@@ -8,18 +9,6 @@ export const CONFIDENCE_VALUES = ['low', 'fair', 'good', 'confirmed'] as const
 
 export type UrgencyValue = (typeof URGENCY_VALUES)[number]
 export type ConfidenceValue = (typeof CONFIDENCE_VALUES)[number]
-
-export interface TileTone {
-  selected: string
-  indicator: string
-  icon: string
-}
-
-export const NEUTRAL_TONE: TileTone = {
-  selected: 'border-primary bg-page-bg ring-4 ring-primary/10',
-  indicator: 'border-primary bg-primary',
-  icon: 'bg-section-bg text-primary',
-}
 
 export const URGENCY_TONES: Record<UrgencyValue, TileTone> = {
   low: {
