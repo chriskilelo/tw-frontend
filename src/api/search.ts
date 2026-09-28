@@ -1,9 +1,11 @@
 import client, { type ApiEnvelope } from './client'
+import type { AlertIntelligenceType, AlertStatus } from './alerts'
+import type { InquiryStatus, InquirySubType } from './inquiries'
+import type { PeriodicReportStatus } from './reports'
 
 export type SearchResultType = 'alert' | 'inquiry' | 'periodic_report'
 
-export interface SearchResult {
-  type: SearchResultType
+interface SearchResultBase {
   id: string
   reference_number: string
   summary: string
@@ -14,6 +16,28 @@ export interface SearchResult {
   rank: number
   link: string
 }
+
+export interface AlertSearchResult extends SearchResultBase {
+  type: 'alert'
+  status: AlertStatus
+  country: string
+  intelligence_type: AlertIntelligenceType
+  sector: string | null
+}
+
+export interface InquirySearchResult extends SearchResultBase {
+  type: 'inquiry'
+  status: InquiryStatus
+  sub_type: InquirySubType
+}
+
+export interface PeriodicReportSearchResult extends SearchResultBase {
+  type: 'periodic_report'
+  status: PeriodicReportStatus
+}
+
+/** One hit from SearchService::search(); `type` tells the three record shapes apart. */
+export type SearchResult = AlertSearchResult | InquirySearchResult | PeriodicReportSearchResult
 
 /**
  * GET /search — FR-SEARCH-001 to 003. Merges full-text results across

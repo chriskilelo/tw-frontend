@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { ArrowsRightLeftIcon, BuildingLibraryIcon, LinkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { findInquiryMatches, linkInquiry, type Inquiry, type InquiryDetail } from '../api/inquiries'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from './Button'
+import { DetailCard, EmptyState } from './DetailLayout'
 import { useI18n } from '../i18n/context'
 
 /**
@@ -53,39 +55,42 @@ export function InquiryMatchingPanel({
   const matches = matchesQuery.data ?? []
 
   return (
-    <section className="mt-8" data-testid="inquiry-matching-panel">
-      <h2 className="text-h3 text-primary">{t.inquiries.matching.title}</h2>
-      <p className="mt-1 text-body-sm text-text-muted">{t.inquiries.matching.hint}</p>
+    <div data-testid="inquiry-matching-panel">
+      <DetailCard icon={<ArrowsRightLeftIcon className="size-4" aria-hidden="true" />} title={t.inquiries.matching.title} count={matches.length}>
+        <p className="-mt-1 mb-3.5 text-body-sm text-text-secondary">{t.inquiries.matching.hint}</p>
 
-      {inquiry.linked_inquiry && (
-        <p className="mt-2 text-body-sm text-text-secondary">
-          {t.inquiries.detail.linkedToLabel}:{' '}
-          <Link to={`/inquiries/${inquiry.linked_inquiry.id}`} className="font-mono text-accent-soft-text hover:underline">
-            {inquiry.linked_inquiry.reference_number}
-          </Link>
-          {inquiry.linked_inquiry.mission && ` (${inquiry.linked_inquiry.mission})`}
-        </p>
-      )}
+        {inquiry.linked_inquiry && (
+          <p className="mb-3.5 flex flex-wrap items-center gap-2 rounded-lg bg-success-soft px-3.5 py-2.5 text-body-sm text-success-soft-text">
+            <LinkIcon className="size-4 shrink-0" aria-hidden="true" />
+            {t.inquiries.detail.linkedToLabel}:
+            <Link to={`/inquiries/${inquiry.linked_inquiry.id}`} className="font-mono font-semibold hover:underline">
+              {inquiry.linked_inquiry.reference_number}
+            </Link>
+            {inquiry.linked_inquiry.mission && <span>({inquiry.linked_inquiry.mission})</span>}
+          </p>
+        )}
 
-      {matchesQuery.isLoading ? (
-        <p className="mt-3 text-body-sm text-text-muted">{t.common.loading}</p>
-      ) : matches.length === 0 ? (
-        <p className="mt-3 text-body-sm text-text-muted">{t.inquiries.matching.empty}</p>
-      ) : (
-        <ul className="mt-3 flex flex-col gap-3">
-          {matches.map((match, index) => (
-            <MatchRow
-              key={match.id}
-              match={match}
-              rank={index}
-              total={matches.length}
-              disabled={linkMutation.isPending}
-              onLink={() => linkMutation.mutate(match.id)}
-            />
-          ))}
-        </ul>
-      )}
-    </section>
+        {matchesQuery.isLoading ? (
+          <p className="text-body-sm text-text-muted">{t.common.loading}</p>
+        ) : matches.length === 0 ? (
+          <EmptyState icon={<MagnifyingGlassIcon className="size-4.5" aria-hidden="true" />} title={t.inquiries.matching.empty} body="" />
+        ) : (
+          <ul className="flex flex-col gap-2.5">
+            {matches.map((match, index) => (
+              <MatchRow
+                key={match.id}
+                match={match}
+                rank={index}
+                total={matches.length}
+                disabled={linkMutation.isPending}
+                isLinked={inquiry.linked_inquiry?.id === match.id}
+                onLink={() => linkMutation.mutate(match.id)}
+              />
+            ))}
+          </ul>
+        )}
+      </DetailCard>
+    </div>
   )
 }
 
@@ -100,39 +105,53 @@ function relevanceLabel(t: ReturnType<typeof useI18n>['t'], rank: number, total:
   return t.inquiries.matching.relevanceLow
 }
 
+const RELEVANCE_TONE = ['bg-success-soft text-success-soft-text', 'bg-info-soft text-info', 'bg-section-bg text-text-secondary']
+
 function MatchRow({
   match,
   rank,
   total,
   disabled,
+  isLinked,
   onLink,
 }: {
   match: Inquiry
   rank: number
   total: number
   disabled: boolean
+  isLinked: boolean
   onLink: () => void
 }) {
   const { t } = useI18n()
+  const relevance = relevanceLabel(t, rank, total)
+  const toneIndex = [t.inquiries.matching.relevanceHigh, t.inquiries.matching.relevanceMedium].indexOf(relevance)
   return (
-    <li className="rounded border border-border bg-white p-3">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="font-mono text-body-sm text-text-primary">{match.reference_number}</p>
-          <p className="mt-1 text-body-sm text-text-secondary">
-            {match.category} — {match.inquirer_name}
-          </p>
-          {match.mission && <p className="mt-1 text-caption text-text-muted">{match.mission.name}</p>}
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <span className="text-caption text-text-muted">
-            {t.inquiries.matching.relevanceLabel}: {relevanceLabel(t, rank, total)}
+    <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3.5 py-3">
+      <div className="min-w-0">
+        <p className="flex flex-wrap items-center gap-2">
+          <Link to={`/inquiries/${match.id}`} className="font-mono text-body-sm font-medium text-primary hover:underline">
+            {match.reference_number}
+          </Link>
+          <span className={`rounded-full px-2 py-0.5 text-caption font-semibold ${RELEVANCE_TONE[toneIndex === -1 ? 2 : toneIndex]}`}>
+            {t.inquiries.matching.relevanceLabel}: {relevance}
           </span>
-          <Button variant="secondary" disabled={disabled} onClick={onLink}>
-            {t.inquiries.matching.linkButton}
-          </Button>
-        </div>
+        </p>
+        <p className="mt-1 text-body-sm text-text-secondary">
+          {match.category} — {match.inquirer_name}
+        </p>
+        {match.mission && (
+          <p className="mt-0.5 flex items-center gap-1.5 text-caption text-text-muted">
+            <BuildingLibraryIcon className="size-3.5" aria-hidden="true" />
+            <span>{match.mission.name}</span>
+          </p>
+        )}
       </div>
+      {!isLinked && (
+        <Button variant="secondary" disabled={disabled} onClick={onLink}>
+          <LinkIcon className="size-4" aria-hidden="true" />
+          {t.inquiries.matching.linkButton}
+        </Button>
+      )}
     </li>
   )
 }

@@ -40,6 +40,7 @@ const SOURCE_INQUIRY: InquiryDetail = {
   logged_by: { id: 'attache-1', full_name: 'Purity Samanthe' },
   notes: [],
   events: [],
+  referrals: [],
   created_at: '2026-08-13T00:00:00Z',
   updated_at: '2026-08-13T00:00:00Z',
 }

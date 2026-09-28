@@ -7,6 +7,7 @@ import type { ReactNode } from 'react'
  * Splitting on those two literal delimiters and rendering each segment as a
  * React text node (auto-escaped) highlights the match without ever parsing
  * the snippet as HTML, so no dangerouslySetInnerHTML / XSS exposure.
+ * Matches render as <mark>, the element meant for highlighted search terms.
  */
 export function SearchSnippet({ snippet }: { snippet: string }) {
   const nodes = snippet.split(/(<b>|<\/b>)/).reduce<{ bold: boolean; nodes: ReactNode[] }>(
@@ -20,7 +21,15 @@ export function SearchSnippet({ snippet }: { snippet: string }) {
       if (part === '') {
         return acc
       }
-      acc.nodes.push(acc.bold ? <strong key={index}>{part}</strong> : <span key={index}>{part}</span>)
+      acc.nodes.push(
+        acc.bold ? (
+          <mark key={index} className="rounded-sm bg-accent-soft px-0.5 font-semibold text-text-primary">
+            {part}
+          </mark>
+        ) : (
+          <span key={index}>{part}</span>
+        ),
+      )
       return acc
     },
     { bold: false, nodes: [] },
