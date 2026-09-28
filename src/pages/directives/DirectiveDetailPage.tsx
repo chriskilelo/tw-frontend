@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   addDirectiveNote,
@@ -13,6 +13,7 @@ import { useAuth, isReadOnlyRole } from '../../hooks/useAuth'
 import { Button } from '../../components/Button'
 import { Modal } from '../../components/Modal'
 import { DirectiveStatusBadge } from './DirectiveStatusBadge'
+import { useBreadcrumbLabel } from '../../hooks/useBreadcrumbs'
 import { useI18n } from '../../i18n/context'
 
 /**
@@ -48,6 +49,11 @@ export default function DirectiveDetailPage() {
     queryFn: () => getDirective(id as string),
     enabled: Boolean(id),
   })
+
+  const directiveDescription = directiveQuery.data?.description
+  useBreadcrumbLabel(
+    directiveDescription && directiveDescription.length > 48 ? `${directiveDescription.slice(0, 48).trimEnd()}…` : directiveDescription,
+  )
 
   const [noteContent, setNoteContent] = useState('')
   const [isCompleteModalOpen, setCompleteModalOpen] = useState(false)
@@ -86,11 +92,7 @@ export default function DirectiveDetailPage() {
 
   return (
     <div className="p-6">
-      <Link to="/directives" className="text-body-sm font-semibold text-accent-soft-text hover:underline">
-        ← {t.directives.detail.backToList}
-      </Link>
-
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-h1 text-primary">{directive.description.slice(0, 60)}</h1>
         <DirectiveStatusBadge status={directive.status} />
       </div>

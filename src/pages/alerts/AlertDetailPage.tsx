@@ -1,9 +1,7 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  ArrowDownTrayIcon,
-  ArrowLeftIcon,
   ArrowTrendingUpIcon,
   BuildingLibraryIcon,
   CalendarDaysIcon,
@@ -22,11 +20,9 @@ import {
   PaperClipIcon,
   PencilSquareIcon,
   RssIcon,
-  Square2StackIcon,
   UserIcon,
   UserPlusIcon,
 } from '@heroicons/react/24/outline'
-import { CheckIcon } from '@heroicons/react/20/solid'
 import {
   acknowledgeAlert,
   delegateAlert,
@@ -35,7 +31,6 @@ import {
   getAlertIntelligenceTypeOptions,
   postAlertFeedback,
   updateAlert,
-  type AlertAttachment,
   type AlertDetail,
   type AlertIntelligenceType,
   type AlertUpdateRequest,
@@ -44,11 +39,24 @@ import { useAuth, isReadOnlyRole } from '../../hooks/useAuth'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Modal } from '../../components/Modal'
+import {
+  AttachmentRow,
+  CopyButton,
+  DetailCard,
+  DetailSidePanel,
+  EmptyState,
+  FactTile,
+  PersonRow,
+  ProgressStep,
+  RecordRow,
+} from '../../components/DetailLayout'
+import { formatDate as formatLocaleDate, formatDateTime as formatLocaleDateTime, initials, localeFor } from '../../lib/formatters'
 import { AlertStatusBadge } from './AlertStatusBadge'
-import { ChoiceTile, SignalStrength } from './AlertChoiceTile'
+import { ChoiceTile } from '../../components/ChoiceTile'
+import { NEUTRAL_TONE } from '../../components/choiceTileTones'
+import { SignalStrength } from './SignalStrength'
 import {
   CONFIDENCE_VALUES,
-  NEUTRAL_TONE,
   URGENCY_ICONS,
   URGENCY_TONES,
   URGENCY_VALUES,
@@ -57,6 +65,7 @@ import {
   isUrgencyValue,
   urgencyTier,
 } from './alertAssessment'
+import { useBreadcrumbLabel } from '../../hooks/useBreadcrumbs'
 import { useI18n } from '../../i18n/context'
 
 /** Mirrors App\Policies\AlertPolicy::DELEGATING_ROLES — the backend also permits Acting PS, not only Ministry PS. */
@@ -66,23 +75,6 @@ const FEEDBACK_MAX_LENGTH = 2000
 const INTELLIGENCE_TYPE_STYLE: Record<AlertIntelligenceType, { accent: string; badge: string; icon: typeof NoSymbolIcon }> = {
   opportunities: { accent: 'border-l-success', badge: 'bg-success-soft text-success-soft-text', icon: ArrowTrendingUpIcon },
   trade_barriers: { accent: 'border-l-danger', badge: 'bg-danger-soft text-danger-soft-text', icon: NoSymbolIcon },
-}
-
-function initials(fullName: string | null | undefined): string {
-  return (fullName ?? '')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join('')
-}
-
-function formatFileSize(bytes: number): string {
-  return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
-}
-
-function fileExtension(fileName: string): string {
-  return fileName.split('.').pop()?.toUpperCase().slice(0, 4) ?? ''
 }
 
 /**
@@ -104,18 +96,11 @@ export default function AlertDetailPage() {
     enabled: Boolean(id),
   })
 
+  useBreadcrumbLabel(alertQuery.data?.reference_number, { isCode: true })
+
   const [isEditing, setIsEditing] = useState(false)
   const [isDelegateModalOpen, setDelegateModalOpen] = useState(false)
   const [feedbackContent, setFeedbackContent] = useState('')
-  const [isReferenceCopied, setIsReferenceCopied] = useState(false)
-
-  useEffect(() => {
-    if (!isReferenceCopied) {
-      return
-    }
-    const timer = window.setTimeout(() => setIsReferenceCopied(false), 2000)
-    return () => window.clearTimeout(timer)
-  }, [isReferenceCopied])
 
   const acknowledgeMutation = useMutation({
     mutationFn: () => acknowledgeAlert(id as string),
@@ -139,10 +124,9 @@ export default function AlertDetailPage() {
   }
 
   const alert = alertQuery.data
-  const locale = language === 'sw' ? 'sw-KE' : 'en-GB'
-  const formatDateTime = (value: string) =>
-    new Date(value).toLocaleString(locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-  const formatDate = (value: string) => new Date(value).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
+  const locale = localeFor(language)
+  const formatDateTime = (value: string) => formatLocaleDateTime(value, locale)
+  const formatDate = (value: string) => formatLocaleDate(value, locale)
 
   const isSubmittingAttache = role?.name === 'Ministry Attache' && alert.submitted_by?.id === user?.id
   const isAssignedDelegate = alert.assigned_to?.id === user?.id
@@ -157,24 +141,9 @@ export default function AlertDetailPage() {
   const UrgencyIcon = urgencyKey ? URGENCY_ICONS[urgencyKey] : InformationCircleIcon
   const assigneeName = alert.assigned_to?.full_name ?? ''
 
-  function copyReference() {
-    navigator.clipboard
-      ?.writeText(alert.reference_number)
-      .then(() => setIsReferenceCopied(true))
-      .catch(() => undefined)
-  }
-
   return (
     <div className="mx-auto w-full max-w-310 px-4 py-6 sm:px-7">
-      <Link
-        to="/alerts"
-        className="inline-flex items-center gap-1.5 text-body-sm font-semibold text-text-secondary hover:text-primary hover:underline"
-      >
-        <ArrowLeftIcon className="size-4" aria-hidden="true" />
-        {copy.backToList}
-      </Link>
-
-      <section className="mt-3 overflow-hidden rounded-2xl border border-border bg-white shadow-sm" aria-labelledby="alert-reference-heading">
+      <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm" aria-labelledby="alert-reference-heading">
         <div className={`flex flex-wrap items-start justify-between gap-4 border-l-4 px-4 pb-4 pt-5 sm:px-6 ${typeStyle.accent}`}>
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -195,21 +164,7 @@ export default function AlertDetailPage() {
               <h1 data-testid="alert-reference-number" className="font-mono text-[1.5rem] font-medium leading-tight tracking-tight text-primary">
                 {alert.reference_number}
               </h1>
-              <button
-                type="button"
-                onClick={copyReference}
-                aria-label={copy.copyReference}
-                className="grid size-7 place-items-center rounded-md border border-border text-text-muted hover:border-border-muted hover:text-primary"
-              >
-                {isReferenceCopied ? (
-                  <CheckOutlineIcon className="size-3.5 text-success" aria-hidden="true" />
-                ) : (
-                  <Square2StackIcon className="size-3.5" aria-hidden="true" />
-                )}
-              </button>
-              <span className="sr-only" aria-live="polite">
-                {isReferenceCopied ? copy.referenceCopied : ''}
-              </span>
+              <CopyButton value={alert.reference_number} label={copy.copyReference} copiedLabel={copy.referenceCopied} />
             </div>
 
             <p className="mt-1.5 text-[1.125rem] font-semibold leading-snug text-text-primary">
@@ -379,7 +334,16 @@ export default function AlertDetailPage() {
             ) : (
               <ul className="flex flex-col gap-2">
                 {alert.attachments.map((attachment) => (
-                  <AttachmentRow key={attachment.id} alertId={alert.id} attachment={attachment} />
+                  <AttachmentRow
+                    key={attachment.id}
+                    fileName={attachment.original_filename}
+                    sizeBytes={attachment.file_size_bytes}
+                    mimeType={attachment.mime_type}
+                    requestDownloadUrl={() => getAlertAttachmentDownloadUrl(alert.id, attachment.id)}
+                    downloadLabel={copy.download}
+                    downloadAriaLabel={copy.downloadAttachment(attachment.original_filename)}
+                    downloadError={copy.downloadError}
+                  />
                 ))}
               </ul>
             )}
@@ -461,8 +425,8 @@ export default function AlertDetailPage() {
           </DetailCard>
         </div>
 
-        <aside className="grid gap-4 sm:grid-cols-2 min-[1200px]:sticky min-[1200px]:top-5 min-[1200px]:grid-cols-1">
-          <SidePanel title={copy.peopleTitle}>
+        <aside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:sticky min-[1200px]:top-5 min-[1200px]:grid-cols-1">
+          <DetailSidePanel title={copy.peopleTitle}>
             <ol className="flex flex-col">
               <PersonRow
                 badge={initials(alert.submitted_by?.full_name)}
@@ -480,18 +444,18 @@ export default function AlertDetailPage() {
                 isLast
               />
             </ol>
-          </SidePanel>
+          </DetailSidePanel>
 
-          <SidePanel title={copy.recordTitle}>
+          <DetailSidePanel title={copy.recordTitle}>
             <dl className="flex flex-col gap-2.5 text-body-sm">
               <RecordRow label={copy.referenceLabel} value={<span className="font-mono">{alert.reference_number}</span>} />
               <RecordRow label={copy.submittedAt} value={formatDateTime(alert.created_at)} />
               <RecordRow label={copy.lastUpdated} value={formatDateTime(alert.updated_at)} />
               {alert.mission && <RecordRow label={copy.mission} value={alert.mission.name} />}
             </dl>
-          </SidePanel>
+          </DetailSidePanel>
 
-          <SidePanel title={copy.versionHistoryTitle} count={alert.versions.length} className="sm:col-span-2 min-[1200px]:col-span-1">
+          <DetailSidePanel title={copy.versionHistoryTitle} count={alert.versions.length} className="sm:col-span-2 min-[1200px]:col-span-1">
             {alert.versions.length === 0 ? (
               <p className="flex items-start gap-2 text-body-sm text-text-secondary">
                 <CheckOutlineIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
@@ -522,7 +486,7 @@ export default function AlertDetailPage() {
               <InformationCircleIcon className="mt-px size-4 shrink-0" aria-hidden="true" />
               {copy.versionsNote}
             </p>
-          </SidePanel>
+          </DetailSidePanel>
         </aside>
       </div>
 
@@ -553,64 +517,6 @@ function confidenceDisplayName(value: string, options: ConfidenceOptionsCopy): s
   return isConfidenceValue(value) ? options[value].name : value
 }
 
-function ProgressStep({ state, index, title, note }: { state: 'done' | 'current' | 'todo'; index: number; title: string; note: string }) {
-  return (
-    <li
-      aria-current={state === 'current' ? 'step' : undefined}
-      className="flex items-start gap-2.5 border-border px-4 py-3.5 not-first:border-t sm:px-6 md:not-first:border-l md:not-first:border-t-0"
-    >
-      <span
-        className={`mt-px grid size-6 shrink-0 place-items-center rounded-full border-[1.5px] font-mono text-[0.6875rem] ${
-          state === 'done'
-            ? 'border-success bg-success text-white'
-            : state === 'current'
-              ? 'border-info bg-white text-info ring-4 ring-info-soft'
-              : 'border-border-muted bg-white text-text-muted'
-        }`}
-        aria-hidden="true"
-      >
-        {state === 'done' ? <CheckIcon className="size-3.5" /> : index}
-      </span>
-      <span className="min-w-0">
-        <strong className={`block text-body-sm ${state === 'todo' ? 'text-text-secondary' : 'text-text-primary'}`}>{title}</strong>
-        <span className="block text-caption leading-snug text-text-secondary">{note}</span>
-      </span>
-    </li>
-  )
-}
-
-function DetailCard({ icon, title, count, children }: { icon: ReactNode; title: string; count?: number; children: ReactNode }) {
-  return (
-    <section className="rounded-xl border border-border bg-white shadow-sm">
-      <h2 className="flex items-center gap-2.5 px-4 pt-4 text-h3 text-primary sm:px-5">
-        <span className="grid size-8 place-items-center rounded-lg bg-section-bg text-primary">{icon}</span>
-        {title}
-        {count !== undefined && (
-          <span className="rounded-full bg-section-bg px-2 py-px font-mono text-[0.6875rem] font-medium text-text-secondary">{count}</span>
-        )}
-      </h2>
-      <div className="p-4 sm:px-5 sm:pb-5">{children}</div>
-    </section>
-  )
-}
-
-function FactTile({ icon, label, value, emptyText }: { icon: ReactNode; label: string; value: string | null; emptyText: string }) {
-  return (
-    <div className="relative min-w-0 rounded-lg border border-border py-3 pl-13 pr-3">
-      <dt className="text-caption font-medium text-text-secondary">
-        <span
-          className="absolute left-3 top-3 grid size-7.5 place-items-center rounded-lg bg-section-bg text-text-secondary"
-          aria-hidden="true"
-        >
-          {icon}
-        </span>
-        {label}
-      </dt>
-      <dd className={value ? 'wrap-break-word font-semibold text-text-primary' : 'italic text-text-muted'}>{value ?? emptyText}</dd>
-    </div>
-  )
-}
-
 function AssessmentGauge({
   label,
   value,
@@ -634,117 +540,6 @@ function AssessmentGauge({
         {value}
       </p>
       {note && <p className="mt-0.5 text-caption text-text-secondary">{note}</p>}
-    </div>
-  )
-}
-
-function EmptyState({ icon, title, body }: { icon: ReactNode; title: string; body: string }) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg border-[1.5px] border-dashed border-border-muted bg-page-bg px-4 py-3.5 text-body-sm text-text-secondary">
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-white text-text-muted">{icon}</span>
-      <span>
-        <strong className="block text-text-primary">{title}</strong>
-        {body}
-      </span>
-    </div>
-  )
-}
-
-function AttachmentRow({ alertId, attachment }: { alertId: string; attachment: AlertAttachment }) {
-  const { t } = useI18n()
-  const copy = t.alerts.detail
-  const downloadMutation = useMutation({
-    mutationFn: () => getAlertAttachmentDownloadUrl(alertId, attachment.id),
-    onSuccess: (url) => window.open(url, '_blank', 'noopener,noreferrer'),
-  })
-  const extension = fileExtension(attachment.original_filename)
-  const isImage = attachment.mime_type.startsWith('image/')
-
-  return (
-    <li className="flex flex-col gap-1">
-      <div className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5">
-        <span
-          className={`grid size-9.5 shrink-0 place-items-center rounded-lg font-mono text-[0.6875rem] font-medium ${
-            isImage ? 'bg-info-soft text-info' : 'bg-danger-soft text-danger-soft-text'
-          }`}
-          aria-hidden="true"
-        >
-          {extension}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold text-text-primary">{attachment.original_filename}</span>
-          <span className="font-mono text-[0.6875rem] text-text-secondary">{formatFileSize(attachment.file_size_bytes)}</span>
-        </span>
-        <button
-          type="button"
-          onClick={() => downloadMutation.mutate()}
-          disabled={downloadMutation.isPending}
-          aria-label={copy.downloadAttachment(attachment.original_filename)}
-          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-body-sm font-semibold text-info hover:bg-info-soft disabled:opacity-50"
-        >
-          <ArrowDownTrayIcon className="size-4" aria-hidden="true" />
-          <span className="hidden sm:inline">{copy.download}</span>
-        </button>
-      </div>
-      {downloadMutation.isError && <p className="text-caption text-danger-soft-text">{copy.downloadError}</p>}
-    </li>
-  )
-}
-
-function SidePanel({ title, count, className = '', children }: { title: string; count?: number; className?: string; children: ReactNode }) {
-  return (
-    <section className={`flex flex-col gap-3.5 rounded-xl border border-border bg-white p-4.5 shadow-sm ${className}`}>
-      <h2 className="flex items-center justify-between gap-2 text-h4 text-primary">
-        {title}
-        {count !== undefined && (
-          <span className="rounded-full bg-section-bg px-2 py-px font-mono text-[0.6875rem] font-medium text-text-secondary">{count}</span>
-        )}
-      </h2>
-      {children}
-    </section>
-  )
-}
-
-function PersonRow({
-  badge,
-  role,
-  name,
-  note,
-  variant = 'default',
-  isLast = false,
-}: {
-  badge: string
-  role: string
-  name: string
-  note?: string
-  variant?: 'default' | 'highlight' | 'pending'
-  isLast?: boolean
-}) {
-  const badgeClassName = {
-    default: 'bg-section-bg text-primary',
-    highlight: 'bg-accent text-accent-text',
-    pending: 'border-[1.5px] border-dashed border-border-muted bg-white text-text-muted',
-  }[variant]
-  return (
-    <li className={`relative grid grid-cols-[32px_1fr] gap-2.5 ${isLast ? '' : 'pb-4'}`}>
-      {!isLast && <span className="absolute bottom-0.5 left-3.75 top-8.5 w-0.5 bg-border" aria-hidden="true" />}
-      <span className={`grid size-8 place-items-center rounded-full text-[0.6875rem] font-bold ${badgeClassName}`} aria-hidden="true">
-        {badge}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-[0.6875rem] font-semibold uppercase tracking-wider text-text-secondary">{role}</span>
-        <span className="block text-body-sm font-semibold leading-tight text-text-primary">{name}</span>
-        {note && <span className="block text-caption text-text-secondary">{note}</span>}
-      </span>
-    </li>
-  )
-}
-
-function RecordRow({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex justify-between gap-3">
-      <dt className="text-text-secondary">{label}</dt>
-      <dd className="text-right font-semibold text-text-primary">{value}</dd>
     </div>
   )
 }
