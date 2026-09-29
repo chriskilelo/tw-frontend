@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom'
-import { useAuth, isMinistryAdministrator } from './hooks/useAuth'
+import { useAuth } from './hooks/useAuth'
 import AppLayout from './layouts/AppLayout'
 
 import LoginPage from './pages/auth/LoginPage'
@@ -70,21 +70,6 @@ function ProtectedRoute() {
 
 // Route names mirror API-001's endpoint map (14_TW_API_Specification.md Sections 3-12)
 // so a given resource's UI path and API path stay easy to cross-reference.
-/**
- * ADR-006 / BR-025: a Ministry Administrator has no operational access, so the dashboard
- * (which calls operational endpoints) is never its landing page — it goes to User Accounts.
- * Every other role lands on the dashboard as before.
- */
-function DashboardRoute() {
-  const { role } = useAuth()
-
-  if (isMinistryAdministrator(role?.name)) {
-    return <Navigate to="/admin/users" replace />
-  }
-
-  return <DashboardPage />
-}
-
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
@@ -96,7 +81,7 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: '/', element: <Navigate to="/dashboard" replace /> },
-          { path: '/dashboard', element: <DashboardRoute /> },
+          { path: '/dashboard', element: <DashboardPage /> },
           { path: '/profile', element: <ProfilePage /> },
           { path: '/alerts', element: <AlertListPage /> },
           { path: '/alerts/new', element: <AlertSubmitPage /> },

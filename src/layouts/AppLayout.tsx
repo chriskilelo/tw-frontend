@@ -110,12 +110,15 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
   // middleware (Session 33, FR-SDT-018) 403s HRM&D Officer on any request path outside
   // api/v1/kpi-* / api/v1/sdt/hrmd-dashboard* as a blanket net, GET /search included.
   'HRM&D Officer': ['dashboard', 'hrmdDashboard'],
-  // ADR-006 / BR-025: department administration only — no dashboard, search or engine
-  // pages, all of which the backend's operational fence (MinistryScope middleware +
-  // BasePolicy) would 403. 'config' is restored for this role: every Sdt\ConfigController
-  // screen now pins a Ministry Administrator to its own department. adminMinistries is
-  // omitted (its list would only ever show the administrator's own department).
+  // ADR-006 / BR-025: department administration only — no search or engine pages, all of
+  // which the backend's operational fence (MinistryScope middleware + BasePolicy) would 403.
+  // 'dashboard' is the administrator dashboard (GET /admin/dashboard: accounts, seats,
+  // approvals and configuration — never operational records), not the operational one.
+  // 'config' is restored for this role: every Sdt\ConfigController screen now pins a
+  // Ministry Administrator to its own department. adminMinistries is omitted (its list
+  // would only ever show the administrator's own department).
   'Ministry Administrator': [
+    'dashboard',
     'adminUsers',
     'adminApprovals',
     'config',

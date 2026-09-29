@@ -65,6 +65,17 @@ export default {
           soft: 'var(--color-directive-soft)',
           'soft-text': 'var(--color-directive-soft-text)',
         },
+        chart: {
+          1: 'var(--chart-series-1)',
+          2: 'var(--chart-series-2)',
+          3: 'var(--chart-series-3)',
+          context: 'var(--chart-context)',
+          grid: 'var(--chart-grid)',
+          'on-track': 'var(--chart-status-on-track)',
+          'at-risk': 'var(--chart-status-at-risk)',
+          below: 'var(--chart-status-below)',
+          none: 'var(--chart-status-none)',
+        },
         border: {
           DEFAULT: 'var(--color-border)',
           muted: 'var(--color-border-muted)',

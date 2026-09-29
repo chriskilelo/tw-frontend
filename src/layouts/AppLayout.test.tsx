@@ -123,8 +123,9 @@ describe('AppLayout', () => {
     expect(screen.getByRole('link', { name: 'Leadership Switches' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Audit Log' })).toBeInTheDocument()
 
-    // BR-025: no operational sections, not even the dashboard or search.
-    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument()
+    // The dashboard is the administration dashboard (GET /admin/dashboard), not an
+    // operational view. BR-025: no operational sections and no search.
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/dashboard')
     expect(screen.queryByRole('link', { name: 'Alerts' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Search' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Departments' })).not.toBeInTheDocument()
