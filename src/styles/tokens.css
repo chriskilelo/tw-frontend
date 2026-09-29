@@ -63,6 +63,26 @@
   --color-text-secondary: #374151;
   --color-text-primary: #111827;
 
+  /*
+   * Data visualisation (dashboard charts). Validated with the dataviz palette checker on
+   * white: the three categorical series clear colour-blind separation (all pairs) and 3:1
+   * non-text contrast (WCAG 1.4.11). Status marks keep the badge meanings but step darker
+   * than the badge tokens, because a chart mark must clear 3:1 on its own: --color-at-risk
+   * (#F59E0B) is only 2.09:1, so at-risk marks use #D97706 (3.2:1) — still the at-risk
+   * amber, never the brand --color-accent. Status marks are stacked green -> amber -> red
+   * (red and green never adjacent) and always ship with an icon and a text label.
+   */
+  --chart-series-1: #2a78d6;
+  --chart-series-2: #e2622c;
+  --chart-series-3: #119a6c;
+  --chart-context: #94a3b8; /* de-emphasised comparison series (e.g. previous period) */
+  --chart-grid: #e5e7eb;
+  --chart-axis: #6b7280;
+  --chart-status-on-track: #0f7a3d;
+  --chart-status-at-risk: #d97706;
+  --chart-status-below: #b91c1c;
+  --chart-status-none: #6b7280;
+
   /* Typography */
   --font-heading: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;

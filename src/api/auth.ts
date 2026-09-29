@@ -30,7 +30,7 @@ export interface AuthUser {
    * neither (CLAUDE.md Section 6); optional (not just nullable) so the many pre-existing
    * AuthUser test fixtures across the suite that predate this field don't all need updating.
    */
-  mission?: (NamedRef & { host_country?: string }) | null
+  mission?: (NamedRef & { host_country?: string; city?: string; time_zone?: string }) | null
   ministry?: NamedRef | null
   /** ADR-006: display-only home department of a System Administrator. */
   home_ministry?: NamedRef | null

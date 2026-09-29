@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { listAlerts, type Alert, type AlertIntelligenceType, type AlertStatus } from '../../api/alerts'
 import { search, type SearchResult } from '../../api/search'
@@ -23,7 +23,10 @@ export default function AlertListPage() {
   const navigate = useNavigate()
   const { role } = useAuth()
   const canCreate = !isReadOnlyRole(role?.name) && role?.name === 'Ministry Attache'
-  const [status, setStatus] = useState<AlertStatus | ''>('')
+  const [searchParams] = useSearchParams()
+  // Dashboard links (e.g. "alerts awaiting action") open the list pre-filtered via ?status=.
+  const initialStatus = searchParams.get('status')
+  const [status, setStatus] = useState<AlertStatus | ''>(STATUS_OPTIONS.includes(initialStatus as AlertStatus) ? (initialStatus as AlertStatus) : '')
   const [intelligenceType, setIntelligenceType] = useState<AlertIntelligenceType | ''>('')
   const [searchInput, setSearchInput] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
