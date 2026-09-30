@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Badge, type BadgeVariant } from '../../components/Badge'
-import type { DirectiveStatus } from '../../api/directives'
+import type { DirectiveDueState, DirectiveStatus } from '../../api/directives'
 import { useI18n } from '../../i18n/context'
 
 /** CLAUDE.md Section 4 Rule 9: every status badge pairs colour with an icon and a text label. */
@@ -105,6 +105,44 @@ export function DirectiveStaleBadge() {
       icon={
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+        </svg>
+      }
+    />
+  )
+}
+
+/**
+ * FR-DIR-003: the target-date grouping as a badge (Rule 9: colour + icon + text). Renders
+ * nothing for completed/cancelled directives, whose status badge already says everything.
+ * dueState and daysUntilDue come straight from the API (DirectiveFlags), never recomputed here.
+ */
+export function DirectiveDueBadge({ dueState, daysUntilDue }: { dueState: DirectiveDueState; daysUntilDue: number | null }) {
+  const { t } = useI18n()
+  if (dueState === 'completed' || dueState === 'cancelled') {
+    return null
+  }
+
+  const days = daysUntilDue ?? 0
+  const DUE_BADGE: Record<'no_date' | 'approaching' | 'overdue' | 'on_track', { variant: BadgeVariant; label: string; path: string }> = {
+    no_date: { variant: 'neutral', label: t.directives.due.noDate, path: 'M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z' },
+    approaching: {
+      variant: 'atrisk',
+      label: days === 0 ? t.directives.due.dueToday : t.directives.due.dueIn(days),
+      path: 'M12 7v5l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+    },
+    overdue: { variant: 'danger', label: t.directives.due.overdueBy(Math.abs(days)), path: 'M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z' },
+    on_track: { variant: 'info', label: t.directives.due.dueIn(days), path: 'M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm4 10 2 2 4-4' },
+  }
+  const badge = DUE_BADGE[dueState]
+
+  return (
+    <Badge
+      variant={badge.variant}
+      label={badge.label}
+      testId={`directive-due-${dueState}`}
+      icon={
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
+          <path strokeLinecap="round" strokeLinejoin="round" d={badge.path} />
         </svg>
       }
     />
