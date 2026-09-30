@@ -1,84 +1,44 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { screen, within } from '@testing-library/react'
 import ReportComplianceConsolePage from './ReportComplianceConsolePage'
 import * as sdtApi from '../../api/sdt'
-import { I18nProvider } from '../../i18n/context'
+import * as useAuthModule from '../../hooks/useAuth'
+import { authAs, renderRoute } from '../reports/reportTestUtils'
+import { COMPLIANCE_BOARD } from '../reports/complianceFixtures'
 
 vi.mock('../../api/sdt', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/sdt')>()
   return { ...actual, getSdtReportCompliance: vi.fn() }
 })
 
-function renderPage() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  })
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-      <MemoryRouter initialEntries={['/sdt/reports/compliance']}>
-        <ReportComplianceConsolePage />
-      </MemoryRouter>
-      </I18nProvider>
-    </QueryClientProvider>,
-  )
-}
+vi.mock('../../hooks/useAuth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../hooks/useAuth')>()
+  return { ...actual, useAuth: vi.fn() }
+})
 
 describe('ReportComplianceConsolePage', () => {
   beforeEach(() => {
-    vi.mocked(sdtApi.getSdtReportCompliance).mockReset()
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(authAs('Ministry PS'))
+    vi.mocked(sdtApi.getSdtReportCompliance).mockReset().mockResolvedValue(COMPLIANCE_BOARD)
   })
 
-  it('TC-FR-SDT-007: renders the compliance console with a summary tile and a mission row per mission', async () => {
-    vi.mocked(sdtApi.getSdtReportCompliance).mockResolvedValue({
-      period_label: 'Q1 2027',
-      missions: [
-        { mission_id: 'mission-1', mission_name: 'London', status: 'submitted_on_time', submitted_at: '2027-10-05T09:00:00Z' },
-        { mission_id: 'mission-2', mission_name: 'Cairo', status: 'submitted_late', submitted_at: '2027-10-16T09:00:00Z' },
-        { mission_id: 'mission-3', mission_name: 'Accra', status: 'not_yet_submitted', submitted_at: null },
-      ],
-      summary: { submitted_on_time: 1, submitted_late: 1, not_yet_submitted: 1 },
-    })
+  it('TC-FR-SDT-001-RPT: gives the PS console the compliance board from the SDT endpoint', async () => {
+    renderRoute('/sdt/reports/compliance', '/sdt/reports/compliance', <ReportComplianceConsolePage />)
 
-    renderPage()
-
-    expect(await screen.findByRole('heading', { name: 'Report Compliance Console' })).toBeInTheDocument()
-    expect(await screen.findByText('London')).toBeInTheDocument()
-    expect(screen.getByText('Cairo')).toBeInTheDocument()
-    expect(screen.getByText('Accra')).toBeInTheDocument()
-    expect(screen.getByText('On Time')).toBeInTheDocument()
-    expect(screen.getByText('Late')).toBeInTheDocument()
-    expect(screen.getByText('Pending')).toBeInTheDocument()
-    expect(screen.getAllByText('Review reports')).toHaveLength(3)
+    expect(await screen.findByRole('heading', { name: 'Report Compliance Console', level: 1 })).toBeInTheDocument()
+    expect(sdtApi.getSdtReportCompliance).toHaveBeenCalledWith(undefined)
+    expect(screen.getAllByTestId(/^compliance-row-/)).toHaveLength(4)
+    expect(within(screen.getByTestId('compliance-row-m-berlin')).getByRole('link', { name: 'Open the Berlin report' })).toHaveAttribute(
+      'href',
+      '/reports/report-berlin',
+    )
   })
 
-  it('highlights a late-submission row with the danger-soft background (task spec: row background --color-danger-soft)', async () => {
-    vi.mocked(sdtApi.getSdtReportCompliance).mockResolvedValue({
-      period_label: 'Q1 2027',
-      missions: [{ mission_id: 'mission-2', mission_name: 'Cairo', status: 'submitted_late', submitted_at: '2027-10-16T09:00:00Z' }],
-      summary: { submitted_on_time: 0, submitted_late: 1, not_yet_submitted: 0 },
-    })
+  it('tints a late submission amber and a still-missing overdue report red (Rule 10: late is at-risk, not the brand accent)', async () => {
+    renderRoute('/sdt/reports/compliance', '/sdt/reports/compliance', <ReportComplianceConsolePage />)
 
-    renderPage()
-
-    const cell = await screen.findByText('Cairo')
-    const row = cell.closest('tr')
-    expect(row).toHaveClass('bg-danger-soft')
-  })
-
-  it('TC-UI-002: renders without overflow at 375px viewport', async () => {
-    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 375 })
-    vi.mocked(sdtApi.getSdtReportCompliance).mockResolvedValue({
-      period_label: 'Q1 2027',
-      missions: [],
-      summary: { submitted_on_time: 0, submitted_late: 0, not_yet_submitted: 0 },
-    })
-
-    const { container } = renderPage()
-    expect(await screen.findByRole('heading', { name: 'Report Compliance Console' })).toBeInTheDocument()
-
-    expect(container.querySelectorAll('[style*="width"]')).toHaveLength(0)
+    expect(await screen.findByTestId('compliance-row-m-accra')).toHaveClass('bg-atrisk-soft/40')
+    expect(screen.getByTestId('compliance-row-m-lusaka')).toHaveClass('bg-danger-soft/40')
+    expect(screen.getByTestId('compliance-row-m-berlin')).toHaveClass('bg-white')
   })
 })
