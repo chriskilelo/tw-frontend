@@ -9,15 +9,19 @@ import { Pagination } from '../../../components/Pagination'
 import { useClientPagination } from '../../../hooks/useClientPagination'
 import { useAuth, isMinistryAdministrator } from '../../../hooks/useAuth'
 import { useI18n } from '../../../i18n/context'
+import { KpiProfilesPanel } from './KpiProfilesPanel'
 
 const QUERY_KEY = ['sdt', 'config', 'kpi-settings'] as const
 
 /**
- * FR-SDT-021. System Administrator only (KpiPolicy::manageDefinitions()).
- * Wraps the same defineKpi()/kpi_definitions table the general-purpose
- * /kpi-definitions endpoint uses (Session 32/41 note) — KPI Profile
- * management stays on its own /kpi-profiles screen, not built here.
+ * FR-SDT-021. System Administrator and the department's Ministry Administrator
+ * (KpiPolicy::manageDefinitions()). Wraps the same defineKpi()/kpi_definitions table the
+ * general-purpose /kpi-definitions endpoint uses; KPI Profiles (FR-KPI-002) are managed in
+ * the panel below, over the /kpi-profiles endpoints. An auto-calculated KPI picks its data
+ * source from the counts the engine can compute live (App\Services\KpiDataSources); any
+ * other source is described in words and its values are recorded by hand.
  */
+const LIVE_SOURCES = ['alerts.count_submitted', 'inquiries.count_closed', 'inquiries.count_disputes_closed', 'reports.count_submitted', 'reports.count_submitted_on_time']
 export default function KpiSettingsConfigPage() {
   const { t } = useI18n()
   const queryClient = useQueryClient()
@@ -34,7 +38,8 @@ export default function KpiSettingsConfigPage() {
   const [newDescription, setNewDescription] = useState('')
   const [newUnit, setNewUnit] = useState('')
   const [newCalculationMethod, setNewCalculationMethod] = useState<'auto' | 'manual'>('manual')
-  const [newDataSource, setNewDataSource] = useState('')
+  const [newDataSource, setNewDataSource] = useState(LIVE_SOURCES[0])
+  const [otherDataSource, setOtherDataSource] = useState('')
   const [newReportingFrequency, setNewReportingFrequency] = useState('quarterly')
   const [newMinistryId, setNewMinistryId] = useState('')
 
@@ -50,14 +55,15 @@ export default function KpiSettingsConfigPage() {
         description: newDescription || undefined,
         unit: newUnit || undefined,
         calculation_method: newCalculationMethod,
-        data_source: newDataSource || undefined,
+        data_source: newCalculationMethod === 'auto' ? (newDataSource === 'other' ? otherDataSource || undefined : newDataSource) : undefined,
         reporting_frequency: newReportingFrequency,
       }),
     onSuccess: () => {
       setNewName('')
       setNewDescription('')
       setNewUnit('')
-      setNewDataSource('')
+      setNewDataSource(LIVE_SOURCES[0])
+      setOtherDataSource('')
       setNewMinistryId('')
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })
     },
@@ -191,12 +197,29 @@ export default function KpiSettingsConfigPage() {
           </label>
 
           {newCalculationMethod === 'auto' && (
-            <Input
-              label={t.sdt.kpiSettings.dataSourceLabel}
-              required
-              value={newDataSource}
-              onChange={(event) => setNewDataSource(event.target.value)}
-            />
+            <>
+              <label className="flex flex-col gap-1">
+                <span className="text-body-sm font-semibold text-text-secondary">{t.sdt.kpiSettings.dataSourceLabel}</span>
+                <select
+                  required
+                  value={newDataSource}
+                  onChange={(event) => setNewDataSource(event.target.value)}
+                  className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  {LIVE_SOURCES.map((source) => (
+                    <option key={source} value={source}>
+                      {t.kpi.dataSource[source]}
+                    </option>
+                  ))}
+                  <option value="other">{t.sdt.kpiSettings.dataSourceOther}</option>
+                </select>
+              </label>
+              {newDataSource === 'other' ? (
+                <Input label={t.sdt.kpiSettings.dataSourceOtherLabel} required value={otherDataSource} onChange={(event) => setOtherDataSource(event.target.value)} />
+              ) : (
+                <p className="text-caption text-text-muted">{t.sdt.kpiSettings.dataSourceLiveHint}</p>
+              )}
+            </>
           )}
 
           <Input
@@ -225,6 +248,8 @@ export default function KpiSettingsConfigPage() {
           </div>
         </form>
       </div>
+
+      <KpiProfilesPanel definitions={definitions} ministryId={defaultMinistryId} />
     </div>
   )
 }
