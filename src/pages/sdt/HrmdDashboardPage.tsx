@@ -149,7 +149,7 @@ export default function HrmdDashboardPage() {
                         <KpiStatusBadge status={kpi.status} />
                       </div>
                       <p className="mt-1 text-caption text-text-muted">
-                        {t.kpi.dashboard.actualLabel}: {kpi.actual ?? '—'} · {t.kpi.dashboard.targetLabel}: {kpi.target ?? '—'}
+                        {t.kpi.legend.actual}: {kpi.actual ?? '—'} · {t.kpi.legend.target}: {kpi.target ?? '—'}
                       </p>
                     </div>
                   ))}
