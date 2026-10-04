@@ -5,6 +5,7 @@ export interface AuditLogEntry {
   id: string
   user_id: string | null
   user_full_name?: string | null
+  user_email?: string | null
   ministry_id: string | null
   action: string
   affected_entity_type: string
