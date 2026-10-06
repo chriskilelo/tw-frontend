@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import {
   ArrowTrendingUpIcon,
   BuildingLibraryIcon,
@@ -49,6 +50,7 @@ import {
   PersonRow,
   ProgressStep,
   RecordRow,
+  RecordUnavailable,
 } from '../../components/DetailLayout'
 import { formatDate as formatLocaleDate, formatDateTime as formatLocaleDateTime, initials, localeFor } from '../../lib/formatters'
 import { AlertStatusBadge } from './AlertStatusBadge'
@@ -67,6 +69,7 @@ import {
 } from './alertAssessment'
 import { useBreadcrumbLabel } from '../../hooks/useBreadcrumbs'
 import { useI18n } from '../../i18n/context'
+import { retryUnlessClientError } from '../../lib/apiErrors'
 
 /** Mirrors App\Policies\AlertPolicy::DELEGATING_ROLES — the backend also permits Acting PS, not only Ministry PS. */
 const DELEGATING_ROLES = ['Ministry PS', 'Acting PS']
@@ -94,6 +97,7 @@ export default function AlertDetailPage() {
     queryKey: ['alert', id],
     queryFn: () => getAlert(id as string),
     enabled: Boolean(id),
+    retry: retryUnlessClientError,
   })
 
   useBreadcrumbLabel(alertQuery.data?.reference_number, { isCode: true })
@@ -114,6 +118,18 @@ export default function AlertDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['alert', id] })
     },
   })
+
+  if (alertQuery.isError && !alertQuery.data) {
+    const isMissionOversight = role?.name === 'Head of Mission' || role?.name === 'Deputy Head of Mission'
+    return (
+      <RecordUnavailable
+        status={isAxiosError(alertQuery.error) ? alertQuery.error.response?.status : undefined}
+        copy={copy.unavailable}
+        back={isMissionOversight ? { to: '/mission-activity', label: copy.unavailable.backToMissionActivity } : { to: '/alerts', label: copy.unavailable.backToAlerts }}
+        onRetry={() => void alertQuery.refetch()}
+      />
+    )
+  }
 
   if (alertQuery.isLoading || !alertQuery.data) {
     return (

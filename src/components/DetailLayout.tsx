@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { ArrowDownTrayIcon, CheckIcon as CheckOutlineIcon, Square2StackIcon } from '@heroicons/react/24/outline'
-import { CheckIcon } from '@heroicons/react/20/solid'
+import { ArrowLeftIcon, ArrowPathIcon, CheckIcon, ExclamationTriangleIcon, MagnifyingGlassIcon, ShieldExclamationIcon } from '@heroicons/react/20/solid'
 import { fileExtension, formatFileSize } from '../lib/formatters'
 
 /** Shared building blocks for the record detail pages (alert, inquiry). */
@@ -237,5 +238,46 @@ export function AttachmentRow({ fileName, sizeBytes, mimeType, requestDownloadUr
       </div>
       {downloadMutation.isError && <p className="text-caption text-danger-soft-text">{downloadError}</p>}
     </li>
+  )
+}
+
+interface RecordUnavailableProps {
+  /** The HTTP status that refused the record, if any: 403 and 404 get their own explanation. */
+  status: number | undefined
+  copy: { forbiddenTitle: string; forbiddenBody: string; notFoundTitle: string; notFoundBody: string; loadError: string; retry: string }
+  back: { to: string; label: string }
+  onRetry: () => void
+}
+
+/**
+ * The whole-page state for a record that cannot be shown: refused (403, the API's decision —
+ * the page never relies on hidden links alone), missing (404), or failed to load (retry).
+ */
+export function RecordUnavailable({ status, copy, back, onRetry }: RecordUnavailableProps) {
+  const isRefusal = status === 403 || status === 404
+  return (
+    <div className="mx-auto w-full max-w-310 px-4 py-6 sm:px-7">
+      <section role="alert" className="flex flex-col items-start gap-3 rounded-xl border border-border bg-white p-5 shadow-sm sm:flex-row sm:p-6" data-testid="record-unavailable">
+        <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-lg bg-section-bg text-primary [&>svg]:size-5">
+          {status === 403 ? <ShieldExclamationIcon /> : status === 404 ? <MagnifyingGlassIcon /> : <ExclamationTriangleIcon />}
+        </span>
+        <div className="min-w-0">
+          <h1 className="text-h3 text-primary">{status === 403 ? copy.forbiddenTitle : status === 404 ? copy.notFoundTitle : copy.loadError}</h1>
+          {isRefusal && <p className="mt-1 text-body text-text-secondary">{status === 403 ? copy.forbiddenBody : copy.notFoundBody}</p>}
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            <Link to={back.to} className="inline-flex items-center gap-1.5 text-body-sm font-semibold text-info hover:underline">
+              <ArrowLeftIcon className="size-4" aria-hidden="true" />
+              {back.label}
+            </Link>
+            {!isRefusal && (
+              <button type="button" onClick={onRetry} className="inline-flex items-center gap-1.5 text-body-sm font-semibold text-primary hover:underline">
+                <ArrowPathIcon className="size-4" aria-hidden="true" />
+                {copy.retry}
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+    </div>
   )
 }

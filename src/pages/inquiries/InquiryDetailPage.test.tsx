@@ -132,6 +132,25 @@ describe('InquiryDetailPage', () => {
     expect(screen.getByText('Only the London attache can update this inquiry.')).toBeInTheDocument()
   })
 
+  it('TC-FR-HOM-001-SCOPE: explains a refused inquiry and leads a Head of Mission back to Mission Activity', async () => {
+    vi.mocked(inquiriesApi.getInquiry).mockRejectedValue({ isAxiosError: true, response: { status: 403, data: { message: 'This action is unauthorized.' } } })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <I18nProvider>
+          <MemoryRouter initialEntries={['/inquiries/inquiry-1']}>
+            <Routes>
+              <Route path="/inquiries/:id" element={<InquiryDetailPage />} />
+            </Routes>
+          </MemoryRouter>
+        </I18nProvider>
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'You don’t have access to this inquiry' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Mission activity' })).toHaveAttribute('href', '/mission-activity')
+  })
+
   it('TC-FR-INQ-006: the owning attache moves a draft inquiry to received from the next-step bar', async () => {
     signInAs('Ministry Attache')
     renderPage()
