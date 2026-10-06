@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import {
   ArrowsRightLeftIcon,
   BellAlertIcon,
@@ -11,6 +12,7 @@ import {
   GlobeAltIcon,
   InboxArrowDownIcon,
   LightBulbIcon,
+  PencilSquareIcon,
   PlusIcon,
   PresentationChartLineIcon,
   ScaleIcon,
@@ -23,6 +25,7 @@ import { CHART_COLORS } from '../../components/dashboard/chartTheme'
 import { AlertRows, CardLink, DashboardHero, DirectiveRows, SegmentedControl, type HeroAction } from '../../components/dashboard/layout'
 import { FunnelSteps, KpiStatusLegend, MissionStatusRows, ProgressRing, RankedBars, StatTile } from '../../components/dashboard/visuals'
 import { useI18n } from '../../i18n/context'
+import { COMPLIANCE_COLORS } from '../reports/complianceTheme'
 import { formatDate, localeFor } from '../../lib/formatters'
 import { firstName, formatNumber, greetingPart, percentOf, periodRange, periodTick } from '../../lib/dashboardFormat'
 
@@ -49,6 +52,7 @@ export default function LeadershipDashboard({ data, user, role, kpiCycle, onKpiC
   const totals = data.alert_trend.map((point) => point.opportunities + point.trade_barriers + point.other)
   const { summary: compliance } = data.reports
   const submitted = compliance.submitted_on_time + compliance.submitted_late
+  const complianceLink = `/reports/compliance?period=${encodeURIComponent(data.reports.period.label)}`
   const directiveSummary = data.directives.summary
   const weakest = data.kpi.missions[0]
   const recentFunnel = data.inquiries.funnel
@@ -60,7 +64,7 @@ export default function LeadershipDashboard({ data, user, role, kpiCycle, onKpiC
         { to: '/kpi/comparison', label: t.dashboard.actions.openKpis, icon: <ScaleIcon /> },
       ]
     : [
-        { to: '/reports/compliance', label: t.dashboard.actions.reportCompliance, icon: <DocumentChartBarIcon />, primary: true },
+        { to: complianceLink, label: t.dashboard.actions.reportCompliance, icon: <DocumentChartBarIcon />, primary: true },
         { to: '/kpi/comparison', label: t.dashboard.actions.openKpis, icon: <ScaleIcon /> },
         { to: '/alerts', label: t.dashboard.actions.reviewAlerts, icon: <BellAlertIcon /> },
       ]
@@ -91,7 +95,9 @@ export default function LeadershipDashboard({ data, user, role, kpiCycle, onKpiC
       icon={<ClipboardDocumentCheckIcon />}
       tone="directive"
       subtitle={copy.directives.subtitle}
-      action={<CardLink to="/sdt/directives/overview">{t.dashboard.common.viewAll}</CardLink>}
+      // The SDT overview is PS / Acting PS only (MinistryPolicy::viewPsDashboard()); a Director
+      // would get a 403 there, so it goes to the directive summary it can see instead.
+      action={<CardLink to={isExecutive ? '/sdt/directives/overview' : '/directives/summary'}>{t.dashboard.common.viewAll}</CardLink>}
     >
       <dl className="mb-4 grid grid-cols-3 gap-2">
         {(
@@ -192,31 +198,49 @@ export default function LeadershipDashboard({ data, user, role, kpiCycle, onKpiC
         icon={<DocumentChartBarIcon />}
         tone="success"
         subtitle={copy.compliance.subtitle(data.reports.period.label, formatDate(data.reports.period.deadline, locale))}
-        action={<CardLink to="/reports/compliance">{t.dashboard.common.viewAll}</CardLink>}
+        action={<CardLink to={complianceLink}>{t.dashboard.common.viewAll}</CardLink>}
       >
         <div className="flex items-center gap-4">
           <ProgressRing value={submitted} total={Math.max(data.reports.total, 1)} label={copy.compliance.ringLabel(submitted, data.reports.total)} caption={copy.compliance.ringCaption} />
           <ul className="flex-1 space-y-2 text-body-sm">
             <ComplianceCount icon={<CheckCircleIcon />} color={CHART_COLORS.onTrack} label={copy.compliance.onTime} value={compliance.submitted_on_time} />
             <ComplianceCount icon={<ExclamationTriangleIcon />} color={CHART_COLORS.atRisk} label={copy.compliance.late} value={compliance.submitted_late} />
-            <ComplianceCount icon={<ClockIcon />} color={CHART_COLORS.none} label={copy.compliance.outstanding} value={compliance.not_yet_submitted} />
+            <ComplianceCount icon={<PencilSquareIcon />} color={COMPLIANCE_COLORS.draft_in_progress} label={copy.compliance.draft} value={compliance.draft_in_progress} />
+            <ComplianceCount icon={<ClockIcon />} color={CHART_COLORS.none} label={copy.compliance.notStarted} value={compliance.not_started} />
           </ul>
         </div>
         <p className="mt-4 text-caption font-semibold uppercase tracking-wide text-text-secondary">{copy.compliance.attention}</p>
         {data.reports.attention.length > 0 ? (
           <ul className="mt-2 flex flex-wrap gap-1.5">
-            {data.reports.attention.slice(0, 10).map((row) => (
-              <li
-                key={row.mission_id}
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-caption font-medium ${
-                  row.status === 'submitted_late' ? 'bg-atrisk-soft text-atrisk-soft-text' : 'bg-section-bg text-text-secondary'
-                }`}
-              >
-                {row.status === 'submitted_late' ? <ExclamationTriangleIcon aria-hidden="true" className="size-3" /> : <ClockIcon aria-hidden="true" className="size-3" />}
-                {row.mission_name}
-                <span className="sr-only">({row.status === 'submitted_late' ? copy.compliance.late : copy.compliance.outstanding})</span>
-              </li>
-            ))}
+            {data.reports.attention.slice(0, 10).map((row) => {
+              const label = row.status === 'submitted_late' ? copy.compliance.late : row.status === 'draft_in_progress' ? copy.compliance.draft : copy.compliance.notStarted
+              const tone =
+                row.status === 'submitted_late'
+                  ? 'bg-atrisk-soft text-atrisk-soft-text'
+                  : row.is_overdue
+                    ? 'bg-danger-soft text-danger-soft-text'
+                    : row.status === 'draft_in_progress'
+                      ? 'bg-info-soft text-info-soft-text'
+                      : 'bg-section-bg text-text-secondary'
+              return (
+                <li key={row.mission_id}>
+                  <Link
+                    to={row.report_id ? `/reports/${row.report_id}` : `${complianceLink}&status=${row.status}`}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-caption font-medium hover:underline ${tone}`}
+                  >
+                    {row.status === 'submitted_late' ? (
+                      <ExclamationTriangleIcon aria-hidden="true" className="size-3" />
+                    ) : row.status === 'draft_in_progress' ? (
+                      <PencilSquareIcon aria-hidden="true" className="size-3" />
+                    ) : (
+                      <ClockIcon aria-hidden="true" className="size-3" />
+                    )}
+                    {row.mission_name}
+                    <span className="sr-only">({label})</span>
+                  </Link>
+                </li>
+              )
+            })}
             {data.reports.attention.length > 10 && <li className="px-1 py-1 text-caption text-text-secondary">{copy.compliance.more(data.reports.attention.length - 10)}</li>}
           </ul>
         ) : (
@@ -253,6 +277,7 @@ export default function LeadershipDashboard({ data, user, role, kpiCycle, onKpiC
             { key: 'on_track', label: t.kpi.status.on_track, numeric: true },
             { key: 'at_risk', label: t.kpi.status.at_risk, numeric: true },
             { key: 'below_target', label: t.kpi.status.below_target, numeric: true },
+            { key: 'pending', label: t.kpi.status.pending, numeric: true },
             { key: 'no_data', label: t.kpi.status.no_data, numeric: true },
           ],
           rows: data.kpi.missions.map((row) => ({
@@ -260,6 +285,7 @@ export default function LeadershipDashboard({ data, user, role, kpiCycle, onKpiC
             on_track: row.counts.on_track,
             at_risk: row.counts.at_risk,
             below_target: row.counts.below_target,
+            pending: row.counts.pending ?? 0,
             no_data: row.counts.no_data + row.counts.no_target,
           })),
         }}
@@ -471,7 +497,7 @@ export default function LeadershipDashboard({ data, user, role, kpiCycle, onKpiC
           value={`${submitted}/${data.reports.total}`}
           icon={<DocumentChartBarIcon />}
           tone="success"
-          to="/reports/compliance"
+          to={complianceLink}
           footnote={copy.tiles.reportsNote(data.reports.period.label, data.reports.period.days_remaining)}
           footnoteTone={compliance.submitted_late > 0 ? 'atrisk' : 'neutral'}
         />

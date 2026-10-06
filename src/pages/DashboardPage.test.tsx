@@ -12,6 +12,7 @@ import * as sdtApi from '../api/sdt'
 import * as missionsApi from '../api/missions'
 import * as ministriesApi from '../api/ministries'
 import type { MeResponse } from '../api/auth'
+import { feedEnvelope, mfaSummary, missionSummary, nationalOverview } from './governance/governanceFixtures'
 import type {
   AdministrationDashboard,
   AttacheDashboard,
@@ -118,17 +119,38 @@ const leadershipDashboard: LeadershipDashboard = {
   inquiry_trend: quarters.map((quarter) => ({ ...quarter, received: 20, closed: 18 })),
   reports: {
     period: calendar.reporting_period,
-    summary: { submitted_on_time: 12, submitted_late: 2, not_yet_submitted: 3 },
+    summary: { submitted_on_time: 12, submitted_late: 2, draft_in_progress: 2, not_started: 1, not_yet_submitted: 3, overdue: 0, vacant: 0, total: 17 },
     total: 17,
-    attention: [{ mission_id: 'mission-2', mission_name: 'Berlin', status: 'not_yet_submitted', submitted_at: null }],
+    attention: [
+      { mission_id: 'mission-2', mission_name: 'Berlin', status: 'not_started', submitted_at: null, report_id: null, is_overdue: false, days_overdue: null },
+      { mission_id: 'mission-3', mission_name: 'Accra', status: 'submitted_late', submitted_at: '2026-07-18T09:00:00Z', report_id: 'report-accra', is_overdue: false, days_overdue: 3 },
+    ],
     trend: quarters.map((quarter, index) => ({ ...quarter, is_open: index === 2, on_time: 15, late: 2, missing: 0 })),
   },
   directives: {
-    summary: { total: 22, completed: 17, in_progress: 4, issued: 0, acknowledged: 0, cancelled: 1, overdue: 4, percentages: { completed: 77.3, in_progress: 18.2, overdue: 18.2 } },
+    summary: {
+      total: 22,
+      completed: 17,
+      closed: 5,
+      in_progress: 4,
+      issued: 0,
+      acknowledged: 0,
+      cancelled: 1,
+      overdue: 4,
+      approaching: 0,
+      no_target_date: 0,
+      on_track: 0,
+      stale: 1,
+      percentages: { completed: 77.3, in_progress: 18.2, overdue: 18.2, no_target_date: 0 },
+      by_mission: [],
+      by_issuer: [],
+      filter_options: { missions: [], issuers: [] },
+      filters: { date_from: null, date_to: null, mission_id: null, issued_by_user_id: null },
+    },
     needs_attention: 0,
     items: [],
   },
-  kpi: { cycle: kpiCycles[1], options: kpiCycles, missions: [{ mission_id: 'mission-3', mission_name: 'Lusaka', counts: { on_track: 1, at_risk: 1, below_target: 9, no_target: 0, no_data: 0 }, total: 11 }] },
+  kpi: { cycle: kpiCycles[1], options: kpiCycles, missions: [{ mission_id: 'mission-3', mission_name: 'Lusaka', counts: { on_track: 1, at_risk: 1, below_target: 9, pending: 0, no_target: 0, no_data: 0 }, total: 11 }] },
   top_countries: [{ name: 'United Kingdom', count: 11 }],
   top_sectors: [{ name: 'coffee', count: 9 }],
   alert_inbox: [
@@ -290,6 +312,19 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Lusaka has the fewest KPIs on track for Jan – Jun 2026.')).toBeInTheDocument()
   })
 
+  it('TC-FR-RPT-018-DASH: the compliance card counts the four report states and links each mission to follow up', async () => {
+    vi.mocked(dashboardApi.getDashboard).mockResolvedValue({ ...leadershipDashboard, variant: 'director', alert_inbox: undefined })
+    renderDashboard('Ministry HQ Director', { mission_id: null, mission: null })
+
+    const card = (await screen.findByRole('heading', { name: 'Report compliance' })).closest('section') as HTMLElement
+    expect(within(card).getByText('Draft in progress')).toBeInTheDocument()
+    expect(within(card).getByText('Not started')).toBeInTheDocument()
+
+    const berlin = within(card).getByRole('link', { name: /Berlin/ })
+    expect(berlin.getAttribute('href')).toMatch(/^\/reports\/compliance\?period=.+&status=not_started$/)
+    expect(within(card).getByRole('link', { name: /Accra/ })).toHaveAttribute('href', '/reports/report-accra')
+  })
+
   it('gives the Ministry HQ Director the department view without the PS inbox', async () => {
     vi.mocked(dashboardApi.getDashboard).mockResolvedValue({ ...leadershipDashboard, variant: 'director', alert_inbox: undefined })
     renderDashboard('Ministry HQ Director', { mission_id: null, mission: null })
@@ -300,63 +335,34 @@ describe('DashboardPage', () => {
   })
 
   it('TC-UI-006: gives a Head of Mission a view-only dashboard with no write actions', async () => {
-    vi.mocked(governanceApi.getMissionActivitySummary).mockResolvedValue({
-      current_period: { period_start: '2026-07-01', period_end: '2026-09-30', total: 4, by_type: { alert: 2, inquiry: 1, periodic_report: 1 }, by_status: { 'alert:new': 2, 'inquiry:in_progress': 1 } },
-      prior_period: { period_start: '2026-04-01', period_end: '2026-06-30', total: 5, by_type: { alert: 3, inquiry: 1, periodic_report: 1 }, by_status: {} },
-    })
-    vi.mocked(governanceApi.getMissionActivityFeed).mockResolvedValue({
-      data: [
-        {
-          type: 'alert',
-          id: 'alert-1',
-          reference: 'ALT-202609-00001',
-          mission_id: 'mission-1',
-          mission_name: 'London',
-          ministry_id: 'ministry-1',
-          ministry_name: 'State Department for Trade',
-          submitting_officer: 'QA Attache London',
-          status: 'new',
-          summary: 'United Kingdom — trade_barriers',
-          date: '2026-09-26T09:00:00Z',
-        },
-      ],
-    })
+    vi.mocked(governanceApi.getMissionActivitySummary).mockResolvedValue(missionSummary())
+    vi.mocked(governanceApi.getMissionActivityFeed).mockResolvedValue(feedEnvelope())
     renderDashboard('Head of Mission')
 
     expect(await screen.findByText('View only')).toBeInTheDocument()
     expect(screen.getByText('Alerts · New')).toBeInTheDocument()
-    expect(screen.getByText('United Kingdom — Trade Barriers')).toBeInTheDocument()
+    expect(screen.getByText('United Kingdom · Trade Barriers')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Alert' })).toHaveAttribute('href', '/alerts/alert-1')
+    expect(screen.queryByText('Directives this quarter')).not.toBeInTheDocument()
     for (const write of [/Submit alert/, /Log inquiry/, /Issue directive/, /New account/]) {
       expect(screen.queryByRole('link', { name: write })).not.toBeInTheDocument()
     }
   })
 
   it('TC-FR-MFA-001: shows the MFA Principal Secretary totals only, with each mission’s momentum', async () => {
-    vi.mocked(governanceApi.getMfaAwarenessSummary).mockResolvedValue({
-      total: 752,
-      by_type: { alert: 362, inquiry: 221, directive: 22, periodic_report: 147 },
-      by_mission: { London: 49, Berlin: 48 },
-      by_ministry: { 'State Department for Trade': 752 },
-      by_period: { '2026-07': 30, '2026-08': 10, '2026-09': 8 },
-    })
-    vi.mocked(governanceApi.getNationalOverview).mockResolvedValue({
-      missions: [
-        {
-          mission_id: 'mission-1',
-          mission_name: 'London',
-          current_period: { period_start: '2026-07-01', period_end: '2026-09-30', total: 3, by_type: {}, by_status: {} },
-          prior_period: { period_start: '2026-04-01', period_end: '2026-06-30', total: 7, by_type: {}, by_status: {} },
-        },
-      ],
-    })
+    vi.mocked(governanceApi.getMfaAwarenessSummary).mockResolvedValue(mfaSummary())
+    vi.mocked(governanceApi.getNationalOverview).mockResolvedValue(nationalOverview())
     renderDashboard('MFA Principal Secretary', { mission_id: null, ministry_id: null, mission: null, ministry: null })
 
     expect(await screen.findByText(/This view shows totals only/)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Mission momentum' })).toBeInTheDocument()
-    expect(await screen.findByText(/Falling/)).toBeInTheDocument()
+    expect(await screen.findByText(/Rising/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Search/ })).not.toBeInTheDocument()
+    expect(governanceApi.getMfaAwarenessSummary).toHaveBeenCalledWith()
   })
 
   it('TC-FR-SDT-016: shows the HRM&D Officer KPI status across missions for the chosen cycle', async () => {
+    const hrmdCell = { applicable: true, expected: 2, attainment: null, variance: null, performance: null, target_source: 'mission' as const, quarters_reported: 2, quarters: [] }
     vi.mocked(sdtApi.getHrmdDashboard).mockResolvedValue({
       cycle_label: 'H2 2026',
       missions: [
@@ -364,8 +370,8 @@ describe('DashboardPage', () => {
           mission_id: 'mission-1',
           mission_name: 'London',
           kpis: [
-            { kpi_definition_id: 'kpi-1', name: 'Trade briefs', target: 2, actual: 2, status: 'on_track' },
-            { kpi_definition_id: 'kpi-2', name: 'Forums attended', target: 2, actual: 0, status: 'below_target' },
+            { ...hrmdCell, kpi_definition_id: 'kpi-1', name: 'Trade briefs', target: 2, actual: 2, status: 'on_track' },
+            { ...hrmdCell, kpi_definition_id: 'kpi-2', name: 'Forums attended', target: 2, actual: 0, status: 'below_target' },
           ],
         },
       ],

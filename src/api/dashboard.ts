@@ -102,7 +102,16 @@ export interface HqOfficerDashboard {
   referrals: NamedCount[]
 }
 
-export type ComplianceStatus = 'submitted_on_time' | 'submitted_late' | 'not_yet_submitted'
+/** FR-RPT-018's four states (ReportService::getComplianceDashboard()). */
+export type ComplianceStatus = 'submitted_on_time' | 'submitted_late' | 'draft_in_progress' | 'not_started'
+
+/** The four states' counts, plus the totals the dashboard reads. */
+export interface ComplianceSummaryCounts extends Record<ComplianceStatus, number> {
+  not_yet_submitted: number
+  overdue: number
+  vacant: number
+  total: number
+}
 
 export interface MissionKpiHealth {
   mission_id: string
@@ -127,9 +136,17 @@ export interface LeadershipDashboard {
   inquiry_trend: (PeriodRef & { received: number; closed: number })[]
   reports: {
     period: DashboardCalendar['reporting_period']
-    summary: Record<ComplianceStatus, number>
+    summary: ComplianceSummaryCounts
     total: number
-    attention: { mission_id: string; mission_name: string; status: ComplianceStatus; submitted_at: string | null }[]
+    attention: {
+      mission_id: string
+      mission_name: string
+      status: ComplianceStatus
+      submitted_at: string | null
+      report_id: string | null
+      is_overdue: boolean
+      days_overdue: number | null
+    }[]
     trend: (PeriodRef & { is_open: boolean; on_time: number; late: number; missing: number })[]
   }
   directives: { summary: DirectiveSummary; needs_attention: number; items: DashboardDirectiveItem[] }

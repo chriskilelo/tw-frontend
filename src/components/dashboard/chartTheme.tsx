@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { CheckCircleIcon, ExclamationTriangleIcon, MinusCircleIcon, XCircleIcon } from '@heroicons/react/20/solid'
+import { CheckCircleIcon, ClockIcon, ExclamationTriangleIcon, MinusCircleIcon, XCircleIcon } from '@heroicons/react/20/solid'
 import type { PerformanceStatus } from '../../api/kpi'
 
 /**
@@ -17,6 +17,8 @@ export const CHART_COLORS = {
   onTrack: '#0f7a3d',
   atRisk: '#d97706',
   below: '#b91c1c',
+  /** KPI "pending" (too early to judge) and other work in progress. */
+  pending: '#2563eb',
   none: '#6b7280',
 } as const
 
@@ -58,12 +60,16 @@ export function hatchBackground(color: string): string {
   return `repeating-linear-gradient(135deg, ${color} 0 2px, ${color}40 2px 5px)`
 }
 
-/** FR-KPI-008 statuses as chart marks: green -> amber -> red, never adjacent red/green. */
+/**
+ * FR-KPI-008 statuses as chart marks: green -> amber -> red, never adjacent red/green, then
+ * blue for "pending" (too early to judge) and a hatched gray for the unmeasured.
+ */
 export function kpiStatusSegments(counts: Record<PerformanceStatus, number>, labels: Record<PerformanceStatus, string>): StackSegment[] {
   return [
     { key: 'on_track', label: labels.on_track, value: counts.on_track, color: CHART_COLORS.onTrack, icon: <CheckCircleIcon /> },
     { key: 'at_risk', label: labels.at_risk, value: counts.at_risk, color: CHART_COLORS.atRisk, icon: <ExclamationTriangleIcon /> },
     { key: 'below_target', label: labels.below_target, value: counts.below_target, color: CHART_COLORS.below, icon: <XCircleIcon /> },
+    { key: 'pending', label: labels.pending, value: counts.pending ?? 0, color: CHART_COLORS.pending, icon: <ClockIcon /> },
     {
       key: 'no_data',
       label: labels.no_data,

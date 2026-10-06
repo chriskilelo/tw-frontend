@@ -237,6 +237,7 @@ export function KpiStatusLegend() {
         { label: t.kpi.status.on_track, color: CHART_COLORS.onTrack },
         { label: t.kpi.status.at_risk, color: CHART_COLORS.atRisk },
         { label: t.kpi.status.below_target, color: CHART_COLORS.below },
+        { label: t.kpi.status.pending, color: CHART_COLORS.pending },
         { label: t.kpi.status.no_data, color: CHART_COLORS.none, hatched: true },
       ]}
     />
@@ -383,6 +384,7 @@ const BULLET_COLOR: Record<PerformanceStatus, string> = {
   on_track: CHART_COLORS.onTrack,
   at_risk: CHART_COLORS.atRisk,
   below_target: CHART_COLORS.below,
+  pending: CHART_COLORS.pending,
   no_target: CHART_COLORS.none,
   no_data: CHART_COLORS.none,
 }
