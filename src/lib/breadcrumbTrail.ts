@@ -20,6 +20,7 @@ export type CrumbPageKey =
   | 'newUser'
   | 'editUser'
   | 'approvalRequest'
+  | 'missionSummary'
 
 export type CrumbGroupKey = 'administration' | 'kpi' | 'console' | 'governance'
 
@@ -67,6 +68,7 @@ const CRUMB_DEFINITIONS: CrumbDefinition[] = [
 
   { pattern: '/mission-activity', nav: 'missionActivity', group: 'governance' },
   { pattern: '/mfa-awareness', nav: 'mfaAwareness', group: 'governance' },
+  { pattern: '/mfa-awareness/missions/:missionId', page: 'missionSummary', icon: 'mfaAwareness', isDynamic: true, parent: '/mfa-awareness' },
 
   { pattern: '/sdt/ps-dashboard', nav: 'psDashboard', group: 'console' },
   { pattern: '/sdt/hq-workspace', nav: 'hqWorkspace', group: 'console' },

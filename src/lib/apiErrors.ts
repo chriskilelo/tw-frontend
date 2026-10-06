@@ -15,3 +15,18 @@ export function apiErrorMessages(error: unknown, fallback: string): string[] {
   }
   return [fallback]
 }
+
+/**
+ * React Query retry policy that gives up at once on a 4xx (a refused permission or an invalid
+ * request will not succeed on retry, and retrying only delays the explanation), and retries a
+ * network or server failure up to three times.
+ */
+export function retryUnlessClientError(failureCount: number, error: unknown): boolean {
+  if (isAxiosError(error)) {
+    const status = error.response?.status
+    if (status !== undefined && status >= 400 && status < 500) {
+      return false
+    }
+  }
+  return failureCount < 3
+}

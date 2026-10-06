@@ -112,6 +112,121 @@ describe('AppLayout', () => {
     expect(authApi.updatePreferences).toHaveBeenCalledWith({ language_preference: 'sw' })
   })
 
+  it.each([
+    ['Ministry Attache', true, false],
+    ['Ministry HQ Officer', true, false],
+    ['Ministry HQ Director', true, true],
+    ['Ministry PS', true, true],
+    ['Acting PS', true, true],
+  ])('TC-FR-DIR-012-NAV: %s sees Directives=%s and Directive Summary=%s in the sidebar', async (roleName, hasDirectives, hasSummary) => {
+    vi.mocked(authApi.me).mockResolvedValue(meResponseFor(roleName))
+
+    renderAppLayoutAt('/dashboard')
+    // The sidebar falls back to Dashboard/Search until GET /me resolves; the user menu
+    // appears only once it has, so wait for that before asserting role-specific links.
+    expect(await screen.findByText('Test User')).toBeInTheDocument()
+
+    const directivesLink = screen.queryByRole('link', { name: 'Directives' })
+    const summaryLink = screen.queryByRole('link', { name: 'Directive Summary' })
+    expect(Boolean(directivesLink)).toBe(hasDirectives)
+    expect(Boolean(summaryLink)).toBe(hasSummary)
+    if (directivesLink) {
+      expect(directivesLink).toHaveAttribute('href', '/directives')
+    }
+    if (summaryLink) {
+      expect(summaryLink).toHaveAttribute('href', '/directives/summary')
+    }
+  })
+
+  it.each([
+    'Head of Mission',
+    'Deputy Head of Mission',
+    'MFA HQ Officer',
+    'MFA Principal Secretary',
+    'HRM&D Officer',
+    'Ministry Administrator',
+    'System Administrator',
+    'Designated Deputy',
+  ])('TC-FR-DIR-005-NAV: %s gets no directive navigation', async (roleName) => {
+    vi.mocked(authApi.me).mockResolvedValue(meResponseFor(roleName))
+
+    renderAppLayoutAt('/dashboard')
+    expect(await screen.findByText('Test User')).toBeInTheDocument()
+
+    expect(screen.queryByRole('link', { name: 'Directives' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Directive Summary' })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['Ministry Attache', true, false],
+    ['Ministry HQ Officer', true, false],
+    ['Ministry Publishing Authority', true, false],
+    ['Head of Mission', true, false],
+    ['Deputy Head of Mission', true, false],
+    ['Ministry HQ Director', true, true],
+    ['Ministry PS', true, true],
+    ['Acting PS', true, true],
+    ['MFA HQ Officer', false, false],
+    ['HRM&D Officer', false, false],
+    ['System Administrator', false, false],
+  ])('TC-FR-RPT-017-NAV: %s sees Reports=%s and Report Compliance=%s in the sidebar', async (roleName, hasReports, hasCompliance) => {
+    vi.mocked(authApi.me).mockResolvedValue(meResponseFor(roleName))
+
+    renderAppLayoutAt('/dashboard')
+    expect(await screen.findByText('Test User')).toBeInTheDocument()
+
+    expect(Boolean(screen.queryByRole('link', { name: 'Reports' }))).toBe(hasReports)
+    expect(Boolean(screen.queryByRole('link', { name: 'Report Compliance' }))).toBe(hasCompliance)
+  })
+
+  it.each([
+    ['Ministry Attache', true, false, false, true],
+    ['Ministry HQ Officer', false, false, false, true],
+    ['Ministry HQ Director', true, true, true, false],
+    ['Ministry PS', true, true, true, false],
+    ['Acting PS', true, true, true, false],
+    ['HRM&D Officer', true, false, false, false],
+    ['Head of Mission', false, false, false, false],
+    ['MFA HQ Officer', false, false, false, false],
+    ['System Administrator', false, false, false, false],
+  ])(
+    'TC-FR-KPI-NAV: %s sees KPI Dashboard=%s, Comparison=%s, Set Targets=%s, Record Actuals=%s',
+    async (roleName, hasDashboard, hasComparison, hasTargets, hasEntry) => {
+      vi.mocked(authApi.me).mockResolvedValue(meResponseFor(roleName))
+
+      renderAppLayoutAt('/dashboard')
+      expect(await screen.findByText('Test User')).toBeInTheDocument()
+
+      expect(Boolean(screen.queryByRole('link', { name: 'KPI Dashboard' }))).toBe(hasDashboard)
+      expect(Boolean(screen.queryByRole('link', { name: 'KPI Comparison' }))).toBe(hasComparison)
+      expect(Boolean(screen.queryByRole('link', { name: 'Set KPI Targets' }))).toBe(hasTargets)
+      expect(Boolean(screen.queryByRole('link', { name: 'Record KPI Actuals' }))).toBe(hasEntry)
+    },
+  )
+
+  it.each([
+    ['Head of Mission', true, false, true],
+    ['Deputy Head of Mission', true, false, true],
+    ['MFA HQ Officer', false, true, false],
+    ['MFA Principal Secretary', false, true, false],
+    ['Ministry Attache', false, false, true],
+    ['Ministry PS', false, false, true],
+    ['HRM&D Officer', false, false, false],
+    ['System Administrator', false, false, true],
+  ])(
+    'TC-FR-HOM-001-NAV / TC-FR-MFA-001-NAV: %s sees Mission Activity=%s, MFA Awareness=%s, Search=%s',
+    async (roleName, hasMissionActivity, hasMfaAwareness, hasSearch) => {
+      vi.mocked(authApi.me).mockResolvedValue(meResponseFor(roleName))
+
+      renderAppLayoutAt('/dashboard')
+      expect(await screen.findByText('Test User')).toBeInTheDocument()
+
+      expect(Boolean(screen.queryByRole('link', { name: 'Mission Activity' }))).toBe(hasMissionActivity)
+      expect(Boolean(screen.queryByRole('link', { name: 'MFA Awareness' }))).toBe(hasMfaAwareness)
+      expect(Boolean(screen.queryByRole('link', { name: 'Search' }))).toBe(hasSearch)
+    },
+  )
+
   it('TC-FR-AUTH-020: a Ministry Administrator sees only administration navigation', async () => {
     vi.mocked(authApi.me).mockResolvedValue(meResponseFor('Ministry Administrator'))
 

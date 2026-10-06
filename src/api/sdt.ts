@@ -140,9 +140,10 @@ export async function getSdtReportCompliance(periodLabel?: string): Promise<Comp
 
 /**
  * GET /sdt/directives/overview response — App\Services\DirectiveService::getOverview(),
- * FR-SDT-008. `summary` is the same all-time, ministry-wide shape DirectiveSummary already
- * covers (App\Services\DirectiveService::getSummary() is not quarter-scoped — there is no
- * "this quarter" filter on the backend to call instead).
+ * FR-SDT-008. `summary` is getSummary() for the PS's department with no filters (all time,
+ * ministry-wide; the filterable view is GET /directives/summary). Both row lists are
+ * DirectiveResource rows, so they carry the server-computed due_state, days_until_due,
+ * is_overdue and is_stale flags. recent_directives holds the ten most recently issued.
  */
 export interface DirectiveOverview {
   summary: DirectiveSummary
@@ -281,12 +282,36 @@ export async function updateInquirySetting(
   return data.data
 }
 
-// --- FR-SDT-010: Directive Type Configuration -------------------------
-// Create-only: App\Http\Controllers\Api\Sdt\ConfigController has no GET or
-// PATCH for this category (CLAUDE.md Section 8: directive_type was left
-// deliberately unseeded at go-live). The existing getDirectiveTypeOptions()
-// (api/directives.ts, public GET /master-data?category=directive_type) is
-// the list source for this page.
+// --- FR-SDT-010 / FR-DIR-001: Directive Type Configuration ------------
+// Sdt\ConfigController only has a store action for this category (CLAUDE.md
+// Section 8: directive_type was left unseeded at go-live), so listing and
+// editing go through the generic master-data endpoints
+// (Api\Admin\MasterDataController): GET lists active and inactive entries,
+// PATCH renames, reorders, activates or deactivates one
+// (MasterDataEntryPolicy::update(): a System Administrator, or a Ministry
+// Administrator for its own department's rows).
+
+export type DirectiveSettingEntry = MasterDataEntryOption
+
+/** GET /master-data?category=directive_type — every entry, inactive ones included. */
+export async function listDirectiveSettings(): Promise<DirectiveSettingEntry[]> {
+  const { data } = await client.get<ApiEnvelope<DirectiveSettingEntry[]>>('/master-data', {
+    params: { category: 'directive_type' },
+  })
+  return data.data
+}
+
+export interface DirectiveSettingUpdateRequest {
+  value?: string
+  display_order?: number
+  active?: boolean
+}
+
+/** PATCH /master-data/{id} — FR-MDATA-002 applied to a directive type. */
+export async function updateDirectiveSetting(id: string, payload: DirectiveSettingUpdateRequest): Promise<DirectiveSettingEntry> {
+  const { data } = await client.patch<ApiEnvelope<DirectiveSettingEntry>>(`/master-data/${id}`, payload)
+  return data.data
+}
 
 export interface DirectiveSettingCreateRequest {
   ministry_id: string
