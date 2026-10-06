@@ -1,6 +1,7 @@
 import { type FormEvent, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import {
   BellAlertIcon,
   ChatBubbleLeftRightIcon,
@@ -12,6 +13,7 @@ import {
   LightBulbIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
+  ShieldExclamationIcon,
 } from '@heroicons/react/24/outline'
 import { search, type SearchResultType } from '../../api/search'
 import { Button } from '../../components/Button'
@@ -20,6 +22,7 @@ import { FORM_INPUT_CLASS } from '../../components/FormLayout'
 import { Pagination } from '../../components/Pagination'
 import { useClientPagination } from '../../hooks/useClientPagination'
 import { useI18n } from '../../i18n/context'
+import { retryUnlessClientError } from '../../lib/apiErrors'
 import { SearchResultCard } from './SearchResultCard'
 
 type TypeFilter = SearchResultType | 'all'
@@ -60,6 +63,7 @@ export default function SearchResultsPage() {
     queryKey: ['search', query],
     queryFn: () => search(query),
     enabled: query.length > 0,
+    retry: retryUnlessClientError,
   })
 
   const results = useMemo(() => searchQuery.data ?? [], [searchQuery.data])
@@ -168,6 +172,8 @@ export default function SearchResultsPage() {
             <SearchIntro />
           ) : searchQuery.isLoading ? (
             <ResultsSkeleton label={copy.searching} />
+          ) : searchQuery.isError && isAxiosError(searchQuery.error) && searchQuery.error.response?.status === 403 ? (
+            <EmptyState icon={<ShieldExclamationIcon className="size-5" />} title={t.search.forbiddenTitle} body={t.search.forbiddenBody} />
           ) : searchQuery.isError ? (
             <p role="alert" className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger-soft px-4 py-3 text-body-sm font-semibold text-danger-soft-text">
               <ExclamationCircleIcon className="size-5 shrink-0" aria-hidden="true" />
@@ -337,7 +343,7 @@ function SearchForm({ initialValue, onSubmit }: { initialValue: string; onSubmit
 const INTRO_CARDS: { type: SearchResultType; icon: typeof BellAlertIcon; tile: string }[] = [
   { type: 'alert', icon: BellAlertIcon, tile: 'bg-accent-soft text-accent-soft-text' },
   { type: 'inquiry', icon: ChatBubbleLeftRightIcon, tile: 'bg-info-soft text-info-soft-text' },
-  { type: 'periodic_report', icon: DocumentTextIcon, tile: 'bg-section-bg text-text-secondary' },
+  { type: 'periodic_report', icon: DocumentTextIcon, tile: 'bg-success-soft text-success-soft-text' },
 ]
 
 /** Shown before the first search: what each record type is searched on. */
@@ -356,27 +362,17 @@ function SearchIntro() {
       </h2>
       <p className="mt-1 text-body-sm text-text-secondary">{copy.introBody}</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-3">
-        {INTRO_CARDS.map(({ type, icon: Icon, tile }) => {
-          const isIndexed = type !== 'periodic_report'
-          return (
-            <li
-              key={type}
-              className={`flex flex-col gap-3 rounded-xl p-4 ${
-                isIndexed ? 'border border-border bg-white shadow-sm' : 'border-[1.5px] border-dashed border-border-muted bg-page-bg'
-              }`}
-            >
-              <span className={`grid size-9 place-items-center rounded-lg ${tile}`} aria-hidden="true">
-                <Icon className="size-5" />
-              </span>
-              <span>
-                <strong className="block text-h4 text-primary">{groupLabels[type]}</strong>
-                <span className={`text-body-sm ${isIndexed ? 'text-text-secondary' : 'italic text-text-muted'}`}>
-                  {copy.searchedFields[type]}
-                </span>
-              </span>
-            </li>
-          )
-        })}
+        {INTRO_CARDS.map(({ type, icon: Icon, tile }) => (
+          <li key={type} className="flex flex-col gap-3 rounded-xl border border-border bg-white p-4 shadow-sm">
+            <span className={`grid size-9 place-items-center rounded-lg ${tile}`} aria-hidden="true">
+              <Icon className="size-5" />
+            </span>
+            <span>
+              <strong className="block text-h4 text-primary">{groupLabels[type]}</strong>
+              <span className="text-body-sm text-text-secondary">{copy.searchedFields[type]}</span>
+            </span>
+          </li>
+        ))}
       </ul>
     </section>
   )
