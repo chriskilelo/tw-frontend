@@ -6,13 +6,12 @@ import {
   ChartBarIcon,
   GlobeAltIcon,
   InformationCircleIcon,
-  MagnifyingGlassIcon,
   MapPinIcon,
   RectangleStackIcon,
+  TableCellsIcon,
   TrophyIcon,
 } from '@heroicons/react/20/solid'
 import { getMfaAwarenessSummary, getNationalOverview, type NationalOverviewMission } from '../../api/governance'
-import { listMissions } from '../../api/missions'
 import type { AuthUser, Role } from '../../api/auth'
 import { DashboardCard, PanelEmpty } from '../../components/dashboard/DashboardCard'
 import { ChartLegend, QuarterBarChart } from '../../components/dashboard/charts'
@@ -21,7 +20,7 @@ import { DashboardError, DashboardHero, DashboardSkeleton } from '../../componen
 import { RankedBars, StatTile } from '../../components/dashboard/visuals'
 import { useI18n } from '../../i18n/context'
 import { localeFor } from '../../lib/formatters'
-import { firstName, formatNumber, greetingPart, periodRange, recentQuarters } from '../../lib/dashboardFormat'
+import { firstName, formatNumber, greetingPart, periodRange } from '../../lib/dashboardFormat'
 import { GOVERNANCE_TYPES } from './governanceLabels'
 
 /**
@@ -35,9 +34,8 @@ export default function MfaDashboard({ user, role }: { user: AuthUser; role: Rol
   const copy = t.dashboard.mfa
   const isPrincipalSecretary = role.name === 'MFA Principal Secretary'
 
-  const summaryQuery = useQuery({ queryKey: ['mfa-awareness'], queryFn: getMfaAwarenessSummary })
-  const missionsQuery = useQuery({ queryKey: ['missions'], queryFn: listMissions })
-  const overviewQuery = useQuery({ queryKey: ['mfa-awareness', 'national-overview'], queryFn: getNationalOverview, enabled: isPrincipalSecretary })
+  const summaryQuery = useQuery({ queryKey: ['mfa-awareness', 'summary', null, null], queryFn: () => getMfaAwarenessSummary() })
+  const overviewQuery = useQuery({ queryKey: ['mfa-awareness', 'national-overview', null], queryFn: () => getNationalOverview(), enabled: isPrincipalSecretary })
 
   if (summaryQuery.isLoading) {
     return <DashboardSkeleton />
@@ -47,18 +45,17 @@ export default function MfaDashboard({ user, role }: { user: AuthUser; role: Rol
   }
 
   const summary = summaryQuery.data
-  // by_period is keyed "YYYY-MM"; fold the months into fiscal quarters (same start months).
-  const quarters = recentQuarters(8).map((quarter) => {
-    const [year, month] = quarter.start.split('-').map(Number)
-    const records = [0, 1, 2].reduce((sum, offset) => sum + (summary.by_period[`${year}-${String(month + offset).padStart(2, '0')}`] ?? 0), 0)
-    return { ...quarter, records }
-  })
-  const thisQuarter = quarters[quarters.length - 1].records
-  const lastQuarter = quarters[quarters.length - 2].records
-  const missionEntries = Object.entries(summary.by_mission).sort((a, b) => b[1] - a[1])
+  // by_period: the last eight fiscal quarters, the one in progress last.
+  const quarters = summary.by_period.map((point) => ({ label: point.label, start: point.start, end: point.end, records: point.total }))
+  const thisQuarter = quarters.at(-1)?.records ?? 0
+  const lastQuarter = quarters.at(-2)?.records ?? 0
+  const missionEntries = summary.by_mission
+    .filter((mission) => mission.total > 0)
+    .map((mission): [string, number] => [mission.mission_name, mission.total])
+    .sort((a, b) => b[1] - a[1])
   const [topMission] = missionEntries
-  const activeMissionCount = (missionsQuery.data ?? []).filter((mission) => mission.active).length
-  const departments = Object.entries(summary.by_ministry)
+  const activeMissionCount = summary.by_mission.filter((mission) => mission.active).length
+  const departments = summary.by_ministry.filter((ministry) => ministry.total > 0).map((ministry): [string, number] => [ministry.ministry_name, ministry.total])
 
   return (
     <>
@@ -67,7 +64,7 @@ export default function MfaDashboard({ user, role }: { user: AuthUser; role: Rol
         subtitle={`${role.name} · ${copy.scope}`}
         actions={[
           { to: '/mfa-awareness', label: t.dashboard.actions.mfaAwareness, icon: <GlobeAltIcon />, primary: true },
-          { to: '/search', label: t.dashboard.actions.search, icon: <MagnifyingGlassIcon /> },
+          { to: '/mfa-awareness?view=log', label: t.governance.mfaAwareness.views.log, icon: <TableCellsIcon /> },
         ]}
         aside={
           <div className="w-full rounded-xl bg-white/[0.07] p-4 ring-1 ring-white/15 lg:w-80">
@@ -191,7 +188,7 @@ function MomentumList({ missions }: { missions: NationalOverviewMission[] }) {
   const locale = localeFor(language)
   const copy = t.dashboard.mfa.momentum
   const rows = missions
-    .map((mission) => ({ name: mission.mission_name, current: mission.current_period.total, prior: mission.prior_period.total }))
+    .map((mission) => ({ name: mission.mission_name, current: mission.current.total, prior: mission.prior.total }))
     .sort((a, b) => Math.abs(b.current - b.prior) - Math.abs(a.current - a.prior))
     .slice(0, 8)
   const max = Math.max(1, ...rows.flatMap((row) => [row.current, row.prior]))

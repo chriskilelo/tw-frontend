@@ -1,51 +1,46 @@
 import type { ReactNode } from 'react'
-import { BellAlertIcon, ChatBubbleLeftRightIcon, ClipboardDocumentCheckIcon, DocumentTextIcon } from '@heroicons/react/20/solid'
-import type { GovernanceItemType } from '../../api/governance'
+import { GOVERNANCE_ITEM_TYPES, type GovernanceItemType, type GovernancePeriodSummary, type MissionActivityItem } from '../../api/governance'
 import type { IconTone } from '../../components/dashboard/DashboardCard'
 import { useI18n } from '../../i18n/context'
-
-/** The four record types the governance feeds aggregate, with their dashboard icon and tone. */
-export const GOVERNANCE_TYPES: { type: GovernanceItemType; icon: ReactNode; tone: IconTone }[] = [
-  { type: 'alert', icon: <BellAlertIcon />, tone: 'info' },
-  { type: 'inquiry', icon: <ChatBubbleLeftRightIcon />, tone: 'accent' },
-  { type: 'directive', icon: <ClipboardDocumentCheckIcon />, tone: 'directive' },
-  { type: 'periodic_report', icon: <DocumentTextIcon />, tone: 'success' },
-]
+import { STATUS_ORDER, TYPE_STYLE, useStatusLabel } from '../governance/governanceTheme'
 
 /**
- * The governance feeds mix record types, and their status values overlap ("draft",
- * "acknowledged"): summaries key them "type:status" (e.g. "alert:new"), feed rows by status
- * alone. A status is labelled from whichever engine's list names it first; unknown values
- * fall back to a readable form of the raw key.
+ * The three record types the governance views count (FR-HOM-002: "alerts, inquiries, and
+ * reports"), with the dashboard icon and tone the governance pages also use.
  */
-export function useGovernanceStatusLabel(): (status: string) => string {
+export const GOVERNANCE_TYPES: { type: GovernanceItemType; icon: ReactNode; tone: IconTone }[] = GOVERNANCE_ITEM_TYPES.map((type) => ({
+  type,
+  icon: TYPE_STYLE[type].icon,
+  tone: TYPE_STYLE[type].tone,
+}))
+
+/** A quarter's per-type status counts as one ranked list, each named "Alerts · New". */
+export function useStatusRanking(): (period: GovernancePeriodSummary) => { name: string; count: number }[] {
   const { t } = useI18n()
-  const maps: Record<string, string>[] = [t.alerts.status, t.inquiries.status, t.directives.status, t.reports.status]
-  const types: Record<string, string> = t.dashboard.governance.types
+  const statusLabel = useStatusLabel()
 
-  const label = (status: string) => {
-    for (const map of maps) {
-      if (status in map) {
-        return map[status]
-      }
-    }
-    const readable = status.replace(/_/g, ' ')
-    return readable.charAt(0).toUpperCase() + readable.slice(1)
-  }
-
-  return (status: string) => {
-    const separator = status.indexOf(':')
-    if (separator === -1) {
-      return label(status)
-    }
-    const type = status.slice(0, separator)
-    return `${types[type] ?? label(type)} · ${label(status.slice(separator + 1))}`
-  }
+  return (period) =>
+    GOVERNANCE_ITEM_TYPES.flatMap((type) =>
+      Object.entries(period.by_status[type] ?? {})
+        .filter(([, count]) => count > 0)
+        .sort(([first], [second]) => STATUS_ORDER[type].indexOf(first) - STATUS_ORDER[type].indexOf(second))
+        .map(([status, count]) => ({ name: `${t.governance.types[type]} · ${statusLabel(type, status)}`, count })),
+    ).sort((first, second) => second.count - first.count)
 }
 
-/** Feed summaries embed raw intelligence-type codes ("trade_barriers"); show their labels. */
-export function useReadableSummary(): (summary: string) => string {
+/** One readable line for a feed item: an alert's country and intelligence type, an inquiry's category, a report's period. */
+export function useFeedLine(): (item: MissionActivityItem) => string {
   const { t } = useI18n()
-  const labels: Record<string, string> = t.alerts.intelligenceType
-  return (summary: string) => summary.replace(/\b(opportunities|trade_barriers)\b/g, (code) => labels[code] ?? code)
+  const intelligence: Record<string, string> = t.alerts.intelligenceType
+
+  return (item) => {
+    switch (item.type) {
+      case 'alert':
+        return [item.summary?.country, item.summary?.intelligence_type ? (intelligence[item.summary.intelligence_type] ?? item.summary.intelligence_type) : null].filter(Boolean).join(' · ') || t.governance.typeSingular.alert
+      case 'inquiry':
+        return [item.summary?.category, item.summary?.inquirer_organisation].filter(Boolean).join(' · ') || t.governance.typeSingular.inquiry
+      default:
+        return item.summary ? `${t.governance.typeSingular.periodic_report} · ${item.summary.period_label}` : t.governance.typeSingular.periodic_report
+    }
+  }
 }
