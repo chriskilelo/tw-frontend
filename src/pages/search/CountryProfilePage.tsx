@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import { getCountryProfile } from '../../api/search'
 import type { AlertStatus } from '../../api/alerts'
 import { Table, type TableColumn } from '../../components/Table'
@@ -11,6 +12,7 @@ import { useClientPagination } from '../../hooks/useClientPagination'
 import { AlertStatusBadge } from '../alerts/AlertStatusBadge'
 import type { CountryProfileAlert } from '../../api/search'
 import { useI18n } from '../../i18n/context'
+import { retryUnlessClientError } from '../../lib/apiErrors'
 
 /**
  * FR-SEARCH-004. App\Services\SearchService::countryProfile() aggregates
@@ -31,6 +33,7 @@ export default function CountryProfilePage() {
     queryKey: ['country-profile', country],
     queryFn: () => getCountryProfile(country),
     enabled: country.trim().length > 0,
+    retry: retryUnlessClientError,
   })
 
   const recentAlertsPage = useClientPagination(profileQuery.data?.recent_alerts ?? [])
@@ -85,6 +88,19 @@ export default function CountryProfilePage() {
       </form>
 
       {profileQuery.isLoading && <p className="mt-6 text-body text-text-muted">{t.common.loading}</p>}
+
+      {profileQuery.isError && (
+        <p role="alert" className="mt-6 rounded-lg border border-border bg-white px-4 py-3 text-body-sm text-text-secondary shadow-sm">
+          {isAxiosError(profileQuery.error) && profileQuery.error.response?.status === 403 ? (
+            <>
+              <span className="block font-semibold text-primary">{t.search.forbiddenTitle}</span>
+              {t.search.forbiddenBody}
+            </>
+          ) : (
+            t.common.genericError
+          )}
+        </p>
+      )}
 
       {profileQuery.data && (
         <>

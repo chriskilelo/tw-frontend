@@ -46,8 +46,9 @@ const INQUIRY_RESULT: SearchResult = {
 }
 
 function renderPage(initialEntry = '/search?q=trade') {
+  // The page retries a network failure (never a 4xx); retryDelay 0 keeps those retries instant here.
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    defaultOptions: { queries: { retry: false, retryDelay: 0 }, mutations: { retry: false } },
   })
   return render(
     <QueryClientProvider client={queryClient}>
@@ -150,7 +151,7 @@ describe('SearchResultsPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Search' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'What you can search' })).toBeInTheDocument()
-    expect(screen.getByText('Report text is not searchable yet.')).toBeInTheDocument()
+    expect(screen.getByText('Submitted reports: their text, table entries, mission and period. Drafts are not searchable.')).toBeInTheDocument()
     expect(searchApi.search).not.toHaveBeenCalled()
   })
 
@@ -173,6 +174,15 @@ describe('SearchResultsPage', () => {
     renderPage()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
+  })
+
+  it('TC-FR-MFA-001-AC2: explains that search is not available when the API refuses it to an MFA role', async () => {
+    vi.mocked(searchApi.search).mockRejectedValue({ isAxiosError: true, response: { status: 403, data: { message: 'Knowledge search shows record content.' } } })
+    renderPage()
+
+    expect(await screen.findByText('Search is not available for your role')).toBeInTheDocument()
+    expect(screen.getByText(/The MFA awareness view has the counts/)).toBeInTheDocument()
+    expect(searchApi.search).toHaveBeenCalledTimes(1)
   })
 
   it('TC-FR-SEARCH-004: links to the country profile from alert results and from the country box', async () => {
