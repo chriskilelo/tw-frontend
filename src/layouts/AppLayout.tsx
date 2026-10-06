@@ -16,16 +16,50 @@ import { NAV_ICONS, NAV_ITEMS, type NavKey } from './navigation'
 const ALL_KEYS: NavKey[] = NAV_ITEMS.map((item) => item.key)
 
 /**
- * CLAUDE.md Section 5 role catalogue mapped to visible nav sections. Roles not named in
- * the session spec (Ministry Publishing Authority, Designated Deputy, Acting PS,
- * Honorary Consul) fall back to DEFAULT_NAV_KEYS rather than a guessed section list.
+ * The directive engine's two sidebar entries. 'directives' is shown only to the roles that
+ * work directives day to day (DirectivePolicy: the target Ministry Attache, the issuing
+ * Ministry HQ Officer, and the Ministry PS / Acting PS / Ministry HQ Director oversight roles);
+ * 'directivesSummary' only to DirectivePolicy::viewSummary()'s Ministry HQ Director, Ministry
+ * PS and Acting PS. Every other role, the System Administrator included, gets neither. The
+ * API still enforces all of this (a hidden link is never the only guard).
+ */
+const DIRECTIVE_NAV_KEYS: NavKey[] = ['directives', 'directivesSummary']
+
+/**
+ * The Periodic Report Engine's entries. ReportPolicy grants reading to the attache (own
+ * mission), the HQ review roles and the Heads of Mission; compliance to the HQ Director, PS and
+ * Acting PS. The System Administrator is none of these (API-001 Section 5), so it gets none.
+ */
+const REPORT_NAV_KEYS: NavKey[] = ['reports', 'reportsCompliance', 'sdtReportCompliance']
+
+/**
+ * The KPI Framework Engine's operational entries. KpiPolicy grants them to department roles
+ * only (directors, the PS, HRM&D, the attache and the HQ Officer); the System Administrator
+ * has no department and configures KPIs under KPI settings instead, so it gets none.
+ */
+const KPI_NAV_KEYS: NavKey[] = ['kpiDashboard', 'kpiComparison', 'kpiTargets', 'kpiManualEntry', 'hrmdDashboard']
+
+/**
+ * The two mission-governance views. MissionPolicy opens Mission Activity to the Head and Deputy
+ * Head of Mission and MFA Awareness to the two MFA roles (FR-HOM-001, FR-MFA-001); the System
+ * Administrator is neither, and the API refuses it both, so it gets neither link.
+ */
+const GOVERNANCE_NAV_KEYS: NavKey[] = ['missionActivity', 'mfaAwareness']
+
+/**
+ * CLAUDE.md Section 5 role catalogue mapped to visible nav sections. Roles without an entry
+ * (Designated Deputy, Honorary Consul) fall back to
+ * DEFAULT_NAV_KEYS rather than a guessed section list.
  */
 const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
-  'System Administrator': ALL_KEYS,
+  // The platform administrator sees every section except the directive engine's two entries
+  // (DIRECTIVE_NAV_KEYS above): it neither issues, receives nor oversees directives.
+  'System Administrator': ALL_KEYS.filter(
+    (key) => !DIRECTIVE_NAV_KEYS.includes(key) && !REPORT_NAV_KEYS.includes(key) && !KPI_NAV_KEYS.includes(key) && !GOVERNANCE_NAV_KEYS.includes(key),
+  ),
   // ReportPolicy::viewCompliance() (Session 25): Ministry HQ Director / Ministry PS only.
-  // DirectivePolicy::viewSummary() (Session 27) grants directivesSummary to the same two
-  // role names literally, and — unlike every other ability on this engine — does NOT
-  // extend to Acting PS (see the 'Acting PS' entry below), so it is omitted there on purpose.
+  // directivesSummary: DirectivePolicy::viewSummary() grants Ministry HQ Director, Ministry PS
+  // and Acting PS (FR-DIR-012; Acting PS carries the full PS permission set, FR-SDT-004 AC1).
   // sdtReportCompliance/sdtDirectiveOverview (Session 31): MinistryPolicy::viewPsDashboard()
   // gates both, the same boundary as psDashboard, so they're added alongside it for both
   // Ministry PS and Acting PS below.
@@ -59,16 +93,15 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
   ],
   // Acting PS holds the full Ministry PS permission set for the duration of the
   // activation (FR-SDT-004, role-swap per Session 14 implementation note), so it
-  // gets the same nav, including the Acting PS deactivation control on the PS dashboard —
-  // except directivesSummary: DirectivePolicy::viewSummary() checks the literal role name
-  // 'Ministry PS', which an activated Acting PS no longer carries, so GET /directives/summary
-  // would 403 for this role. Omitted here to match that, not extended by analogy.
+  // gets the same nav, including the Acting PS deactivation control on the PS dashboard and
+  // the directive summary (DirectivePolicy::viewSummary() includes Acting PS).
   'Acting PS': [
     'dashboard',
     'search',
     'alerts',
     'inquiries',
     'directives',
+    'directivesSummary',
     'reports',
     'reportsCompliance',
     'kpiDashboard',
@@ -93,23 +126,34 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
   ],
   // kpiManualEntry (Session 35): KpiPolicy::recordActual() grants Ministry Attache and
   // Ministry HQ Officer identically (FR-KPI-007).
-  'Ministry HQ Officer': ['dashboard', 'search', 'alerts', 'inquiries', 'directives', 'hqWorkspace', 'kpiManualEntry'],
+  // 'reports': FR-RPT-017 / FR-SDT-015 — the HQ Officer reviews every mission's submitted reports.
+  'Ministry HQ Officer': ['dashboard', 'search', 'alerts', 'inquiries', 'directives', 'reports', 'hqWorkspace', 'kpiManualEntry'],
+  // FR-SDT-007: the Director of External Trade (Publishing Authority) reviews submitted reports.
+  'Ministry Publishing Authority': ['dashboard', 'search', 'reports'],
   // ReportPolicy::create() (Session 25): draft reports may only ever be started by a
-  // Ministry Attache, so 'reports' was already here for that reason. 'directives' is added
-  // here for a different reason (Session 30): DirectivePolicy scopes a Ministry Attache to
-  // directives that target them, and DirectiveDetailPage is where they acknowledge/progress/
-  // complete/cancel one — this role had no nav path to that page at all until now.
-  'Ministry Attache': ['dashboard', 'search', 'alerts', 'inquiries', 'directives', 'reports', 'kpiManualEntry'],
-  'Head of Mission': ['dashboard', 'search', 'missionActivity'],
-  'Deputy Head of Mission': ['dashboard', 'search', 'missionActivity'],
-  'MFA HQ Officer': ['dashboard', 'search', 'mfaAwareness'],
-  'MFA Principal Secretary': ['dashboard', 'search', 'mfaAwareness'],
+  // Ministry Attache, so 'reports' was already here for that reason. 'directives': the
+  // attache sees the directives that target them (DirectivePolicy) and acknowledges,
+  // progresses and completes them on DirectiveDetailPage; only the issuer withdraws one.
+  // kpiDashboard: FR-KPI-010 — the attache's own-mission, read-only KPI view
+  // (KpiPolicy::viewDashboard(); the API pins it to their mission).
+  'Ministry Attache': ['dashboard', 'search', 'alerts', 'inquiries', 'directives', 'reports', 'kpiDashboard', 'kpiManualEntry'],
+  // 'reports' (read-only): FR-HOM-001 AC2 — their mission's submitted reports in full.
+  // 'search' finds their own mission's records only (Alert/Inquiry visibleTo()).
+  'Head of Mission': ['dashboard', 'search', 'missionActivity', 'reports'],
+  'Deputy Head of Mission': ['dashboard', 'search', 'missionActivity', 'reports'],
+  // FR-MFA-001 AC2: aggregate counts and submission metadata only. No 'search': every result
+  // is record content, so the API refuses knowledge search to the MFA roles (403).
+  'MFA HQ Officer': ['dashboard', 'mfaAwareness'],
+  'MFA Principal Secretary': ['dashboard', 'mfaAwareness'],
   // hrmdDashboard (Session 35): replaces the previously dead 'kpiReports' nav entry, which
   // pointed at a route ('/kpi-reports') that was never built. KpiPolicy::viewHrmdDashboard()
   // is HRM&D Officer only. 'search' is deliberately NOT included here: MinistryScope
   // middleware (Session 33, FR-SDT-018) 403s HRM&D Officer on any request path outside
   // api/v1/kpi-* / api/v1/sdt/hrmd-dashboard* as a blanket net, GET /search included.
-  'HRM&D Officer': ['dashboard', 'hrmdDashboard'],
+  // kpiDashboard: FR-KPI-011 / FR-SDT-016 — read-only KPI dashboards across every mission,
+  // each access audit-logged by the API; the path is under api/v1/kpi-*, inside the
+  // MinistryScope guard's KPI allowance.
+  'HRM&D Officer': ['dashboard', 'kpiDashboard', 'hrmdDashboard'],
   // ADR-006 / BR-025: department administration only — no search or engine pages, all of
   // which the backend's operational fence (MinistryScope middleware + BasePolicy) would 403.
   // 'dashboard' is the administrator dashboard (GET /admin/dashboard: accounts, seats,
@@ -174,7 +218,7 @@ function AppLayoutContent() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-primary transition-transform md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-primary transition-transform md:static md:translate-x-0 print:hidden ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -211,7 +255,7 @@ function AppLayoutContent() {
       </aside>
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col md:pl-0">
-        <header className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-primary px-4 py-3 md:flex-nowrap md:px-6">
+        <header className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-primary px-4 py-3 md:flex-nowrap md:px-6 print:hidden">
           <button
             type="button"
             className="rounded p-1.5 text-white hover:bg-primary-light md:hidden"

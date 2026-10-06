@@ -22,6 +22,7 @@ import ReportFormPage from './pages/reports/ReportFormPage'
 import ComplianceDashboardPage from './pages/reports/ComplianceDashboardPage'
 import MissionActivityPage from './pages/governance/MissionActivityPage'
 import MfaAwarenessPage from './pages/governance/MfaAwarenessPage'
+import MissionDrillDownPage from './pages/governance/MissionDrillDownPage'
 import PsDashboardPage from './pages/sdt/PsDashboardPage'
 import HqWorkspacePage from './pages/sdt/HqWorkspacePage'
 import ReportComplianceConsolePage from './pages/sdt/ReportComplianceConsolePage'
@@ -99,6 +100,7 @@ export const router = createBrowserRouter([
           { path: '/reports/:id', element: <ReportFormPage /> },
           { path: '/mission-activity', element: <MissionActivityPage /> },
           { path: '/mfa-awareness', element: <MfaAwarenessPage /> },
+          { path: '/mfa-awareness/missions/:missionId', element: <MissionDrillDownPage /> },
           { path: '/sdt/ps-dashboard', element: <PsDashboardPage /> },
           { path: '/sdt/hq-workspace', element: <HqWorkspacePage /> },
           { path: '/sdt/reports/compliance', element: <ReportComplianceConsolePage /> },

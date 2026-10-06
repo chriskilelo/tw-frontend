@@ -89,7 +89,8 @@ export function Pagination({ meta, onPageChange, onPerPageChange, siblingCount =
       aria-label={t.pagination.navLabel}
       className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${className}`}
     >
-      <div className="flex items-center gap-1">
+      {/* Wraps on a phone: Back, up to seven page numbers and Next are wider than 375px. */}
+      <div className="flex flex-wrap items-center gap-1">
         <button
           type="button"
           onClick={() => goTo(currentPage - 1)}
@@ -133,7 +134,7 @@ export function Pagination({ meta, onPageChange, onPerPageChange, siblingCount =
         </button>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <p className="text-body-sm text-text-muted">
           {t.pagination.resultRange(rangeStart, rangeEnd, total)}
         </p>
