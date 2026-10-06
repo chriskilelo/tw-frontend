@@ -8,6 +8,7 @@ import {
   Squares2X2Icon,
 } from '@heroicons/react/20/solid'
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { getMissionActivityFeed, getMissionActivitySummary } from '../../api/governance'
 import type { AuthUser, Role } from '../../api/auth'
 import { DashboardCard, PanelEmpty, type IconTone } from '../../components/dashboard/DashboardCard'
@@ -17,8 +18,9 @@ import { CardLink, DashboardError, DashboardHero, DashboardSkeleton } from '../.
 import { DeltaPill, RankedBars, StatTile } from '../../components/dashboard/visuals'
 import { useI18n } from '../../i18n/context'
 import { formatRelativeTime, localeFor } from '../../lib/formatters'
-import { firstName, fiscalQuarterLabel, formatNumber, greetingPart, periodRange } from '../../lib/dashboardFormat'
-import { GOVERNANCE_TYPES, useGovernanceStatusLabel, useReadableSummary } from './governanceLabels'
+import { firstName, formatNumber, greetingPart, periodRange } from '../../lib/dashboardFormat'
+import { GovernanceStatusBadge } from '../governance/governanceUi'
+import { GOVERNANCE_TYPES, useFeedLine, useStatusRanking } from './governanceLabels'
 
 
 /**
@@ -30,10 +32,10 @@ export default function MissionGovernanceDashboard({ user, role }: { user: AuthU
   const { t, language } = useI18n()
   const locale = localeFor(language)
   const copy = t.dashboard.governance
-  const statusLabel = useGovernanceStatusLabel()
-  const readableSummary = useReadableSummary()
+  const statusRanking = useStatusRanking()
+  const feedLine = useFeedLine()
 
-  const summaryQuery = useQuery({ queryKey: ['mission-activity', 'summary'], queryFn: getMissionActivitySummary })
+  const summaryQuery = useQuery({ queryKey: ['mission-activity', 'summary', null], queryFn: () => getMissionActivitySummary() })
   const feedQuery = useQuery({ queryKey: ['mission-activity', 'feed', 'dashboard'], queryFn: () => getMissionActivityFeed({ per_page: 8 }) })
 
   if (summaryQuery.isLoading) {
@@ -44,10 +46,11 @@ export default function MissionGovernanceDashboard({ user, role }: { user: AuthU
   }
 
   const { current_period: current, prior_period: prior } = summaryQuery.data
-  const currentRef = { label: fiscalQuarterLabel(current.period_start), start: current.period_start, end: current.period_end }
-  const priorRef = { label: fiscalQuarterLabel(prior.period_start), start: prior.period_start, end: prior.period_end }
+  const currentRef = { label: current.label, start: current.start, end: current.end }
+  const priorRef = { label: prior.label, start: prior.start, end: prior.end }
   const comparison = GOVERNANCE_TYPES.map(({ type }) => ({ name: copy.types[type], current: current.by_type[type] ?? 0, prior: prior.by_type[type] ?? 0 }))
   const feed = feedQuery.data?.data ?? []
+  const statusRows = statusRanking(current)
 
   return (
     <>
@@ -84,7 +87,7 @@ export default function MissionGovernanceDashboard({ user, role }: { user: AuthU
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {GOVERNANCE_TYPES.map(({ type, icon, tone }) => (
           <StatTile
             key={type}
@@ -92,7 +95,7 @@ export default function MissionGovernanceDashboard({ user, role }: { user: AuthU
             value={formatNumber(current.by_type[type] ?? 0, locale)}
             icon={icon}
             tone={tone}
-            to="/mission-activity"
+            to={`/mission-activity?type=${type}&period=${encodeURIComponent(current.label)}`}
             delta={{ current: current.by_type[type] ?? 0, previous: prior.by_type[type] ?? 0 }}
           />
         ))}
@@ -130,12 +133,8 @@ export default function MissionGovernanceDashboard({ user, role }: { user: AuthU
         </DashboardCard>
 
         <DashboardCard className="lg:col-span-5" title={copy.status.title} icon={<Squares2X2Icon />} tone="neutral" subtitle={copy.status.subtitle}>
-          {Object.keys(current.by_status).length > 0 ? (
-            <RankedBars
-              items={Object.entries(current.by_status)
-                .map(([status, count]) => ({ name: statusLabel(status), count }))
-                .sort((a, b) => b.count - a.count)}
-            />
+          {statusRows.length > 0 ? (
+            <RankedBars items={statusRows} />
           ) : (
             <PanelEmpty icon={<Squares2X2Icon />} title={t.dashboard.common.emptyTitle} body={copy.status.empty} />
           )}
@@ -152,15 +151,18 @@ export default function MissionGovernanceDashboard({ user, role }: { user: AuthU
                   <span className="relative z-10 [&>span]:ring-4 [&>span]:ring-white">
                     <GovernanceTypeChip icon={typeStyle.icon} tone={typeStyle.tone} />
                   </span>
-                  <div className="min-w-0 flex-1 rounded-lg border border-border px-3 py-2.5">
+                  <div className="relative min-w-0 flex-1 rounded-lg border border-border px-3 py-2.5 transition-colors hover:border-primary/25 hover:bg-section-bg/50">
                     <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-body-sm">
-                      <span className="font-semibold text-primary">{copy.types[item.type]}</span>
+                      <Link to={item.link} className="font-semibold text-primary after:absolute after:inset-0 after:rounded-lg hover:underline">
+                        {t.governance.typeSingular[item.type]}
+                      </Link>
                       <span className="font-mono text-caption text-text-secondary">{item.reference}</span>
-                      {item.status && <span className="rounded-full bg-section-bg px-2 py-0.5 text-caption font-medium text-text-secondary">{statusLabel(item.status)}</span>}
+                      <GovernanceStatusBadge type={item.type} status={item.status} />
                     </p>
-                    <p className="mt-0.5 line-clamp-2 text-body-sm text-text-primary">{readableSummary(item.summary)}</p>
+                    <p className="mt-0.5 line-clamp-2 text-body-sm text-text-primary">{feedLine(item)}</p>
                     <p className="mt-1 text-caption text-text-secondary">
                       {item.submitting_officer && `${copy.feed.by(item.submitting_officer)} · `}
+                      {item.ministry.name && `${item.ministry.name} · `}
                       {formatRelativeTime(item.date, locale)}
                     </p>
                   </div>
