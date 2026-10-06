@@ -1,6 +1,7 @@
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import {
   ArrowPathIcon,
   ArrowRightIcon,
@@ -59,6 +60,7 @@ import {
   FactTile,
   ProgressStep,
   RecordRow,
+  RecordUnavailable,
   type ProgressStepState,
 } from '../../components/DetailLayout'
 import { FORM_INPUT_CLASS, FieldError, FieldLabel } from '../../components/FormLayout'
@@ -66,7 +68,7 @@ import { InquiryMatchingPanel } from '../../components/InquiryMatchingPanel'
 import { ReferralRecordModal } from '../../components/ReferralRecordModal'
 import { useBreadcrumbLabel } from '../../hooks/useBreadcrumbs'
 import { useI18n } from '../../i18n/context'
-import { apiErrorMessages } from '../../lib/apiErrors'
+import { apiErrorMessages, retryUnlessClientError } from '../../lib/apiErrors'
 import { daysBetween, formatDate, formatDateTime, formatRelativeTime, initials, localeFor } from '../../lib/formatters'
 import { InquiryStatusBadge } from './InquiryStatusBadge'
 import { InquirySubTypeBadge } from './InquirySubTypeBadge'
@@ -182,6 +184,7 @@ export default function InquiryDetailPage() {
     queryKey: ['inquiry', id],
     queryFn: () => getInquiry(id as string),
     enabled: Boolean(id),
+    retry: retryUnlessClientError,
   })
 
   useBreadcrumbLabel(inquiryQuery.data?.reference_number, { isCode: true })
@@ -212,14 +215,15 @@ export default function InquiryDetailPage() {
     },
   })
 
-  if (inquiryQuery.isError) {
+  if (inquiryQuery.isError && !inquiryQuery.data) {
+    const isMissionOversight = role?.name === 'Head of Mission' || role?.name === 'Deputy Head of Mission'
     return (
-      <div className="mx-auto w-full max-w-310 px-4 py-6 sm:px-7">
-        <p role="alert" className="flex items-center gap-2 rounded-lg bg-danger-soft px-3.5 py-3 text-body-sm text-danger-soft-text">
-          <ExclamationCircleIcon className="size-4.5 shrink-0" aria-hidden="true" />
-          {apiErrorMessages(inquiryQuery.error, t.common.genericError).join(' ')}
-        </p>
-      </div>
+      <RecordUnavailable
+        status={isAxiosError(inquiryQuery.error) ? inquiryQuery.error.response?.status : undefined}
+        copy={copy.unavailable}
+        back={isMissionOversight ? { to: '/mission-activity', label: copy.unavailable.backToMissionActivity } : { to: '/inquiries', label: copy.unavailable.backToInquiries }}
+        onRetry={() => void inquiryQuery.refetch()}
+      />
     )
   }
 

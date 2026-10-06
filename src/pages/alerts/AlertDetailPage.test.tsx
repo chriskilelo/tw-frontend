@@ -108,6 +108,27 @@ describe('AlertDetailPage', () => {
     expect(screen.queryByRole('button', { name: 'Post feedback' })).not.toBeInTheDocument()
   })
 
+  it('TC-FR-HOM-001-SCOPE: explains a refused alert and leads a Head of Mission back to Mission Activity', async () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Head of Mission', 'hom-1'))
+    vi.mocked(alertsApi.getAlert).mockRejectedValue({ isAxiosError: true, response: { status: 403, data: { message: 'This action is unauthorized.' } } })
+
+    renderDetailPage()
+
+    expect(await screen.findByRole('heading', { name: 'You don’t have access to this alert' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Mission activity' })).toHaveAttribute('href', '/mission-activity')
+    expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+  })
+
+  it('says when an alert does not exist instead of loading forever', async () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry PS', 'ps-1'))
+    vi.mocked(alertsApi.getAlert).mockRejectedValue({ isAxiosError: true, response: { status: 404, data: {} } })
+
+    renderDetailPage()
+
+    expect(await screen.findByRole('heading', { name: 'Alert not found' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'All alerts' })).toHaveAttribute('href', '/alerts')
+  })
+
   it('shows the delegate button for a Ministry PS', async () => {
     vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry PS', 'ps-user-1'))
 
