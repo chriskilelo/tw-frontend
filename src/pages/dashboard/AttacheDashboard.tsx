@@ -51,7 +51,7 @@ export default function AttacheDashboard({ data, user, role, kpiCycle, onKpiCycl
   }
 
   const { mission, activity_trend: trend, alerts, inquiries, directives, report, kpi } = data
-  const reportLink = report.id ? `/reports/${report.id}` : '/reports/new'
+  const reportLink = report.id ? `/reports/${report.id}` : `/reports/new?period=${encodeURIComponent(report.period.label)}`
   const reportActionLabel = report.status === 'submitted' ? t.dashboard.actions.viewReport : report.status === 'draft' ? t.dashboard.actions.openReport : t.dashboard.actions.startReport
   const onTrack = kpi.kpis.filter((row) => row.status === 'on_track').length
   const currentCycleLabel = kpi.options[0]?.label

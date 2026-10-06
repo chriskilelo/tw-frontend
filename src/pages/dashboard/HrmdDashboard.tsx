@@ -19,7 +19,7 @@ import { useI18n } from '../../i18n/context'
 import { localeFor } from '../../lib/formatters'
 import { firstName, formatNumber, greetingPart, percentOf, periodRange, periodTick, recentKpiCycles } from '../../lib/dashboardFormat'
 
-const EMPTY_COUNTS: Record<PerformanceStatus, number> = { on_track: 0, at_risk: 0, below_target: 0, no_target: 0, no_data: 0 }
+const EMPTY_COUNTS: Record<PerformanceStatus, number> = { on_track: 0, at_risk: 0, below_target: 0, pending: 0, no_target: 0, no_data: 0 }
 
 /**
  * HRM&D Officer (FR-SDT-016, FR-KPI-011): KPI performance across the department's missions,
@@ -44,12 +44,16 @@ export default function HrmdDashboard({ user, role }: { user: AuthUser; role: Ro
   }
 
   const missions = matrixQuery.data.missions
-    .map((mission) => ({
-      id: mission.mission_id,
-      name: mission.mission_name,
-      total: mission.kpis.length,
-      counts: mission.kpis.reduce((counts, kpi) => ({ ...counts, [kpi.status]: counts[kpi.status] + 1 }), { ...EMPTY_COUNTS }),
-    }))
+    .map((mission) => {
+      // A KPI outside the mission's KPI profile is not measured for it (FR-KPI-002).
+      const tracked = mission.kpis.filter((kpi) => kpi.applicable !== false)
+      return {
+        id: mission.mission_id,
+        name: mission.mission_name,
+        total: tracked.length,
+        counts: tracked.reduce((counts, kpi) => ({ ...counts, [kpi.status]: counts[kpi.status] + 1 }), { ...EMPTY_COUNTS }),
+      }
+    })
     .sort((a, b) => (a.total > 0 ? a.counts.on_track / a.total : 0) - (b.total > 0 ? b.counts.on_track / b.total : 0))
 
   const totals = missions.reduce(
@@ -57,6 +61,7 @@ export default function HrmdDashboard({ user, role }: { user: AuthUser; role: Ro
       on_track: sum.on_track + mission.counts.on_track,
       at_risk: sum.at_risk + mission.counts.at_risk,
       below_target: sum.below_target + mission.counts.below_target,
+      pending: sum.pending + mission.counts.pending,
       no_target: sum.no_target + mission.counts.no_target,
       no_data: sum.no_data + mission.counts.no_data,
     }),
