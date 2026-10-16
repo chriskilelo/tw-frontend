@@ -139,6 +139,36 @@ describe('AppLayout', () => {
   })
 
   it.each([
+    ['Ministry HQ Officer', true, false],
+    ['Ministry HQ Director', false, true],
+    ['Ministry PS', false, true],
+    ['Acting PS', false, true],
+    ['Ministry Attache', false, false],
+    ['Ministry Publishing Authority', false, false],
+    ['Head of Mission', false, false],
+    ['MFA HQ Officer', false, false],
+    ['HRM&D Officer', false, false],
+    ['Ministry Administrator', false, false],
+    ['System Administrator', false, false],
+  ])('TC-FR-SDT-012-NAV: %s sees HQ Workspace=%s and Directive Overview=%s in the sidebar', async (roleName, hasWorkspace, hasOverview) => {
+    vi.mocked(authApi.me).mockResolvedValue(meResponseFor(roleName))
+
+    renderAppLayoutAt('/dashboard')
+    expect(await screen.findByText('Test User')).toBeInTheDocument()
+
+    const workspaceLink = screen.queryByRole('link', { name: 'HQ Workspace' })
+    const overviewLink = screen.queryByRole('link', { name: 'Directive Overview' })
+    expect(Boolean(workspaceLink)).toBe(hasWorkspace)
+    expect(Boolean(overviewLink)).toBe(hasOverview)
+    if (workspaceLink) {
+      expect(workspaceLink).toHaveAttribute('href', '/sdt/hq-workspace')
+    }
+    if (overviewLink) {
+      expect(overviewLink).toHaveAttribute('href', '/sdt/directives/overview')
+    }
+  })
+
+  it.each([
     'Head of Mission',
     'Deputy Head of Mission',
     'MFA HQ Officer',

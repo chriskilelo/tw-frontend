@@ -206,6 +206,35 @@ describe('AlertDetailPage', () => {
     openSpy.mockRestore()
   })
 
+  it('TC-FR-ALERT-009-G: follows the API\'s allowed_actions, so an officer the alert is not assigned to is offered nothing', async () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry HQ Officer', 'officer-2'))
+    vi.mocked(alertsApi.getAlert).mockResolvedValue({
+      ...ALERT,
+      allowed_actions: { edit: false, delegate: false, acknowledge: false, post_feedback: false },
+    })
+
+    renderDetailPage()
+
+    expect(await screen.findByTestId('alert-reference-number')).toHaveTextContent('ALT-202608-00001')
+    expect(screen.queryByRole('button', { name: 'Acknowledge' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Post feedback' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delegate' })).not.toBeInTheDocument()
+  })
+
+  it('TC-FR-ALERT-009-H: offers acknowledgement and feedback when the API allows them', async () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry HQ Officer', 'officer-1'))
+    vi.mocked(alertsApi.getAlert).mockResolvedValue({
+      ...ALERT,
+      assigned_to: { id: 'officer-1', full_name: 'Carol Officer' },
+      allowed_actions: { edit: false, delegate: false, acknowledge: true, post_feedback: true },
+    })
+
+    renderDetailPage()
+
+    expect(await screen.findByRole('button', { name: 'Acknowledge' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Post feedback' })).toBeInTheDocument()
+  })
+
   it('TC-FR-ALERT-010: posts feedback only once the composer has text', async () => {
     vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry PS', 'ps-user-1'))
     vi.mocked(alertsApi.postAlertFeedback).mockReset().mockResolvedValue({

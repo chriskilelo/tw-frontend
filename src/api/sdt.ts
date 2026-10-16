@@ -1,7 +1,7 @@
 import client, { type ApiEnvelope } from './client'
 import type { AlertIntelligenceType, AlertStatus, MasterDataEntryOption } from './alerts'
 import type { InquiryStatus, InquirySubType } from './inquiries'
-import type { Directive, DirectiveSummary } from './directives'
+import type { Directive, DirectiveAllowedActions, DirectiveMissionRef, DirectiveStatus, DirectiveSummary, DirectiveUserRef } from './directives'
 import type { ComplianceDashboard } from './reports'
 import type { ComparisonKpiRow, KpiComparisonMatrix } from './kpi'
 import type { ReferralOrganisation } from './referrals'
@@ -21,19 +21,87 @@ export interface PsDashboard {
   directive_summary_this_week: DirectiveWeekSummary
 }
 
+// --- FR-SDT-012 to 015: the HQ Trade Officer workspace ---------------------
+// App\Services\HqWorkspaceService behind GET /sdt/hq-workspace and its four section lists.
+// Ministry HQ Officer only; every other role gets 403.
+
 /**
- * SdtService::hqWorkspace() returns raw Eloquent models (no API Resource,
- * no eager-loaded relations) — these types cover only the columns the
- * workspace UI displays, not the full row.
+ * "portfolio" narrows the department-wide views (the alert feed, notified inquiries, reports)
+ * to the officer's configured portfolio; "department" shows everything. A requested portfolio
+ * falls back to "department" when none is configured; the response says which applied.
  */
+export type HqWorkspaceScope = 'portfolio' | 'department'
+
+/** awaiting / acknowledged: alerts assigned to the officer. feed: every alert in the scope. */
+export type HqAlertQueue = 'awaiting' | 'acknowledged' | 'feed'
+
+/** open = received, in progress, pending an external response; closed = closed or cancelled. */
+export type HqInquiryStatusGroup = 'open' | 'resolved' | 'closed' | 'all'
+
+/** attention = completed and awaiting the officer's closure, overdue, or stale. */
+export type HqDirectiveQueue = 'attention' | 'awaiting_closure' | 'open' | 'all'
+
+export type HqDirectiveAttention = 'awaiting_closure' | 'overdue' | 'stale' | 'approaching'
+
+export interface HqMissionRef {
+  id: string
+  name: string
+  city: string | null
+  host_country: string | null
+  active: boolean
+}
+
+export interface HqPersonRef {
+  id: string
+  full_name: string
+}
+
+/** GET /sdt/hq-workspace. Every count equals the matching list's meta.total. */
+export interface HqWorkspaceOverview {
+  department: { id: string; name: string } | null
+  scope: HqWorkspaceScope
+  portfolio: {
+    configured: boolean
+    missions: HqMissionRef[]
+    countries: string[]
+    sectors: string[]
+    /** False when the portfolio holds only sectors, so no report or directive can fall inside it. */
+    covers_missions: boolean
+  }
+  counts: {
+    alerts: Record<HqAlertQueue, number>
+    inquiries: Record<HqInquiryStatusGroup, number> & { high_value_open: number }
+    directives: Record<HqDirectiveQueue, number> & { overdue: number; stale: number }
+    reports: { submitted: number; latest_period: { label: string; submitted: number; late: number } | null }
+  }
+  filter_options: {
+    missions: (HqMissionRef & { in_portfolio: boolean })[]
+    /** Quarter labels with submitted reports, newest first. */
+    periods: string[]
+  }
+  filters: { scope: HqWorkspaceScope | null; mission_id: string | null }
+}
+
 export interface HqWorkspaceAlert {
   id: string
   reference_number: string
   country: string
+  sector: string | null
+  product_category: string | null
   intelligence_type: AlertIntelligenceType
+  urgency: string | null
   status: AlertStatus
-  mission_id: string
+  excerpt: string | null
+  mission: { id: string; name: string } | null
+  submitted_by: HqPersonRef | null
+  assigned_to: HqPersonRef | null
+  assigned_to_me: boolean
+  feedback_count: number
+  /** Null when the officer has no portfolio. */
+  in_portfolio: boolean | null
   created_at: string
+  /** What AlertPolicy lets this officer do on this alert now. */
+  actions: { acknowledge: boolean; feedback: boolean }
 }
 
 export interface HqWorkspaceInquiry {
@@ -41,31 +109,86 @@ export interface HqWorkspaceInquiry {
   reference_number: string
   category: string
   sub_type: InquirySubType
-  inquirer_name: string
   status: InquiryStatus
-  mission_id: string
+  high_value_flag: boolean
+  inquirer_name: string
+  inquirer_organisation: string | null
+  product_or_sector: string | null
+  excerpt: string | null
+  date_received: string | null
+  days_since_received: number | null
+  mission: { id: string; name: string } | null
+  logged_by: HqPersonRef | null
+  /** The latest "HQ Notified" event (FR-INQ-009). */
+  hq_notified: { at: string; by: HqPersonRef | null; note: string | null } | null
+  in_portfolio: boolean | null
   created_at: string
 }
 
-export interface HqWorkspaceDirective {
+/** A DirectiveResource row with why it needs the issuer and what the issuer may do now. */
+export interface HqWorkspaceDirective extends Directive {
+  attention: HqDirectiveAttention[]
+  in_portfolio: boolean | null
+  allowed_actions: DirectiveAllowedActions
+}
+
+export interface HqWorkspaceReport {
   id: string
-  description: string
-  status: string
-  mission_id: string
-  target_completion_date: string | null
-  created_at: string
+  reporting_period_label: string
+  period_start_date: string | null
+  period_end_date: string | null
+  submitted_at: string | null
+  is_late: boolean
+  mission: HqMissionRef | null
+  authored_by: HqPersonRef | null
+  in_portfolio: boolean | null
 }
 
-/** GET /sdt/hq-workspace response — SdtService::hqWorkspace(), FR-SDT-012/013. */
-export interface HqWorkspace {
-  assigned_alerts: HqWorkspaceAlert[]
-  assigned_inquiries: HqWorkspaceInquiry[]
-  pending_directives: HqWorkspaceDirective[]
+export interface HqWorkspacePageMeta {
+  current_page: number
+  per_page: number
+  total: number
+  last_page: number
+  scope: HqWorkspaceScope
+}
+
+export interface HqWorkspacePage<T> {
+  data: T[]
+  meta: HqWorkspacePageMeta
 }
 
 export interface HqWorkspaceFilters {
+  scope?: HqWorkspaceScope
   mission_id?: string
-  status?: string
+}
+
+export interface HqWorkspaceListFilters extends HqWorkspaceFilters {
+  q?: string
+  page?: number
+  per_page?: number
+}
+
+export interface HqWorkspaceAlertFilters extends HqWorkspaceListFilters {
+  queue?: HqAlertQueue
+  intelligence_type?: AlertIntelligenceType
+  sort?: '-created_at' | 'created_at'
+}
+
+export interface HqWorkspaceInquiryFilters extends HqWorkspaceListFilters {
+  status?: HqInquiryStatusGroup
+  high_value?: '1'
+  sort?: '-notified_at' | 'notified_at' | '-date_received' | 'date_received'
+}
+
+export interface HqWorkspaceDirectiveFilters extends HqWorkspaceListFilters {
+  queue?: HqDirectiveQueue
+  sort?: 'priority' | 'target_completion_date' | '-created_at' | 'last_progress_update_at'
+}
+
+export interface HqWorkspaceReportFilters extends HqWorkspaceListFilters {
+  period?: string
+  timeliness?: 'on_time' | 'late'
+  sort?: '-submitted_at' | 'submitted_at'
 }
 
 export interface ActingPsActivationResult {
@@ -85,10 +208,35 @@ export async function getPsDashboard(): Promise<PsDashboard> {
   return data.data
 }
 
-/** GET /sdt/hq-workspace — FR-SDT-012, FR-SDT-013. Ministry HQ Officer only. */
-export async function getHqWorkspace(filters: HqWorkspaceFilters = {}): Promise<HqWorkspace> {
-  const { data } = await client.get<ApiEnvelope<HqWorkspace>>('/sdt/hq-workspace', { params: filters })
+/** GET /sdt/hq-workspace — FR-SDT-012. Ministry HQ Officer only. */
+export async function getHqWorkspace(filters: HqWorkspaceFilters = {}): Promise<HqWorkspaceOverview> {
+  const { data } = await client.get<ApiEnvelope<HqWorkspaceOverview>>('/sdt/hq-workspace', { params: filters })
   return data.data
+}
+
+async function getHqWorkspacePage<T>(section: string, filters: HqWorkspaceListFilters): Promise<HqWorkspacePage<T>> {
+  const { data } = await client.get<{ data: T[]; meta: HqWorkspacePageMeta }>(`/sdt/hq-workspace/${section}`, { params: filters })
+  return { data: data.data, meta: data.meta }
+}
+
+/** GET /sdt/hq-workspace/alerts — FR-SDT-013. */
+export function listHqWorkspaceAlerts(filters: HqWorkspaceAlertFilters = {}): Promise<HqWorkspacePage<HqWorkspaceAlert>> {
+  return getHqWorkspacePage('alerts', filters)
+}
+
+/** GET /sdt/hq-workspace/inquiries — FR-SDT-013, FR-INQ-009. */
+export function listHqWorkspaceInquiries(filters: HqWorkspaceInquiryFilters = {}): Promise<HqWorkspacePage<HqWorkspaceInquiry>> {
+  return getHqWorkspacePage('inquiries', filters)
+}
+
+/** GET /sdt/hq-workspace/directives — FR-SDT-014, FR-DIR-009 to 011. */
+export function listHqWorkspaceDirectives(filters: HqWorkspaceDirectiveFilters = {}): Promise<HqWorkspacePage<HqWorkspaceDirective>> {
+  return getHqWorkspacePage('directives', filters)
+}
+
+/** GET /sdt/hq-workspace/reports — FR-SDT-015. Submitted reports only, read-only. */
+export function listHqWorkspaceReports(filters: HqWorkspaceReportFilters = {}): Promise<HqWorkspacePage<HqWorkspaceReport>> {
+  return getHqWorkspacePage('reports', filters)
 }
 
 /** POST /sdt/acting-ps/activate — FR-SDT-004, BR-023. */
@@ -138,22 +286,81 @@ export async function getSdtReportCompliance(periodLabel?: string): Promise<Comp
   return data.data
 }
 
-/**
- * GET /sdt/directives/overview response — App\Services\DirectiveService::getOverview(),
- * FR-SDT-008. `summary` is getSummary() for the PS's department with no filters (all time,
- * ministry-wide; the filterable view is GET /directives/summary). Both row lists are
- * DirectiveResource rows, so they carry the server-computed due_state, days_until_due,
- * is_overdue and is_stale flags. recent_directives holds the ten most recently issued.
- */
-export interface DirectiveOverview {
-  summary: DirectiveSummary
-  recent_directives: Directive[]
-  stale_directives: Directive[]
+// --- The directive oversight board (SDT console) -----------------------------
+// App\Services\DirectiveService::getOverview() behind GET /sdt/directives/overview: FR-SDT-001
+// (the PS's national directive summary), FR-SDT-008/010 (the directors' read-only oversight),
+// FR-DIR-003, FR-DIR-010, FR-DIR-012. Ministry HQ Director, Ministry PS and Acting PS.
+
+/** What needs attention now; every count comes from the API's derived directive flags. */
+export interface DirectiveAttentionCounts {
+  open: number
+  overdue: number
+  approaching: number
+  stale: number
+  no_date: number
+  /** Completed by the attache, waiting for the issuer to accept and close. */
+  awaiting_closure: number
 }
 
-/** GET /sdt/directives/overview — FR-SDT-008. Ministry PS (and Acting PS) only. */
-export async function getDirectiveOverview(): Promise<DirectiveOverview> {
-  const { data } = await client.get<ApiEnvelope<DirectiveOverview>>('/sdt/directives/overview')
+/** attention: overdue or stale work; watch: due within 7 days, or awaiting closure. */
+export type DirectiveMissionHealth = 'attention' | 'watch' | 'on_track' | 'idle'
+
+export interface DirectiveMissionBoardRow extends DirectiveAttentionCounts {
+  mission_id: string
+  mission_name: string
+  host_country: string | null
+  active: boolean
+  /** The department's attache currently posted there, if any. */
+  attache: DirectiveUserRef | null
+  total: number
+  completed: number
+  completion_rate: number
+  last_progress_at: string | null
+  health: DirectiveMissionHealth
+}
+
+export interface DirectiveIssuerBoardRow extends DirectiveAttentionCounts {
+  user_id: string
+  full_name: string | null
+  total: number
+  completion_rate: number
+}
+
+/** One workflow step (status change) from the audit trail. */
+export interface DirectiveActivityEntry {
+  id: string
+  directive_id: string
+  description: string
+  mission: DirectiveMissionRef | null
+  from_status: DirectiveStatus | null
+  status: DirectiveStatus
+  at: string
+  by: DirectiveUserRef | null
+}
+
+/** GET /sdt/directives/overview. */
+export interface DirectiveOverview {
+  summary: DirectiveSummary
+  attention: DirectiveAttentionCounts
+  /** Worst first: attention, watch, on track, idle. */
+  missions: DirectiveMissionBoardRow[]
+  /** Largest backlog (awaiting closure + overdue + stale) first. */
+  issuers: DirectiveIssuerBoardRow[]
+  /** The viewer's own directives, when they issued any (a PS); null otherwise. */
+  my_follow_through: DirectiveAttentionCounts | null
+  /** The latest twelve workflow steps, newest first. */
+  recent_activity: DirectiveActivityEntry[]
+  filters: { mission_id: string | null; issued_by_user_id: string | null }
+}
+
+export interface DirectiveOverviewFilters {
+  mission_id?: string
+  issued_by_user_id?: string
+}
+
+/** GET /sdt/directives/overview — Ministry HQ Director, Ministry PS, Acting PS. */
+export async function getDirectiveOverview(filters: DirectiveOverviewFilters = {}): Promise<DirectiveOverview> {
+  const { data } = await client.get<ApiEnvelope<DirectiveOverview>>('/sdt/directives/overview', { params: filters })
   return data.data
 }
 

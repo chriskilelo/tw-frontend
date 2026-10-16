@@ -86,3 +86,43 @@ export async function listRoles(): Promise<AssignableRole[]> {
   const { data } = await client.get<ApiEnvelope<AssignableRole[]>>('/roles')
   return data.data
 }
+
+/** FR-SDT-012: an HQ Trade Officer's portfolio, the default view of their HQ workspace. */
+export interface HqPortfolio {
+  mission_ids: string[]
+  countries: string[]
+  /** Whole-word keywords matched against alert sectors and inquiry products. */
+  sectors: string[]
+}
+
+export interface PortfolioMissionOption {
+  id: string
+  name: string
+  city: string | null
+  host_country: string | null
+  active: boolean
+}
+
+/** GET /users/{id}/portfolio — the stored portfolio and the editor's choices. */
+export interface HqPortfolioEditor {
+  user: { id: string; full_name: string }
+  portfolio: HqPortfolio
+  options: {
+    /** Missions posted to the officer's department. */
+    missions: PortfolioMissionOption[]
+    /** Their host countries. */
+    countries: string[]
+  }
+}
+
+/** GET /users/{id}/portfolio — System Administrator, or the department's Ministry Administrator. */
+export async function getUserPortfolio(id: string): Promise<HqPortfolioEditor> {
+  const { data } = await client.get<ApiEnvelope<HqPortfolioEditor>>(`/users/${id}/portfolio`)
+  return data.data
+}
+
+/** PUT /users/{id}/portfolio — replaces the whole portfolio; three empty lists clear it. */
+export async function updateUserPortfolio(id: string, portfolio: HqPortfolio): Promise<HqPortfolioEditor> {
+  const { data } = await client.put<ApiEnvelope<HqPortfolioEditor>>(`/users/${id}/portfolio`, portfolio)
+  return data.data
+}

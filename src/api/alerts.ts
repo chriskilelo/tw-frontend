@@ -80,8 +80,20 @@ export interface AlertDetail {
   attachments: AlertAttachment[]
   feedback: AlertFeedback[]
   versions: AlertVersion[]
+  /**
+   * What the CURRENT user may do now, from AlertPolicy (acknowledging and posting feedback are
+   * record-level: an HQ officer only on an alert assigned to them). Optional for older payloads.
+   */
+  allowed_actions?: AlertAllowedActions
   created_at: string
   updated_at: string
+}
+
+export interface AlertAllowedActions {
+  edit: boolean
+  delegate: boolean
+  acknowledge: boolean
+  post_feedback: boolean
 }
 
 export interface AlertListFilters {

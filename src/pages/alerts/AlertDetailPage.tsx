@@ -144,12 +144,15 @@ export default function AlertDetailPage() {
   const formatDateTime = (value: string) => formatLocaleDateTime(value, locale)
   const formatDate = (value: string) => formatLocaleDate(value, locale)
 
+  // The API's allowed_actions (AlertPolicy for this user and this alert) decide; the role
+  // checks below are only the fallback for a payload without them.
   const isSubmittingAttache = role?.name === 'Ministry Attache' && alert.submitted_by?.id === user?.id
   const isAssignedDelegate = alert.assigned_to?.id === user?.id
-  const canEdit = !readOnly && isSubmittingAttache
-  const canDelegate = !readOnly && DELEGATING_ROLES.includes(role?.name ?? '')
-  const canAcknowledge = !readOnly && isAssignedDelegate && alert.status !== 'acknowledged'
-  const canPostFeedback = !readOnly
+  const allowed = alert.allowed_actions
+  const canEdit = !readOnly && (allowed ? allowed.edit : isSubmittingAttache)
+  const canDelegate = !readOnly && (allowed ? allowed.delegate : DELEGATING_ROLES.includes(role?.name ?? ''))
+  const canAcknowledge = !readOnly && alert.status !== 'acknowledged' && (allowed ? allowed.acknowledge : isAssignedDelegate)
+  const canPostFeedback = !readOnly && (allowed ? allowed.post_feedback : isSubmittingAttache || isAssignedDelegate || DELEGATING_ROLES.includes(role?.name ?? ''))
 
   const typeStyle = INTELLIGENCE_TYPE_STYLE[alert.intelligence_type]
   const TypeIcon = typeStyle.icon

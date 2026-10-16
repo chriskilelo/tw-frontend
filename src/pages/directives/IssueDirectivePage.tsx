@@ -1,5 +1,5 @@
-import { useId, useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeftIcon,
@@ -66,6 +66,9 @@ const PRESET_DAYS: Record<Exclude<DatePreset, 'none' | 'custom'>, number> = {
 
 const NO_CATEGORY = ''
 
+/** A record reference ("ALT-202610-00012", "INQ-…") passed from the HQ workspace as context. */
+const CONTEXT_PATTERN = /^[A-Z]{2,5}-[A-Za-z0-9-]{1,40}$/
+
 export default function IssueDirectivePage() {
   const { role } = useAuth()
 
@@ -99,7 +102,12 @@ function IssueForbidden() {
   )
 }
 
-/** FR-DIR-001, FR-DIR-002, FR-DIR-003. */
+/**
+ * FR-DIR-001, FR-DIR-002, FR-DIR-003. Opened from the HQ workspace (FR-SDT-014), the URL may
+ * carry `mission_id` (pre-selects that mission, and its attache when it has exactly one) and
+ * `context` (a source record's reference, quoted at the start of the description). Both are
+ * suggestions only: the officer can change everything, and the API validates the result.
+ */
 function IssueDirectiveForm() {
   const { t, language } = useI18n()
   const copy = t.directives.issue
@@ -108,6 +116,11 @@ function IssueDirectiveForm() {
   const queryClient = useQueryClient()
   const { user, role } = useAuth()
   const idPrefix = useId()
+  const [searchParams] = useSearchParams()
+  const prefillMissionId = searchParams.get('mission_id')
+  const rawContext = searchParams.get('context')
+  const context = rawContext && CONTEXT_PATTERN.test(rawContext) ? rawContext : null
+  const cancelTo = searchParams.get('from') === 'hq-workspace' ? '/sdt/hq-workspace' : '/directives'
 
   const assigneesQuery = useQuery({ queryKey: ['directives', 'assignees'], queryFn: listDirectiveAssignees })
   const typeOptionsQuery = useQuery({ queryKey: ['master-data', 'directive_type'], queryFn: getDirectiveTypeOptions })
@@ -117,7 +130,7 @@ function IssueDirectiveForm() {
   const [missionId, setMissionId] = useState('')
   const [targetUserId, setTargetUserId] = useState('')
   const [typeCategory, setTypeCategory] = useState(NO_CATEGORY)
-  const [description, setDescription] = useState('')
+  const [description, setDescription] = useState(() => (context ? copy.contextPrefix(context) : ''))
   const [isDescriptionTouched, setIsDescriptionTouched] = useState(false)
   const [datePreset, setDatePreset] = useState<DatePreset>('none')
   const [customDate, setCustomDate] = useState('')
@@ -196,6 +209,19 @@ function IssueDirectiveForm() {
       }
     },
   })
+
+  const prefillApplied = useRef(false)
+  useEffect(() => {
+    if (prefillApplied.current || !prefillMissionId || !assigneesQuery.data) {
+      return
+    }
+    prefillApplied.current = true
+    const mission = assigneesQuery.data.find((candidate) => candidate.id === prefillMissionId)
+    if (mission) {
+      setMissionId(mission.id)
+      setTargetUserId(mission.attaches.length === 1 ? mission.attaches[0].id : '')
+    }
+  }, [assigneesQuery.data, prefillMissionId])
 
   function selectMission(mission: DirectiveAssigneeMission) {
     setMissionId(mission.id)
@@ -495,7 +521,7 @@ function IssueDirectiveForm() {
           )}
 
           <FormSubmitBar isReady={canSubmit} statusLabel={statusLabel} statusNote={statusNote}>
-            <Button variant="secondary" onClick={() => navigate('/directives')} className="flex-1 sm:flex-none">
+            <Button variant="secondary" onClick={() => navigate(cancelTo)} className="flex-1 sm:flex-none">
               {t.common.cancel}
             </Button>
             <Button type="submit" disabled={!canSubmit || mutation.isPending} className="flex-1 sm:flex-none">

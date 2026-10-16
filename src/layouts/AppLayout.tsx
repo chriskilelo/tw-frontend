@@ -47,6 +47,15 @@ const KPI_NAV_KEYS: NavKey[] = ['kpiDashboard', 'kpiComparison', 'kpiTargets', '
 const GOVERNANCE_NAV_KEYS: NavKey[] = ['missionActivity', 'mfaAwareness']
 
 /**
+ * The SDT console's working views, each tied to a department role: the PS dashboard to the PS
+ * and Acting PS (MinistryPolicy::viewPsDashboard()), the HQ workspace to the Ministry HQ
+ * Officer (viewHqWorkspace()), the directive overview to the HQ Director, PS and Acting PS
+ * (DirectivePolicy::viewOverview()). The System Administrator holds none of these roles and
+ * the API refuses it all three, so it gets none of the links.
+ */
+const SDT_CONSOLE_NAV_KEYS: NavKey[] = ['psDashboard', 'hqWorkspace', 'sdtDirectiveOverview']
+
+/**
  * CLAUDE.md Section 5 role catalogue mapped to visible nav sections. Roles without an entry
  * (Designated Deputy, Honorary Consul) fall back to
  * DEFAULT_NAV_KEYS rather than a guessed section list.
@@ -55,14 +64,19 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
   // The platform administrator sees every section except the directive engine's two entries
   // (DIRECTIVE_NAV_KEYS above): it neither issues, receives nor oversees directives.
   'System Administrator': ALL_KEYS.filter(
-    (key) => !DIRECTIVE_NAV_KEYS.includes(key) && !REPORT_NAV_KEYS.includes(key) && !KPI_NAV_KEYS.includes(key) && !GOVERNANCE_NAV_KEYS.includes(key),
+    (key) =>
+      !DIRECTIVE_NAV_KEYS.includes(key) &&
+      !REPORT_NAV_KEYS.includes(key) &&
+      !KPI_NAV_KEYS.includes(key) &&
+      !GOVERNANCE_NAV_KEYS.includes(key) &&
+      !SDT_CONSOLE_NAV_KEYS.includes(key),
   ),
   // ReportPolicy::viewCompliance() (Session 25): Ministry HQ Director / Ministry PS only.
   // directivesSummary: DirectivePolicy::viewSummary() grants Ministry HQ Director, Ministry PS
   // and Acting PS (FR-DIR-012; Acting PS carries the full PS permission set, FR-SDT-004 AC1).
-  // sdtReportCompliance/sdtDirectiveOverview (Session 31): MinistryPolicy::viewPsDashboard()
-  // gates both, the same boundary as psDashboard, so they're added alongside it for both
-  // Ministry PS and Acting PS below.
+  // sdtReportCompliance (Session 31): MinistryPolicy::viewPsDashboard() gates it, the same
+  // boundary as psDashboard. sdtDirectiveOverview: DirectivePolicy::viewOverview() (Ministry
+  // PS, Acting PS and Ministry HQ Director).
   // kpiDashboard/kpiComparison/kpiTargets (Session 35): KpiPolicy::viewComparison()/
   // setTarget() grant Ministry HQ Director, Ministry PS, and Acting PS identically — added
   // to all three below, not just the two roles the session task named literally.
@@ -111,6 +125,8 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
     'sdtReportCompliance',
     'sdtDirectiveOverview',
   ],
+  // sdtDirectiveOverview: DirectivePolicy::viewOverview() — the directors' read-only oversight
+  // of every mission's directives (FR-SDT-008/010), the same roles as the FR-DIR-012 summary.
   'Ministry HQ Director': [
     'dashboard',
     'search',
@@ -123,6 +139,7 @@ const ROLE_NAV_KEYS: Record<string, NavKey[]> = {
     'kpiDashboard',
     'kpiComparison',
     'kpiTargets',
+    'sdtDirectiveOverview',
   ],
   // kpiManualEntry (Session 35): KpiPolicy::recordActual() grants Ministry Attache and
   // Ministry HQ Officer identically (FR-KPI-007).

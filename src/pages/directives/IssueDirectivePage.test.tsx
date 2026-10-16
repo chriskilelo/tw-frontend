@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -80,18 +80,19 @@ function meFor(roleName: string) {
   }
 }
 
-function renderPage() {
+function renderPage(path = '/directives/new') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   return render(
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <MemoryRouter initialEntries={['/directives/new']}>
+        <MemoryRouter initialEntries={[path]}>
           <Routes>
             <Route path="/directives/new" element={<IssueDirectivePage />} />
             <Route path="/directives/:id" element={<p>Directive detail page</p>} />
             <Route path="/directives" element={<p>Directive list page</p>} />
+            <Route path="/sdt/hq-workspace" element={<p>HQ workspace page</p>} />
           </Routes>
         </MemoryRouter>
       </I18nProvider>
@@ -117,6 +118,26 @@ describe('IssueDirectivePage', () => {
     vi.mocked(directivesApi.getDirectiveTypeOptions).mockReset().mockResolvedValue([])
     vi.mocked(directivesApi.issueDirective).mockReset().mockResolvedValue(ISSUED)
     vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry HQ Officer'))
+  })
+
+  it('TC-FR-SDT-014-PREFILL: opened from the HQ workspace, pre-selects the mission and quotes the source record', async () => {
+    renderPage('/directives/new?from=hq-workspace&mission_id=mission-london&context=ALT-202610-00012')
+
+    await waitForMissions()
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'London' })).toBeChecked())
+    expect(screen.getByRole('radio', { name: 'Purity Samanthe' })).toBeChecked()
+    expect(screen.getByLabelText(/^Description/)).toHaveValue('Follow-up to ALT-202610-00012: ')
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(await screen.findByText('HQ workspace page')).toBeInTheDocument()
+  })
+
+  it('ignores a prefill for a mission it cannot target, and a context that is not a record reference', async () => {
+    renderPage('/directives/new?mission_id=mission-elsewhere&context=<script>')
+
+    await waitForMissions()
+    expect(screen.getByRole('radio', { name: 'London' })).not.toBeChecked()
+    expect(screen.getByLabelText(/^Description/)).toHaveValue('')
   })
 
   it('TC-UI-006: is not rendered for read-only roles', async () => {

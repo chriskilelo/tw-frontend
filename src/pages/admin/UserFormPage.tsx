@@ -11,6 +11,10 @@ import { useAuth, isMinistryAdministrator, isSystemAdministrator, SYSTEM_ADMINIS
 import { useBreadcrumbLabel } from '../../hooks/useBreadcrumbs'
 import { useI18n } from '../../i18n/context'
 import { apiErrorMessages } from '../../lib/apiErrors'
+import { PortfolioEditor } from './PortfolioEditor'
+
+/** The role whose accounts carry a portfolio (UserPortfolioController::HQ_OFFICER). */
+const HQ_OFFICER = 'Ministry HQ Officer'
 
 /**
  * FR-AUTH-001 / FR-AUTH-021. Create (/admin/users/new) and edit (/admin/users/:id).
@@ -170,6 +174,9 @@ export default function UserFormPage() {
           </Button>
         </div>
       </form>
+
+      {/* FR-SDT-012: an HQ Trade Officer's portfolio is configured on their account. */}
+      {isEdit && id && userQuery.data?.role?.name === HQ_OFFICER && userQuery.data.ministry && <PortfolioEditor userId={id} />}
     </div>
   )
 }
