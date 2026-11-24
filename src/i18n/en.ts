@@ -42,6 +42,7 @@ const en = {
       forgotPasswordLink: 'Forgot your password?',
       invalidCredentials: 'Invalid credentials',
       accountLocked: 'Account locked. Reset your password or contact your administrator to regain access.',
+      accountDeactivated: 'This account has been deactivated. Contact your administrator.',
       signedOutIdle: 'You were signed out after 30 minutes without activity. Sign in again to continue.',
     },
     forgotPassword: {
@@ -3324,7 +3325,25 @@ const en = {
       resendButton: 'Resend activation',
       resendSuccess: 'Activation email sent.',
       confirmDeactivate: 'Deactivate {name}? They will be signed out and unable to sign in.',
+      deactivated: '{name} has been deactivated and signed out.',
+      reactivated: '{name} can sign in again.',
       empty: 'No accounts found.',
+      statusTitle: 'Account status',
+      statusSubtitle: 'Whether this person can sign in, and what you can do about it.',
+      statusMeaning: {
+        activation_pending: 'Has not set a password yet. The activation link lasts 72 hours; send a new one if it has expired.',
+        active: 'Can sign in.',
+        locked: 'Locked after five failed sign-in attempts. The person can reset their password from the sign-in page, or you can deactivate the account and then reactivate it.',
+        deactivated: 'Cannot sign in. Reactivating restores access with the same password.',
+      },
+      lastSignIn: 'Last signed in {when}',
+      neverSignedIn: 'Never signed in',
+      lifecycleNote: {
+        own_account: 'This is your own account, so you cannot deactivate it.',
+        ps_approval: 'A Principal Secretary is deactivated or reinstated through a PS approval request.',
+        view_only: 'Administrator accounts are managed by a System Administrator.',
+      },
+      openApprovals: 'Open PS approvals',
     },
     userForm: {
       createTitle: 'New account',

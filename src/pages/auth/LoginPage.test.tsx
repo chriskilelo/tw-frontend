@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { AxiosError, AxiosHeaders } from 'axios'
 import LoginPage from './LoginPage'
 import * as authApi from '../../api/auth'
 
@@ -82,5 +83,28 @@ describe('LoginPage', () => {
     renderLoginPage()
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [423, 'Account locked. Reset your password or contact your administrator to regain access.'],
+    [403, 'This account has been deactivated. Contact your administrator.'],
+    [401, 'Invalid credentials'],
+  ])('TC-FR-AUTH-004-E: a %i refusal explains why sign-in failed', async (status, message) => {
+    vi.mocked(authApi.login).mockRejectedValue(
+      new AxiosError('Refused', String(status), undefined, undefined, {
+        status,
+        statusText: 'Refused',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+        data: { data: null, errors: ['server text'] },
+      }),
+    )
+
+    renderLoginPage()
+    await userEvent.type(screen.getByLabelText('Email address'), 'attache@sdt.go.ke')
+    await userEvent.type(screen.getByLabelText('Password'), 'Sup3rSecret!')
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message)
   })
 })

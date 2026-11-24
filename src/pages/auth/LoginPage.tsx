@@ -10,7 +10,7 @@ import { Input } from '../../components/Input'
 import AuthLayout from './AuthLayout'
 import en from '../../i18n/en'
 
-// FR-AUTH-007, FR-AUTH-009.
+// FR-AUTH-004, FR-AUTH-007, FR-AUTH-009.
 export default function LoginPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -33,6 +33,11 @@ export default function LoginPage() {
       if (isAxiosError<ApiErrorEnvelope>(error)) {
         if (error.response?.status === 423) {
           setErrorMessage(en.auth.login.accountLocked)
+          return
+        }
+        // FR-AUTH-004: LoginController answers 403 only for a deactivated account.
+        if (error.response?.status === 403) {
+          setErrorMessage(en.auth.login.accountDeactivated)
           return
         }
         if (error.response?.status === 401) {

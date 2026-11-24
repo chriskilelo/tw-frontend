@@ -1,13 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  deactivateUser,
-  listUsers,
-  reactivateUser,
-  resendActivation,
-  type ManagedUser,
-} from '../../api/users'
+import { useQuery } from '@tanstack/react-query'
+import { listUsers, type ManagedUser } from '../../api/users'
 import { listDepartments } from '../../api/ministries'
 import { Table, type TableColumn } from '../../components/Table'
 import { Button } from '../../components/Button'
@@ -17,29 +11,30 @@ import { Pagination, DEFAULT_PER_PAGE } from '../../components/Pagination'
 import { useAuth, isSystemAdministrator } from '../../hooks/useAuth'
 import { useI18n } from '../../i18n/context'
 import { UserStatusBadge } from './AdminStatusBadges'
+import { accountLifecycleAccess, useAccountLifecycle } from './useAccountLifecycle'
 
 const USER_STATUSES: ManagedUser['status'][] = ['activation_pending', 'active', 'locked', 'deactivated']
 
 /**
- * FR-AUTH-021 / ADR-006. A System Administrator sees every account and may filter by
- * department; a Ministry Administrator sees only its own department (GET /users pins it
- * server-side — the department filter is simply not offered). Administrator accounts are
- * listed but not editable by a Ministry Administrator: the backend answers 403 and the
- * row actions are hidden to match (UI-006 convenience only, never the enforcement).
+ * FR-AUTH-003 / FR-AUTH-021 / ADR-006. A System Administrator sees every account and may
+ * filter by department; a Ministry Administrator sees only its own department (GET /users
+ * pins it server-side — the department filter is simply not offered). Deactivated accounts
+ * stay listed so they can be reactivated (ISS-021). Administrator accounts are listed but not
+ * editable by a Ministry Administrator: the backend answers 403 and the row actions are
+ * hidden to match (UI-006 convenience only, never the enforcement).
  */
 export default function UserListPage() {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const { user, role } = useAuth()
   const systemAdministrator = isSystemAdministrator(role?.name)
+  const lifecycle = useAccountLifecycle()
 
   const [status, setStatus] = useState('')
   const [department, setDepartment] = useState('')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE)
   const [confirming, setConfirming] = useState<ManagedUser | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
 
   const departmentsQuery = useQuery({
     queryKey: ['admin', 'ministries'],
@@ -58,30 +53,6 @@ export default function UserListPage() {
       }),
   })
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
-
-  const deactivateMutation = useMutation({
-    mutationFn: (id: string) => deactivateUser(id),
-    onSuccess: () => {
-      setConfirming(null)
-      invalidate()
-    },
-  })
-  const reactivateMutation = useMutation({ mutationFn: (id: string) => reactivateUser(id), onSuccess: invalidate })
-  const resendMutation = useMutation({
-    mutationFn: (id: string) => resendActivation(id),
-    onSuccess: () => setNotice(t.admin.users.resendSuccess),
-  })
-
-  /** Mirrors UserPolicy: a Ministry Administrator never manages administrator accounts or itself. */
-  function canManage(row: ManagedUser): boolean {
-    if (systemAdministrator) {
-      return row.id !== user?.id
-    }
-    const roleName = row.role?.name
-    return roleName !== 'System Administrator' && roleName !== 'Ministry Administrator'
-  }
-
   const columns: TableColumn<ManagedUser>[] = [
     { key: 'name', header: t.admin.users.columnName, render: (row) => row.full_name },
     { key: 'email', header: t.admin.users.columnEmail, render: (row) => row.email },
@@ -94,40 +65,40 @@ export default function UserListPage() {
     {
       key: 'actions',
       header: t.admin.columnActions,
-      render: (row) =>
-        canManage(row) ? (
+      render: (row) => {
+        const access = accountLifecycleAccess({ id: user?.id, roleName: role?.name }, row)
+        if (access === 'view_only' || access === 'own_account') {
+          return null
+        }
+        return (
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => navigate(`/admin/users/${row.id}`)}>
               {t.admin.users.editButton}
             </Button>
-            {row.status === 'deactivated' ? (
-              <Button
-                variant="primary"
-                onClick={() => reactivateMutation.mutate(row.id)}
-                disabled={reactivateMutation.isPending}
-              >
-                {t.admin.users.reactivateButton}
-              </Button>
-            ) : (
-              <Button variant="danger" onClick={() => setConfirming(row)}>
-                {t.admin.users.deactivateButton}
-              </Button>
-            )}
-            {row.status === 'activation_pending' && (
-              <Button variant="ghost" onClick={() => resendMutation.mutate(row.id)} disabled={resendMutation.isPending}>
+            {access === 'manage' &&
+              (row.status === 'deactivated' ? (
+                <Button variant="primary" onClick={() => lifecycle.reactivate.mutate(row)} disabled={lifecycle.isPending}>
+                  {t.admin.users.reactivateButton}
+                </Button>
+              ) : (
+                <Button variant="danger" onClick={() => setConfirming(row)} disabled={lifecycle.isPending}>
+                  {t.admin.users.deactivateButton}
+                </Button>
+              ))}
+            {access === 'manage' && row.status === 'activation_pending' && (
+              <Button variant="ghost" onClick={() => lifecycle.resend.mutate(row)} disabled={lifecycle.isPending}>
                 {t.admin.users.resendButton}
               </Button>
             )}
           </div>
-        ) : null,
+        )
+      },
     },
   ]
 
   const subtitle = systemAdministrator
     ? t.admin.users.subtitleAll
     : t.admin.users.subtitleDepartment.replace('{department}', user?.ministry?.name ?? '')
-
-  const mutationError = deactivateMutation.isError || reactivateMutation.isError || resendMutation.isError
 
   return (
     <div className="p-6">
@@ -166,8 +137,18 @@ export default function UserListPage() {
         )}
       </div>
 
-      {notice && <p className="mt-4 text-body-sm text-success-soft-text">{notice}</p>}
-      {mutationError && <p className="mt-4 text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
+      {lifecycle.notice && (
+        <p role="status" className="mt-4 text-body-sm text-success-soft-text">
+          {lifecycle.notice}
+        </p>
+      )}
+      {lifecycle.errors.length > 0 && (
+        <ul role="alert" className="mt-4 list-disc pl-5 text-body-sm text-danger-soft-text">
+          {lifecycle.errors.map((message) => (
+            <li key={message}>{message}</li>
+          ))}
+        </ul>
+      )}
 
       <div className="mt-6">
         {usersQuery.isLoading ? (
@@ -203,8 +184,8 @@ export default function UserListPage() {
           </Button>
           <Button
             variant="danger"
-            onClick={() => confirming && deactivateMutation.mutate(confirming.id)}
-            disabled={deactivateMutation.isPending}
+            onClick={() => confirming && lifecycle.deactivate.mutate(confirming, { onSettled: () => setConfirming(null) })}
+            disabled={lifecycle.isPending}
           >
             {t.admin.users.deactivateButton}
           </Button>

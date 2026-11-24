@@ -43,6 +43,7 @@ const sw: typeof en = {
       forgotPasswordLink: 'Umesahau nenosiri lako?',
       invalidCredentials: 'Taarifa za kuingia si sahihi',
       accountLocked: 'Akaunti imefungwa. Weka upya nenosiri lako au wasiliana na msimamizi wako ili kupata ufikiaji.',
+      accountDeactivated: 'Akaunti hii imezimwa. Wasiliana na msimamizi wako.',
       signedOutIdle: 'Umetolewa baada ya dakika 30 bila shughuli. Ingia tena ili kuendelea.',
     },
     forgotPassword: {
@@ -3321,7 +3322,25 @@ const sw: typeof en = {
       resendButton: 'Tuma tena barua ya kuamilisha',
       resendSuccess: 'Barua pepe ya kuamilisha imetumwa.',
       confirmDeactivate: 'Zima akaunti ya {name}? Ataondolewa na hataweza kuingia.',
+      deactivated: 'Akaunti ya {name} imezimwa na ameondolewa.',
+      reactivated: '{name} anaweza kuingia tena.',
       empty: 'Hakuna akaunti zilizopatikana.',
+      statusTitle: 'Hali ya akaunti',
+      statusSubtitle: 'Kama mtu huyu anaweza kuingia, na unachoweza kufanya.',
+      statusMeaning: {
+        activation_pending: 'Bado hajaweka nenosiri. Kiungo cha kuamilisha hudumu saa 72; tuma kingine kama kimeisha muda.',
+        active: 'Anaweza kuingia.',
+        locked: 'Imefungwa baada ya majaribio matano ya kuingia yaliyoshindwa. Mtu huyu anaweza kuweka upya nenosiri kutoka ukurasa wa kuingia, au unaweza kuzima akaunti kisha kuiamilisha tena.',
+        deactivated: 'Hawezi kuingia. Kuiamilisha tena kunarudisha ufikiaji kwa nenosiri lile lile.',
+      },
+      lastSignIn: 'Aliingia mara ya mwisho {when}',
+      neverSignedIn: 'Hajawahi kuingia',
+      lifecycleNote: {
+        own_account: 'Hii ni akaunti yako mwenyewe, kwa hivyo huwezi kuizima.',
+        ps_approval: 'Katibu Mkuu huzimwa au kurejeshwa kupitia ombi la idhini ya Katibu Mkuu.',
+        view_only: 'Akaunti za wasimamizi husimamiwa na Msimamizi wa Mfumo.',
+      },
+      openApprovals: 'Fungua maombi ya idhini ya Katibu Mkuu',
     },
     userForm: {
       createTitle: 'Akaunti mpya',

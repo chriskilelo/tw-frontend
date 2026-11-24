@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createUser, getUser, listRoles, updateUser, type UserCreateRequest } from '../../api/users'
@@ -7,11 +7,13 @@ import { listDepartments } from '../../api/ministries'
 import { Input } from '../../components/Input'
 import { Select } from '../../components/Select'
 import { Button } from '../../components/Button'
-import { useAuth, isMinistryAdministrator, isSystemAdministrator, SYSTEM_ADMINISTRATOR } from '../../hooks/useAuth'
+import { useAuth, isMinistryAdministrator, isReadOnlyRole, isSystemAdministrator, SYSTEM_ADMINISTRATOR } from '../../hooks/useAuth'
 import { useBreadcrumbLabel } from '../../hooks/useBreadcrumbs'
 import { useI18n } from '../../i18n/context'
 import { apiErrorMessages } from '../../lib/apiErrors'
+import { AccountStatusPanel } from './AccountStatusPanel'
 import { PortfolioEditor } from './PortfolioEditor'
+import { accountLifecycleAccess } from './useAccountLifecycle'
 
 /** The role whose accounts carry a portfolio (UserPortfolioController::HQ_OFFICER). */
 const HQ_OFFICER = 'Ministry HQ Officer'
@@ -21,15 +23,18 @@ const HQ_OFFICER = 'Ministry HQ Officer'
  *
  * The role list comes from GET /roles, which already narrows a Ministry Administrator to
  * the roles it may assign; its department is pinned server-side, so the department field
- * is only offered to a System Administrator. Mission-scoped roles (scope = 'mission')
- * need a mission; the home-department field applies to System Administrator accounts only.
+ * is only offered to a System Administrator, and never for the Head or Deputy Head of
+ * Mission, whose accounts belong to no department (ISS-025). Mission-scoped roles
+ * (scope = 'mission') need a mission; the home-department field applies to System
+ * Administrator accounts only. On edit, the account's status and its actions sit above
+ * the form (ISS-021).
  */
 export default function UserFormPage() {
   const { t } = useI18n()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { role } = useAuth()
+  const { user, role } = useAuth()
   const systemAdministrator = isSystemAdministrator(role?.name)
   const isEdit = Boolean(id)
 
@@ -47,11 +52,15 @@ export default function UserFormPage() {
   const userQuery = useQuery({ queryKey: ['admin', 'users', id], queryFn: () => getUser(id as string), enabled: isEdit })
   useBreadcrumbLabel(userQuery.data?.full_name)
 
+  // Fill the form once per account: a status change refetches the account, and that must not
+  // throw away edits the administrator has not saved yet.
+  const filledFor = useRef<string | null>(null)
   useEffect(() => {
     const existing = userQuery.data
-    if (!existing) {
+    if (!existing || filledFor.current === existing.id) {
       return
     }
+    filledFor.current = existing.id
     setFullName(existing.full_name)
     setEmail(existing.email)
     setRoleId(existing.role?.id ?? '')
@@ -70,7 +79,8 @@ export default function UserFormPage() {
   }
   const selectedRoleName = selectedRole?.name ?? userQuery.data?.role?.name
   const needsMission = selectedRole?.scope === 'mission'
-  const showDepartment = systemAdministrator && selectedRole !== undefined && selectedRole.scope !== 'platform'
+  const showDepartment =
+    systemAdministrator && selectedRole !== undefined && selectedRole.scope !== 'platform' && !isReadOnlyRole(selectedRole.name)
   const showHomeDepartment = systemAdministrator && selectedRoleName === SYSTEM_ADMINISTRATOR
 
   const saveMutation = useMutation({
@@ -103,6 +113,10 @@ export default function UserFormPage() {
   return (
     <div className="p-6">
       <h1 className="text-h1 text-primary">{isEdit ? t.admin.userForm.editTitle : t.admin.userForm.createTitle}</h1>
+
+      {isEdit && userQuery.data && (
+        <AccountStatusPanel account={userQuery.data} access={accountLifecycleAccess({ id: user?.id, roleName: role?.name }, userQuery.data)} />
+      )}
 
       <form onSubmit={handleSubmit} className="mt-6 flex max-w-lg flex-col gap-4" data-testid="user-form">
         <Input label={t.admin.userForm.fullNameLabel} required value={fullName} onChange={(event) => setFullName(event.target.value)} />
