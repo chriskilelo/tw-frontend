@@ -1888,7 +1888,9 @@ const en = {
   },
   search: {
     forbiddenTitle: 'Search is not available for your role',
-    forbiddenBody: 'Search results show the content of records, which the MFA roles do not see. The MFA awareness view has the counts and submission details you can use.',
+    forbiddenBody: 'Search shows the content of alerts, inquiries and reports, which your role does not include.',
+    forbiddenMfaHint: 'The MFA awareness view has the counts and submission details you can use.',
+    openMfaAwareness: 'Open MFA Awareness',
     results: {
       title: 'Search',
       subtitle: "Full-text search across your department's alerts, inquiries and periodic reports.",

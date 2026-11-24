@@ -41,6 +41,23 @@ export function isReadOnlyRole(roleName: string | undefined | null): boolean {
 }
 
 /**
+ * Roles the API refuses knowledge search (GET /search and /search/countries): the MFA roles,
+ * because every result is record content (SearchController), and the HRM&D Officer and the
+ * Ministry Administrator, which MinistryScope fences out of every search route. The search
+ * pages use this to say so up front instead of offering a search that can only be refused
+ * (ISS-020); the API remains the guard.
+ */
+export const SEARCH_REFUSED_ROLE_NAMES = ['MFA HQ Officer', 'MFA Principal Secretary', 'HRM&D Officer', 'Ministry Administrator'] as const
+
+export function canUseSearch(roleName: string | undefined | null): boolean {
+  return !roleName || !(SEARCH_REFUSED_ROLE_NAMES as readonly string[]).includes(roleName)
+}
+
+export function isMfaRole(roleName: string | undefined | null): boolean {
+  return roleName === 'MFA HQ Officer' || roleName === 'MFA Principal Secretary'
+}
+
+/**
  * ADR-006: the two administrator roles. Compared by role name, never by the cosmetic
  * display title (FR-AUTH-025), which is free to change without affecting access.
  */

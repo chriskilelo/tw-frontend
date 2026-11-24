@@ -1,7 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { isAxiosError } from 'axios'
 import { getCountryProfile } from '../../api/search'
 import type { AlertStatus } from '../../api/alerts'
 import { Table, type TableColumn } from '../../components/Table'
@@ -11,8 +10,10 @@ import { Pagination } from '../../components/Pagination'
 import { useClientPagination } from '../../hooks/useClientPagination'
 import { AlertStatusBadge } from '../alerts/AlertStatusBadge'
 import type { CountryProfileAlert } from '../../api/search'
+import { canUseSearch, useAuth } from '../../hooks/useAuth'
 import { useI18n } from '../../i18n/context'
-import { retryUnlessClientError } from '../../lib/apiErrors'
+import { isForbidden, retryUnlessClientError } from '../../lib/apiErrors'
+import { SearchUnavailable } from './SearchUnavailable'
 
 /**
  * FR-SEARCH-004. App\Services\SearchService::countryProfile() aggregates
@@ -24,6 +25,8 @@ import { retryUnlessClientError } from '../../lib/apiErrors'
  */
 export default function CountryProfilePage() {
   const { t } = useI18n()
+  const { role } = useAuth()
+  const searchAllowed = canUseSearch(role?.name)
   const { country: routeCountry } = useParams<{ country: string }>()
   const navigate = useNavigate()
   const country = routeCountry ?? ''
@@ -32,7 +35,7 @@ export default function CountryProfilePage() {
   const profileQuery = useQuery({
     queryKey: ['country-profile', country],
     queryFn: () => getCountryProfile(country),
-    enabled: country.trim().length > 0,
+    enabled: searchAllowed && country.trim().length > 0,
     retry: retryUnlessClientError,
   })
 
@@ -77,28 +80,28 @@ export default function CountryProfilePage() {
         {t.search.countryProfile.title.replace('{country}', country || '…')}
       </h1>
 
-      <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-        <Input
-          label={t.search.countryProfile.countryLabel}
-          value={inputValue}
-          onChange={(event) => setInputValue(event.target.value)}
-          className="sm:w-64"
-        />
-        <Button type="submit">{t.search.results.submitButton}</Button>
-      </form>
+      {/* ISS-020: a role refused search sees why, not a country box that can only be refused. */}
+      {!searchAllowed || isForbidden(profileQuery.error) ? (
+        <div className="mt-6">
+          <SearchUnavailable />
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <Input
+            label={t.search.countryProfile.countryLabel}
+            value={inputValue}
+            onChange={(event) => setInputValue(event.target.value)}
+            className="sm:w-64"
+          />
+          <Button type="submit">{t.search.results.submitButton}</Button>
+        </form>
+      )}
 
       {profileQuery.isLoading && <p className="mt-6 text-body text-text-muted">{t.common.loading}</p>}
 
-      {profileQuery.isError && (
+      {profileQuery.isError && !isForbidden(profileQuery.error) && (
         <p role="alert" className="mt-6 rounded-lg border border-border bg-white px-4 py-3 text-body-sm text-text-secondary shadow-sm">
-          {isAxiosError(profileQuery.error) && profileQuery.error.response?.status === 403 ? (
-            <>
-              <span className="block font-semibold text-primary">{t.search.forbiddenTitle}</span>
-              {t.search.forbiddenBody}
-            </>
-          ) : (
-            t.common.genericError
-          )}
+          {t.common.genericError}
         </p>
       )}
 

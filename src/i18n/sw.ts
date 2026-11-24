@@ -1888,7 +1888,9 @@ const sw: typeof en = {
   },
   search: {
     forbiddenTitle: 'Utafutaji haupatikani kwa jukumu lako',
-    forbiddenBody: 'Matokeo ya utafutaji yanaonyesha maudhui ya rekodi, ambayo majukumu ya MFA hayaoni. Mwonekano wa ufahamu wa MFA una idadi na maelezo ya uwasilishaji unayoweza kutumia.',
+    forbiddenBody: 'Utafutaji unaonyesha maudhui ya tahadhari, maswali na ripoti, ambayo jukumu lako halijumuishi.',
+    forbiddenMfaHint: 'Mwonekano wa ufahamu wa MFA una idadi na maelezo ya uwasilishaji unayoweza kutumia.',
+    openMfaAwareness: 'Fungua Ufahamu wa MFA',
     results: {
       title: 'Tafuta',
       subtitle: 'Utafutaji wa maandishi kamili katika tahadhari, maswali na ripoti za kipindi za idara yako.',

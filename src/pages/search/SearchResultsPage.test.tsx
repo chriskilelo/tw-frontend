@@ -7,10 +7,18 @@ import SearchResultsPage from './SearchResultsPage'
 import * as searchApi from '../../api/search'
 import type { SearchResult } from '../../api/search'
 import { I18nProvider } from '../../i18n/context'
+import * as useAuthModule from '../../hooks/useAuth'
+import { authAs } from '../reports/reportTestUtils'
+import { httpError } from '../../test/httpErrors'
 
 vi.mock('../../api/search', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/search')>()
   return { ...actual, search: vi.fn() }
+})
+
+vi.mock('../../hooks/useAuth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../hooks/useAuth')>()
+  return { ...actual, useAuth: vi.fn() }
 })
 
 const ALERT_RESULT: SearchResult = {
@@ -71,6 +79,7 @@ function resultReferences(): string[] {
 describe('SearchResultsPage', () => {
   beforeEach(() => {
     vi.mocked(searchApi.search).mockReset()
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(authAs('Ministry HQ Officer'))
   })
 
   it('TC-FR-SEARCH-002: keeps results in one list ranked by relevance across record types', async () => {
@@ -176,14 +185,39 @@ describe('SearchResultsPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
   })
 
-  it('TC-FR-MFA-001-AC2: explains that search is not available when the API refuses it to an MFA role', async () => {
-    vi.mocked(searchApi.search).mockRejectedValue({ isAxiosError: true, response: { status: 403, data: { message: 'Knowledge search shows record content.' } } })
+  it('explains a refusal from the API, without retrying it', async () => {
+    vi.mocked(searchApi.search).mockRejectedValue(httpError(403))
     renderPage()
 
     expect(await screen.findByText('Search is not available for your role')).toBeInTheDocument()
-    expect(screen.getByText(/The MFA awareness view has the counts/)).toBeInTheDocument()
+    expect(screen.getByText(/which your role does not include/)).toBeInTheDocument()
     expect(searchApi.search).toHaveBeenCalledTimes(1)
   })
+
+  it('TC-FR-MFA-001-AC2: tells an MFA role search is unavailable before any search, with no search or country box (ISS-020)', () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(authAs('MFA HQ Officer'))
+    renderPage('/search')
+
+    expect(screen.getByText('Search is not available for your role')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open MFA Awareness' })).toHaveAttribute('href', '/mfa-awareness')
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Country')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'What you can search' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Full-text search across/)).not.toBeInTheDocument()
+    expect(searchApi.search).not.toHaveBeenCalled()
+  })
+
+  it.each(['HRM&D Officer', 'Ministry Administrator', 'MFA Principal Secretary'])(
+    'TC-FR-SDT-018-C: %s is told search is unavailable and never searches, even from a link with a query',
+    (roleName) => {
+      vi.mocked(useAuthModule.useAuth).mockReturnValue(authAs(roleName))
+      renderPage('/search?q=trade')
+
+      expect(screen.getByText('Search is not available for your role')).toBeInTheDocument()
+      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+      expect(searchApi.search).not.toHaveBeenCalled()
+    },
+  )
 
   it('TC-FR-SEARCH-004: links to the country profile from alert results and from the country box', async () => {
     vi.mocked(searchApi.search).mockResolvedValue([ALERT_RESULT, INQUIRY_RESULT])

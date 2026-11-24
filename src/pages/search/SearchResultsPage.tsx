@@ -13,7 +13,6 @@ import {
   LightBulbIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
-  ShieldExclamationIcon,
 } from '@heroicons/react/24/outline'
 import { search, type SearchResultType } from '../../api/search'
 import { Button } from '../../components/Button'
@@ -21,9 +20,11 @@ import { DetailSidePanel, EmptyState } from '../../components/DetailLayout'
 import { FORM_INPUT_CLASS } from '../../components/FormLayout'
 import { Pagination } from '../../components/Pagination'
 import { useClientPagination } from '../../hooks/useClientPagination'
+import { canUseSearch, useAuth } from '../../hooks/useAuth'
 import { useI18n } from '../../i18n/context'
 import { retryUnlessClientError } from '../../lib/apiErrors'
 import { SearchResultCard } from './SearchResultCard'
+import { SearchUnavailable } from './SearchUnavailable'
 
 type TypeFilter = SearchResultType | 'all'
 type SortOrder = 'relevance' | 'newest'
@@ -52,6 +53,8 @@ function countryProfilePath(country: string): string {
 export default function SearchResultsPage() {
   const { t } = useI18n()
   const copy = t.search.results
+  const { role } = useAuth()
+  const searchAllowed = canUseSearch(role?.name)
   const [searchParams, setSearchParams] = useSearchParams()
   const query = (searchParams.get('q') ?? '').trim()
   const typeParam = searchParams.get('type')
@@ -62,7 +65,7 @@ export default function SearchResultsPage() {
   const searchQuery = useQuery({
     queryKey: ['search', query],
     queryFn: () => search(query),
-    enabled: query.length > 0,
+    enabled: searchAllowed && query.length > 0,
     retry: retryUnlessClientError,
   })
 
@@ -148,6 +151,24 @@ export default function SearchResultsPage() {
   }
   const isFiltered = typeFilter !== 'all' || missionFilter !== ''
 
+  // ISS-020: a role the API refuses search to is told so at once, with no search box, intro or
+  // country box that could only lead to a refusal.
+  if (!searchAllowed) {
+    return (
+      <div className="mx-auto w-full max-w-310 px-4 py-6 sm:px-7">
+        <div className="flex items-center gap-3.5">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary text-white" aria-hidden="true">
+            <MagnifyingGlassIcon className="size-5.5" />
+          </span>
+          <h1 className="text-h1 text-primary">{copy.title}</h1>
+        </div>
+        <div className="mt-6">
+          <SearchUnavailable />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto w-full max-w-310 px-4 py-6 sm:px-7">
       <section className="rounded-2xl border border-border bg-white px-4 py-5 shadow-sm sm:px-6 sm:py-6" aria-labelledby="search-heading">
@@ -173,7 +194,7 @@ export default function SearchResultsPage() {
           ) : searchQuery.isLoading ? (
             <ResultsSkeleton label={copy.searching} />
           ) : searchQuery.isError && isAxiosError(searchQuery.error) && searchQuery.error.response?.status === 403 ? (
-            <EmptyState icon={<ShieldExclamationIcon className="size-5" />} title={t.search.forbiddenTitle} body={t.search.forbiddenBody} />
+            <SearchUnavailable />
           ) : searchQuery.isError ? (
             <p role="alert" className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger-soft px-4 py-3 text-body-sm font-semibold text-danger-soft-text">
               <ExclamationCircleIcon className="size-5 shrink-0" aria-hidden="true" />
