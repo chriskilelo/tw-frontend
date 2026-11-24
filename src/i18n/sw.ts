@@ -60,6 +60,20 @@ const sw: typeof en = {
       passwordComplexity:
         'Nenosiri lazima liwe na herufi 8 au zaidi, likijumuisha herufi kubwa, ndogo, na nambari.',
       successMessage: 'Nenosiri lako limewekwa upya. Sasa unaweza kuingia.',
+      linkIncomplete: 'Kiungo hiki hakijakamilika. Kifungue tena kutoka kwenye barua pepe yako, au omba kiungo kipya.',
+      requestNewLink: 'Omba kiungo kipya',
+    },
+    activateAccount: {
+      title: 'Wezesha akaunti yako',
+      intro: 'Chagua nenosiri ili kukamilisha kuandaa akaunti yako ya TradeWatch.',
+      newPasswordLabel: 'Nenosiri',
+      confirmPasswordLabel: 'Thibitisha nenosiri',
+      submitButton: 'Wezesha akaunti',
+      successMessage: 'Akaunti yako sasa inatumika. Unaweza kuingia.',
+      linkInvalid:
+        'Kiungo hiki cha kuwezesha si sahihi au muda wake umekwisha. Mwombe msimamizi wako akutumie barua pepe mpya ya kuwezesha.',
+      linkIncomplete:
+        'Kiungo hiki cha kuwezesha hakijakamilika. Kifungue tena kutoka kwenye barua pepe yako, au mwombe msimamizi wako akutumie kipya.',
     },
   },
   nav: {

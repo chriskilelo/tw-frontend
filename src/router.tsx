@@ -75,6 +75,8 @@ export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },
+  // FR-AUTH-002: AccountActivationMail links here.
+  { path: '/activate', element: <ResetPasswordPage mode="activate" /> },
   {
     element: <ProtectedRoute />,
     children: [

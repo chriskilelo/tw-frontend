@@ -108,14 +108,22 @@ export async function deleteAvatar(): Promise<void> {
   await client.delete('/me/avatar')
 }
 
-/** POST /password/forgot — FR-AUTH-011 */
+/**
+ * POST /password/forgot — FR-AUTH-011. Usually the first request a signed-out
+ * browser makes, so it fetches the CSRF cookie first, as login() does.
+ */
 export async function forgotPassword(payload: ForgotPasswordRequest): Promise<{ message: string }> {
+  await ensureCsrfCookie()
   const { data } = await client.post<ApiEnvelope<{ message: string }>>('/password/forgot', payload)
   return data.data
 }
 
-/** POST /password/reset — FR-AUTH-011 */
+/**
+ * POST /password/reset — FR-AUTH-011, and FR-AUTH-002 activation. Opened from
+ * an emailed link, often in a browser that has never visited TradeWatch.
+ */
 export async function resetPassword(payload: ResetPasswordRequest): Promise<{ message: string }> {
+  await ensureCsrfCookie()
   const { data } = await client.post<ApiEnvelope<{ message: string }>>('/password/reset', payload)
   return data.data
 }

@@ -55,8 +55,8 @@ const client = axios.create({
  * state-changing request; `withXSRFToken` above only re-sends a cookie that
  * already exists, it never fetches one. GET /sanctum/csrf-cookie lives
  * outside the /api/v1 prefix, so this bypasses `client`'s baseURL. Called
- * from login() (api/auth.ts) — the first mutation of an unauthenticated
- * session, before any XSRF-TOKEN cookie can exist yet.
+ * from login(), forgotPassword() and resetPassword() (api/auth.ts) — the
+ * writes a signed-out browser makes before any XSRF-TOKEN cookie can exist.
  */
 export async function ensureCsrfCookie(): Promise<void> {
   const root = (import.meta.env.VITE_API_URL as string).replace(/\/api\/v1\/?$/, '')

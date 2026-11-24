@@ -59,6 +59,20 @@ const en = {
       passwordComplexity:
         'Password must be at least 8 characters and include upper and lower case letters and a number.',
       successMessage: 'Your password has been reset. You may now sign in.',
+      linkIncomplete: 'This link is incomplete. Open it again from your email, or ask for a new one.',
+      requestNewLink: 'Ask for a new link',
+    },
+    activateAccount: {
+      title: 'Activate your account',
+      intro: 'Choose a password to finish setting up your TradeWatch account.',
+      newPasswordLabel: 'Password',
+      confirmPasswordLabel: 'Confirm password',
+      submitButton: 'Activate account',
+      successMessage: 'Your account is active. You may now sign in.',
+      linkInvalid:
+        'This activation link is invalid or has expired. Ask your administrator to send you a new activation email.',
+      linkIncomplete:
+        'This activation link is incomplete. Open it again from your email, or ask your administrator to send a new one.',
     },
   },
   nav: {
