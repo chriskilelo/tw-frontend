@@ -8,6 +8,7 @@ import * as alertsApi from '../../api/alerts'
 import * as searchApi from '../../api/search'
 import type { SearchResult } from '../../api/search'
 import { I18nProvider } from '../../i18n/context'
+import { httpError } from '../../test/httpErrors'
 
 vi.mock('../../api/alerts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/alerts')>()
@@ -54,6 +55,27 @@ describe('AlertListPage', () => {
       meta: { current_page: 1, per_page: 25, total: 1, last_page: 1 },
     })
     vi.mocked(searchApi.search).mockReset()
+  })
+
+  it('TC-FR-SDT-018-B: a role the API refuses is told alerts are not available, not shown an empty list (ISS-018)', async () => {
+    vi.mocked(alertsApi.listAlerts).mockRejectedValue(httpError(403))
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Alerts aren’t available to your role' })).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('If you think it should, ask your administrator.')
+    expect(screen.queryByText('No alerts found.')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Status')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+  })
+
+  it('shows an error with a retry when the list cannot be loaded', async () => {
+    vi.mocked(alertsApi.listAlerts).mockRejectedValueOnce(httpError(500))
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Alerts could not be loaded.')
+    expect(screen.queryByText('No alerts found.')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect((await screen.findAllByText('ALT-202608-00001')).length).toBeGreaterThan(0)
   })
 
   it('TC-UI-002: renders without overflow at 375px viewport', async () => {

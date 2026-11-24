@@ -16,6 +16,11 @@ export function apiErrorMessages(error: unknown, fallback: string): string[] {
   return [fallback]
 }
 
+/** True when the API refused the request for this user (403). */
+export function isForbidden(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 403
+}
+
 /**
  * React Query retry policy that gives up at once on a 4xx (a refused permission or an invalid
  * request will not succeed on retry, and retrying only delays the explanation), and retries a

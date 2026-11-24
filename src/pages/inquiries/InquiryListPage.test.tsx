@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import InquiryListPage from './InquiryListPage'
 import * as inquiriesApi from '../../api/inquiries'
 import { I18nProvider } from '../../i18n/context'
+import { httpError } from '../../test/httpErrors'
 
 vi.mock('../../api/inquiries', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/inquiries')>()
@@ -48,6 +50,25 @@ describe('InquiryListPage', () => {
       ],
       meta: { current_page: 1, per_page: 25, total: 1, last_page: 1 },
     })
+  })
+
+  it('TC-FR-SDT-018-B: a role the API refuses is told inquiries are not available, not shown an empty list (ISS-018)', async () => {
+    vi.mocked(inquiriesApi.listInquiries).mockRejectedValue(httpError(403))
+    vi.mocked(inquiriesApi.getInquiryCategories).mockRejectedValue(httpError(403))
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Inquiries aren’t available to your role' })).toBeInTheDocument()
+    expect(screen.queryByText('No inquiries found.')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Status')).not.toBeInTheDocument()
+  })
+
+  it('shows an error with a retry when the list cannot be loaded', async () => {
+    vi.mocked(inquiriesApi.listInquiries).mockRejectedValueOnce(httpError(500))
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Inquiries could not be loaded.')
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByText('INQ-202608-00001')).toBeInTheDocument()
   })
 
   it('TC-UI-002: renders without overflow at 375px viewport', async () => {

@@ -6,6 +6,7 @@ import * as reportsApi from '../../api/reports'
 import * as useAuthModule from '../../hooks/useAuth'
 import type { PeriodicReport, PeriodicReportListResponse, ReportPeriods } from '../../api/reports'
 import { authAs, renderRoute, reportRow } from './reportTestUtils'
+import { httpError } from '../../test/httpErrors'
 
 vi.mock('../../api/reports', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/reports')>()
@@ -151,6 +152,17 @@ describe('ReportListPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Late' }))
     expect(await screen.findByText('No reports match these filters')).toBeInTheDocument()
+  })
+
+  it('TC-FR-SDT-018-B: a role the API refuses is told reports are not available, without filters or a retry (ISS-018)', async () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(authAs('Ministry Administrator'))
+    vi.mocked(reportsApi.listPeriodicReports).mockRejectedValue(httpError(403))
+    vi.mocked(reportsApi.getReportPeriods).mockRejectedValue(httpError(403))
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Reports aren’t available to your role' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Filter reports' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
   })
 
   it('offers a retry when the list cannot be loaded', async () => {

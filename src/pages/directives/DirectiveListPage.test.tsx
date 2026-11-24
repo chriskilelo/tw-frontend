@@ -9,6 +9,7 @@ import * as missionsApi from '../../api/missions'
 import * as useAuthModule from '../../hooks/useAuth'
 import type { Directive, DirectiveListResponse, DirectiveSummary } from '../../api/directives'
 import { I18nProvider } from '../../i18n/context'
+import { httpError } from '../../test/httpErrors'
 
 vi.mock('../../api/directives', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/directives')>()
@@ -391,6 +392,18 @@ describe('DirectiveListPage', () => {
     link.focus()
     await userEvent.keyboard('{Enter}')
     expect(await screen.findByText('Directive detail directive-1')).toBeInTheDocument()
+  })
+
+  it('TC-FR-SDT-018-B: a role the API refuses is told directives are not available, without filters or a retry (ISS-018)', async () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(authAs('HRM&D Officer'))
+    vi.mocked(directivesApi.listDirectives).mockRejectedValue(httpError(403))
+
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Directives aren’t available to your role' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Filter directives' })).not.toBeInTheDocument()
+    expect(screen.queryByText('All directives on the platform.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Try again/ })).not.toBeInTheDocument()
   })
 
   it('shows an error with a retry when the list cannot be loaded', async () => {

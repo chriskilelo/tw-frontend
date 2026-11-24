@@ -7,6 +7,8 @@ import { Table, type TableColumn } from '../../components/Table'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
 import { Pagination, DEFAULT_PER_PAGE } from '../../components/Pagination'
+import { ListUnavailable } from '../../components/ListUnavailable'
+import { isForbidden } from '../../lib/apiErrors'
 import { InquiryStatusBadge } from './InquiryStatusBadge'
 import { InquirySubTypeBadge } from './InquirySubTypeBadge'
 import { useI18n } from '../../i18n/context'
@@ -59,6 +61,8 @@ export default function InquiryListPage() {
   })
 
   const inquiries = listQuery.data?.data ?? []
+  // A refused list (HRM&D, a Ministry Administrator) shows only the refusal, not the filters.
+  const refused = isForbidden(listQuery.error)
 
   function goToInquiry(id: string) {
     navigate(`/inquiries/${id}`)
@@ -117,80 +121,94 @@ export default function InquiryListPage() {
         )}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{t.inquiries.list.filterStatus}</span>
-          <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value as InquiryStatus | '')}
-            className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-          >
-            <option value="">{t.inquiries.list.allStatuses}</option>
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {t.inquiries.status[option]}
-              </option>
-            ))}
-          </select>
-        </label>
+      {!refused && (
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-body-sm font-semibold text-text-secondary">{t.inquiries.list.filterStatus}</span>
+            <select
+              value={status}
+              onChange={(event) => setStatus(event.target.value as InquiryStatus | '')}
+              className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              <option value="">{t.inquiries.list.allStatuses}</option>
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {t.inquiries.status[option]}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{t.inquiries.list.filterCategory}</span>
-          <select
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-            className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-          >
-            <option value="">{t.inquiries.list.allCategories}</option>
-            {(categoriesQuery.data ?? []).map((option) => (
-              <option key={option.id} value={option.value}>
-                {option.value}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-body-sm font-semibold text-text-secondary">{t.inquiries.list.filterCategory}</span>
+            <select
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              <option value="">{t.inquiries.list.allCategories}</option>
+              {(categoriesQuery.data ?? []).map((option) => (
+                <option key={option.id} value={option.value}>
+                  {option.value}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{t.inquiries.list.dateFromLabel}</span>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(event) => setDateFrom(event.target.value)}
-            className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-          />
-        </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-body-sm font-semibold text-text-secondary">{t.inquiries.list.dateFromLabel}</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(event) => setDateFrom(event.target.value)}
+              className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </label>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{t.inquiries.list.dateToLabel}</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(event) => setDateTo(event.target.value)}
-            className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-          />
-        </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-body-sm font-semibold text-text-secondary">{t.inquiries.list.dateToLabel}</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(event) => setDateTo(event.target.value)}
+              className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </label>
 
-        <label className="flex items-center gap-2 pb-2">
-          <input
-            type="checkbox"
-            checked={highValueOnly}
-            onChange={(event) => setHighValueOnly(event.target.checked)}
-            className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
-          />
-          <span className="text-body-sm text-text-secondary">{t.inquiries.list.filterHighValue}</span>
-        </label>
-      </div>
+          <label className="flex items-center gap-2 pb-2">
+            <input
+              type="checkbox"
+              checked={highValueOnly}
+              onChange={(event) => setHighValueOnly(event.target.checked)}
+              className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+            />
+            <span className="text-body-sm text-text-secondary">{t.inquiries.list.filterHighValue}</span>
+          </label>
+        </div>
+      )}
 
       <div className="mt-6">
-        <Table
-          columns={columns}
-          data={inquiries}
-          rowKey={(row) => row.id}
-          emptyMessage={t.inquiries.list.empty}
-          onRowClick={(row) => goToInquiry(row.id)}
-        />
-        {listQuery.data?.meta && (
-          <Pagination meta={listQuery.data.meta} onPageChange={setPage} onPerPageChange={setPerPage} className="mt-4" />
+        {listQuery.isError ? (
+          <ListUnavailable
+            error={listQuery.error}
+            notAvailableTitle={t.inquiries.list.notAvailableTitle}
+            loadError={t.inquiries.list.loadError}
+            retryLabel={t.inquiries.list.retry}
+            onRetry={() => void listQuery.refetch()}
+          />
+        ) : (
+          <>
+            <Table
+              columns={columns}
+              data={inquiries}
+              rowKey={(row) => row.id}
+              emptyMessage={t.inquiries.list.empty}
+              onRowClick={(row) => goToInquiry(row.id)}
+            />
+            {listQuery.data?.meta && (
+              <Pagination meta={listQuery.data.meta} onPageChange={setPage} onPerPageChange={setPerPage} className="mt-4" />
+            )}
+          </>
         )}
       </div>
     </div>

@@ -9,6 +9,8 @@ import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
 import { SearchSnippet } from '../../components/SearchSnippet'
 import { Pagination, DEFAULT_PER_PAGE } from '../../components/Pagination'
+import { ListUnavailable } from '../../components/ListUnavailable'
+import { isForbidden } from '../../lib/apiErrors'
 import { AlertStatusBadge } from './AlertStatusBadge'
 import { useI18n } from '../../i18n/context'
 
@@ -63,6 +65,9 @@ export default function AlertListPage() {
   })
 
   const alerts = listQuery.data?.data ?? []
+  // A refused list (HRM&D, a Ministry Administrator) shows only the refusal: the filters and
+  // search would only lead to more refusals.
+  const refused = isForbidden(listQuery.error)
   const searchResults = (searchQuery.data ?? []).filter((result) => result.type === 'alert')
 
   function goToAlert(id: string) {
@@ -104,52 +109,62 @@ export default function AlertListPage() {
         )}
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <label className="flex flex-col gap-1">
-            <span className="text-body-sm font-semibold text-text-secondary">{t.alerts.list.filterStatus}</span>
-            <select
-              value={status}
-              onChange={(event) => setStatus(event.target.value as AlertStatus | '')}
-              className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <option value="">{t.alerts.list.allStatuses}</option>
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {t.alerts.status[option]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-body-sm font-semibold text-text-secondary">
-              {t.alerts.list.filterIntelligenceType}
-            </span>
-            <select
-              value={intelligenceType}
-              onChange={(event) => setIntelligenceType(event.target.value as AlertIntelligenceType | '')}
-              className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <option value="">{t.alerts.list.allIntelligenceTypes}</option>
-              {INTELLIGENCE_TYPE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {t.alerts.intelligenceType[option]}
-                </option>
-              ))}
-            </select>
-          </label>
+      {!refused && (
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <label className="flex flex-col gap-1">
+              <span className="text-body-sm font-semibold text-text-secondary">{t.alerts.list.filterStatus}</span>
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value as AlertStatus | '')}
+                className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                <option value="">{t.alerts.list.allStatuses}</option>
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {t.alerts.status[option]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-body-sm font-semibold text-text-secondary">
+                {t.alerts.list.filterIntelligenceType}
+              </span>
+              <select
+                value={intelligenceType}
+                onChange={(event) => setIntelligenceType(event.target.value as AlertIntelligenceType | '')}
+                className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                <option value="">{t.alerts.list.allIntelligenceTypes}</option>
+                {INTELLIGENCE_TYPE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {t.alerts.intelligenceType[option]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <Input
+            label={t.common.search}
+            placeholder={t.alerts.list.searchPlaceholder}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            className="sm:w-64"
+          />
         </div>
-        <Input
-          label={t.common.search}
-          placeholder={t.alerts.list.searchPlaceholder}
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          className="sm:w-64"
-        />
-      </div>
+      )}
 
       <div className="mt-6">
-        {isSearching ? (
+        {refused || (!isSearching && listQuery.isError) ? (
+          <ListUnavailable
+            error={listQuery.error}
+            notAvailableTitle={t.alerts.list.notAvailableTitle}
+            loadError={t.alerts.list.loadError}
+            retryLabel={t.alerts.list.retry}
+            onRetry={() => void listQuery.refetch()}
+          />
+        ) : isSearching ? (
           <SearchResultsList results={searchResults} onSelect={goToAlert} />
         ) : (
           <>

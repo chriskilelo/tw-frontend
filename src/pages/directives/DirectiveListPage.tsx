@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } f
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
-  ArrowPathIcon,
   CalendarDaysIcon,
   CheckBadgeIcon,
   ChartPieIcon,
@@ -31,9 +30,11 @@ import { useAuth, isReadOnlyRole } from '../../hooks/useAuth'
 import { Input } from '../../components/Input'
 import { Select } from '../../components/Select'
 import { Pagination, DEFAULT_PER_PAGE, PER_PAGE_OPTIONS } from '../../components/Pagination'
+import { ListUnavailable } from '../../components/ListUnavailable'
 import { DirectiveDueBadge, DirectiveStaleBadge, DirectiveStatusBadge } from './DirectiveStatusBadge'
 import { useI18n } from '../../i18n/context'
 import { formatDate, localeFor } from '../../lib/formatters'
+import { isForbidden } from '../../lib/apiErrors'
 
 const SEARCH_DEBOUNCE_MS = 300
 
@@ -219,6 +220,10 @@ export default function DirectiveListPage() {
     enabled: Boolean(roleName),
   })
 
+  // A refused list (e.g. HRM&D, a Ministry Administrator) shows only the refusal: no subtitle
+  // promising records, and no filters (ISS-018).
+  const refused = isForbidden(listQuery.error)
+
   // Oversight roles take the option lists from the summary endpoint (missions and issuers that
   // actually have directives); everyone else who may filter by mission uses GET /missions.
   const filterOptionsQuery = useQuery({
@@ -289,7 +294,7 @@ export default function DirectiveListPage() {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-h1 text-primary">{copy.title}</h1>
-          {roleName && <p className="mt-1 text-body text-text-secondary">{subtitle}</p>}
+          {roleName && !refused && <p className="mt-1 text-body text-text-secondary">{subtitle}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canViewSummary && (
@@ -313,136 +318,131 @@ export default function DirectiveListPage() {
         </div>
       </header>
 
-      <section aria-label={copy.filtersLabel} className="space-y-4 rounded-xl border border-border bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end">
-          <div className="relative min-w-0 flex-1">
+      {!refused && (
+        <section aria-label={copy.filtersLabel} className="space-y-4 rounded-xl border border-border bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end">
+            <div className="relative min-w-0 flex-1">
+              <Input
+                type="search"
+                label={copy.searchLabel}
+                placeholder={copy.searchPlaceholder}
+                value={searchInput}
+                onChange={(event) => handleSearchChange(event.target.value)}
+                className="w-full pl-9"
+              />
+              <MagnifyingGlassIcon aria-hidden="true" className="pointer-events-none absolute bottom-3 left-3 size-4 text-text-muted" />
+            </div>
+            <div className="md:w-60">
+              <Select
+                label={copy.sortLabel}
+                value={sort}
+                onChange={(event) => updateParams({ sort: event.target.value === DEFAULT_SORT ? null : event.target.value })}
+                options={SORT_OPTIONS.map((option) => ({ value: option, label: copy.sort[option] }))}
+                className="w-full"
+              />
+            </div>
+          </div>
+
+          <div role="group" aria-labelledby={chipsLabelId} className="flex flex-wrap items-center gap-2">
+            <span id={chipsLabelId} className="mr-1 text-body-sm font-semibold text-text-secondary">
+              {copy.dueGroupLabel}
+            </span>
+            {dueChips.map((chip) => {
+              const active = isChipActive(chip.key)
+              return (
+                <button
+                  key={chip.key}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => selectChip(chip.key)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-body-sm font-semibold transition-colors [&_svg]:size-4 ${
+                    active ? 'border-primary bg-primary text-white' : 'border-border bg-white text-text-secondary hover:bg-section-bg hover:text-primary'
+                  }`}
+                >
+                  <span aria-hidden="true" className="contents">
+                    {chip.icon}
+                  </span>
+                  {chip.label}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <Select
+              label={copy.filterStatus}
+              value={status ?? ''}
+              onChange={(event) => updateParams({ status: event.target.value || null })}
+              placeholder={copy.allStatuses}
+              options={STATUS_OPTIONS.map((option) => ({ value: option, label: t.directives.status[option] }))}
+            />
+            {showMissionFilter && (
+              <Select
+                label={copy.filterMission}
+                value={missionId ?? ''}
+                onChange={(event) => updateParams({ mission_id: event.target.value || null })}
+                placeholder={copy.allMissions}
+                options={withSelected(
+                  missionOptions.map((mission) => ({ value: mission.id, label: mission.name })),
+                  missionId,
+                )}
+              />
+            )}
+            {showIssuerFilter && (
+              <Select
+                label={copy.filterIssuer}
+                value={issuerId ?? ''}
+                onChange={(event) => updateParams({ issued_by_user_id: event.target.value || null })}
+                placeholder={copy.allIssuers}
+                options={withSelected(
+                  issuerOptions.map((issuer) => ({ value: issuer.id, label: issuer.full_name })),
+                  issuerId,
+                )}
+              />
+            )}
             <Input
-              type="search"
-              label={copy.searchLabel}
-              placeholder={copy.searchPlaceholder}
-              value={searchInput}
-              onChange={(event) => handleSearchChange(event.target.value)}
-              className="w-full pl-9"
+              type="date"
+              label={copy.filterDateFrom}
+              value={dateFrom ?? ''}
+              max={dateTo}
+              onChange={(event) => updateParams({ date_from: event.target.value || null })}
             />
-            <MagnifyingGlassIcon aria-hidden="true" className="pointer-events-none absolute bottom-3 left-3 size-4 text-text-muted" />
-          </div>
-          <div className="md:w-60">
-            <Select
-              label={copy.sortLabel}
-              value={sort}
-              onChange={(event) => updateParams({ sort: event.target.value === DEFAULT_SORT ? null : event.target.value })}
-              options={SORT_OPTIONS.map((option) => ({ value: option, label: copy.sort[option] }))}
-              className="w-full"
+            <Input
+              type="date"
+              label={copy.filterDateTo}
+              value={dateTo ?? ''}
+              min={dateFrom}
+              onChange={(event) => updateParams({ date_to: event.target.value || null })}
             />
           </div>
-        </div>
 
-        <div role="group" aria-labelledby={chipsLabelId} className="flex flex-wrap items-center gap-2">
-          <span id={chipsLabelId} className="mr-1 text-body-sm font-semibold text-text-secondary">
-            {copy.dueGroupLabel}
-          </span>
-          {dueChips.map((chip) => {
-            const active = isChipActive(chip.key)
-            return (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+            <p aria-live="polite" className="inline-flex items-center gap-1.5 text-body-sm text-text-secondary">
+              <FunnelIcon aria-hidden="true" className="size-4" />
+              {meta ? copy.resultCount(meta.total) : copy.loading}
+            </p>
+            {hasActiveFilters && (
               <button
-                key={chip.key}
                 type="button"
-                aria-pressed={active}
-                onClick={() => selectChip(chip.key)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-body-sm font-semibold transition-colors [&_svg]:size-4 ${
-                  active ? 'border-primary bg-primary text-white' : 'border-border bg-white text-text-secondary hover:bg-section-bg hover:text-primary'
-                }`}
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1 text-body-sm font-semibold text-info-soft-text hover:underline"
               >
-                <span aria-hidden="true" className="contents">
-                  {chip.icon}
-                </span>
-                {chip.label}
+                <XMarkIcon aria-hidden="true" className="size-4" />
+                {copy.clearFilters}
               </button>
-            )
-          })}
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Select
-            label={copy.filterStatus}
-            value={status ?? ''}
-            onChange={(event) => updateParams({ status: event.target.value || null })}
-            placeholder={copy.allStatuses}
-            options={STATUS_OPTIONS.map((option) => ({ value: option, label: t.directives.status[option] }))}
-          />
-          {showMissionFilter && (
-            <Select
-              label={copy.filterMission}
-              value={missionId ?? ''}
-              onChange={(event) => updateParams({ mission_id: event.target.value || null })}
-              placeholder={copy.allMissions}
-              options={withSelected(
-                missionOptions.map((mission) => ({ value: mission.id, label: mission.name })),
-                missionId,
-              )}
-            />
-          )}
-          {showIssuerFilter && (
-            <Select
-              label={copy.filterIssuer}
-              value={issuerId ?? ''}
-              onChange={(event) => updateParams({ issued_by_user_id: event.target.value || null })}
-              placeholder={copy.allIssuers}
-              options={withSelected(
-                issuerOptions.map((issuer) => ({ value: issuer.id, label: issuer.full_name })),
-                issuerId,
-              )}
-            />
-          )}
-          <Input
-            type="date"
-            label={copy.filterDateFrom}
-            value={dateFrom ?? ''}
-            max={dateTo}
-            onChange={(event) => updateParams({ date_from: event.target.value || null })}
-          />
-          <Input
-            type="date"
-            label={copy.filterDateTo}
-            value={dateTo ?? ''}
-            min={dateFrom}
-            onChange={(event) => updateParams({ date_to: event.target.value || null })}
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
-          <p aria-live="polite" className="inline-flex items-center gap-1.5 text-body-sm text-text-secondary">
-            <FunnelIcon aria-hidden="true" className="size-4" />
-            {meta ? copy.resultCount(meta.total) : copy.loading}
-          </p>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="inline-flex items-center gap-1 text-body-sm font-semibold text-info-soft-text hover:underline"
-            >
-              <XMarkIcon aria-hidden="true" className="size-4" />
-              {copy.clearFilters}
-            </button>
-          )}
-        </div>
-      </section>
+            )}
+          </div>
+        </section>
+      )}
 
       {listQuery.isError ? (
-        <div role="alert" className="flex flex-col items-center gap-3 rounded-xl border border-border bg-white px-6 py-10 text-center shadow-sm">
-          <span aria-hidden="true" className="grid size-11 place-items-center rounded-full bg-danger-soft text-danger-soft-text">
-            <ExclamationTriangleIcon className="size-5" />
-          </span>
-          <p className="max-w-md text-body text-text-secondary">{copy.loadError}</p>
-          <button
-            type="button"
-            onClick={() => void listQuery.refetch()}
-            className="inline-flex h-10 items-center gap-2 rounded bg-primary px-4 text-button text-white hover:bg-primary-light"
-          >
-            <ArrowPathIcon aria-hidden="true" className="size-4" />
-            {copy.retry}
-          </button>
-        </div>
+        <ListUnavailable
+          error={listQuery.error}
+          notAvailableTitle={copy.notAvailableTitle}
+          loadError={copy.loadError}
+          retryLabel={copy.retry}
+          onRetry={() => void listQuery.refetch()}
+        />
       ) : !listQuery.data ? (
         <div role="status" aria-label={copy.loading} className="space-y-2 rounded-xl border border-border bg-white p-4 shadow-sm">
           {Array.from({ length: 5 }, (_, index) => (
