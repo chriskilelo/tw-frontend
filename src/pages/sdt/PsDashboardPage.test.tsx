@@ -1,5 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { AxiosError, AxiosHeaders } from 'axios'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import PsDashboardPage from './PsDashboardPage'
@@ -40,6 +42,22 @@ function meResponseFor(roleName: string): MeResponse {
     role: { id: 'role-3', name: roleName, layer: '1', scope: 'mission' },
     permissions: [],
   }
+}
+
+const emptyDashboard = {
+  unacknowledged_alerts_count: 0,
+  pending_inquiries_count: 0,
+  directive_summary_this_week: { period_start: '2026-08-10', period_end: '2026-08-16', total: 0, by_status: {} },
+}
+
+function unprocessable(message: string) {
+  return new AxiosError('Unprocessable', '422', undefined, undefined, {
+    status: 422,
+    statusText: 'Unprocessable Content',
+    data: { data: null, errors: [message] },
+    headers: {},
+    config: { headers: new AxiosHeaders() },
+  })
 }
 
 function renderPage() {
@@ -104,6 +122,41 @@ describe('PsDashboardPage', () => {
     expect(screen.getByLabelText('Target user ID')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Activate Acting PS' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Deactivate Acting PS' })).toBeInTheDocument()
+  })
+
+  it('TC-FR-SDT-004-B: explains why a second Acting PS activation is refused (BR-023, ISS-012)', async () => {
+    vi.mocked(authApi.me).mockReset().mockResolvedValue(meResponseFor('Ministry PS'))
+    vi.mocked(sdtApi.getPsDashboard).mockReset().mockResolvedValue(emptyDashboard)
+    vi.mocked(sdtApi.activateActingPs).mockRejectedValue(
+      unprocessable('An Acting PS is already active in this department. Deactivate them before activating someone else.'),
+    )
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.type(await screen.findByLabelText('Target user ID'), '7d1f3c56-0b2a-4c1e-9f7d-2a6b8c9d0e1f')
+    await user.click(screen.getByRole('button', { name: 'Activate Acting PS' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('An Acting PS is already active in this department.')
+    expect(screen.queryByText('Acting PS activated.')).not.toBeInTheDocument()
+  })
+
+  it('TC-FR-SDT-006-B: says so when there is no Acting PS to deactivate, replacing an earlier success (ISS-012)', async () => {
+    vi.mocked(authApi.me).mockReset().mockResolvedValue(meResponseFor('Ministry PS'))
+    vi.mocked(sdtApi.getPsDashboard).mockReset().mockResolvedValue(emptyDashboard)
+    vi.mocked(sdtApi.deactivateActingPs)
+      .mockResolvedValueOnce(undefined as never)
+      .mockRejectedValueOnce(unprocessable('No Acting PS is currently active in this department.'))
+    const user = userEvent.setup()
+    renderPage()
+
+    const deactivate = await screen.findByRole('button', { name: 'Deactivate Acting PS' })
+    await user.click(deactivate)
+    expect(await screen.findByText('Acting PS deactivated.')).toBeInTheDocument()
+
+    await user.click(deactivate)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No Acting PS is currently active in this department.')
+    expect(screen.queryByText('Acting PS deactivated.')).not.toBeInTheDocument()
   })
 
   it('TC-UI-002: renders without overflow at 375px viewport', async () => {

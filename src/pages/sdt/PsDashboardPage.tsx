@@ -11,6 +11,7 @@ import { Input } from '../../components/Input'
 import { Pagination } from '../../components/Pagination'
 import { useClientPagination } from '../../hooks/useClientPagination'
 import { useI18n } from '../../i18n/context'
+import { apiErrorMessages } from '../../lib/apiErrors'
 
 /**
  * FR-SDT-001: SdtService::psDashboard() only returns unacknowledged_alerts_count, not
@@ -50,18 +51,37 @@ export default function PsDashboardPage() {
   )
   const unacknowledgedAlertsPage = useClientPagination(unacknowledgedAlerts)
 
+  // One outcome line for both switches: the latest action's success or the API's reason for
+  // refusing it (BR-023's second activation, or nothing to deactivate). ISS-012: a refusal
+  // used to leave the page looking as if nothing had happened.
+  const [actingPsNotice, setActingPsNotice] = useState<string | null>(null)
+  const [actingPsErrors, setActingPsErrors] = useState<string[]>([])
+
+  function actingPsOutcome(successMessage: string, onSuccess?: () => void) {
+    return {
+      onMutate: () => {
+        setActingPsNotice(null)
+        setActingPsErrors([])
+      },
+      onSuccess: () => {
+        onSuccess?.()
+        setActingPsNotice(successMessage)
+        queryClient.invalidateQueries({ queryKey: ['sdt', 'dashboard'] })
+      },
+      onError: (error: unknown) => setActingPsErrors(apiErrorMessages(error, t.common.genericError)),
+    }
+  }
+
   const activateMutation = useMutation({
-    mutationFn: () => activateActingPs(actingPsUserId),
-    onSuccess: () => {
-      setActingPsUserId('')
-      queryClient.invalidateQueries({ queryKey: ['sdt', 'dashboard'] })
-    },
+    mutationFn: () => activateActingPs(actingPsUserId.trim()),
+    ...actingPsOutcome(t.sdt.psDashboard.activateSuccessMessage, () => setActingPsUserId('')),
   })
 
   const deactivateMutation = useMutation({
     mutationFn: () => deactivateActingPs(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sdt', 'dashboard'] }),
+    ...actingPsOutcome(t.sdt.psDashboard.deactivateSuccessMessage),
   })
+  const actingPsBusy = activateMutation.isPending || deactivateMutation.isPending
 
   const columns: TableColumn<Alert>[] = [
     {
@@ -136,21 +156,25 @@ export default function PsDashboardPage() {
             />
             <Button
               variant="primary"
-              disabled={actingPsUserId.trim().length === 0 || activateMutation.isPending}
+              disabled={actingPsUserId.trim().length === 0 || actingPsBusy}
               onClick={() => activateMutation.mutate()}
             >
               {t.sdt.psDashboard.activateActingPsButton}
             </Button>
-            <Button variant="secondary" disabled={deactivateMutation.isPending} onClick={() => deactivateMutation.mutate()}>
+            <Button variant="secondary" disabled={actingPsBusy} onClick={() => deactivateMutation.mutate()}>
               {t.sdt.psDashboard.deactivateActingPsButton}
             </Button>
           </div>
           <p className="mt-2 text-caption text-text-muted">{t.sdt.psDashboard.actingPsUserIdHint}</p>
-          {activateMutation.isSuccess && (
-            <p className="mt-2 text-body-sm text-success-soft-text">{t.sdt.psDashboard.activateSuccessMessage}</p>
-          )}
-          {deactivateMutation.isSuccess && (
-            <p className="mt-2 text-body-sm text-success-soft-text">{t.sdt.psDashboard.deactivateSuccessMessage}</p>
+          <div aria-live="polite">
+            {actingPsNotice && <p className="mt-2 text-body-sm text-success-soft-text">{actingPsNotice}</p>}
+          </div>
+          {actingPsErrors.length > 0 && (
+            <ul role="alert" className="mt-2 list-disc pl-5 text-body-sm text-danger-soft-text">
+              {actingPsErrors.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
           )}
         </section>
       )}
