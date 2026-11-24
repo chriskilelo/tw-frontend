@@ -60,8 +60,10 @@ export interface ReferralSummary {
 }
 
 /** GET /referral-organisations — FR-REF-001 */
-export async function getReferralOrganisations(): Promise<ReferralOrganisation[]> {
-  const { data } = await client.get<ApiEnvelope<ReferralOrganisation[]>>('/referral-organisations')
+/** GET /referral-organisations — `active: true` returns only the organisations that may be chosen (ISS-023). */
+export async function getReferralOrganisations(filters: { active?: boolean } = {}): Promise<ReferralOrganisation[]> {
+  const params = filters.active === undefined ? undefined : { active: filters.active ? 1 : 0 }
+  const { data } = await client.get<ApiEnvelope<ReferralOrganisation[]>>('/referral-organisations', { params })
   return data.data
 }
 

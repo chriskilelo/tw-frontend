@@ -25,9 +25,11 @@ const ACCEPTED_ATTACHMENT_TYPES = ACCEPTED_EXTENSIONS.map((ext) => `.${ext}`).jo
 /** FR-REF-001 to 004. Records a referral against an inquiry, with an optional supporting attachment. */
 export function ReferralRecordModal({ inquiryId, open, onClose, onRecorded }: ReferralRecordModalProps) {
   const { t } = useI18n()
+  // ISS-023: a retired organisation is never offered (the API refuses it too).
   const organisationsQuery = useQuery({
-    queryKey: ['referral-organisations'],
-    queryFn: getReferralOrganisations,
+    queryKey: ['referral-organisations', 'active'],
+    queryFn: () => getReferralOrganisations({ active: true }),
+    select: (organisations) => organisations.filter((organisation) => organisation.active),
     enabled: open,
   })
 
@@ -105,7 +107,7 @@ export function ReferralRecordModal({ inquiryId, open, onClose, onRecorded }: Re
             className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           >
             <option value="" disabled>
-              {t.common.required}
+              {t.referrals.record.organisationPlaceholder}
             </option>
             {(organisationsQuery.data ?? []).map((organisation) => (
               <option key={organisation.id} value={organisation.id}>

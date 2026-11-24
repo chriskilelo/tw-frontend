@@ -1378,7 +1378,7 @@ const en = {
       missionAttaches: (names: string) => `Attache: ${names}`,
       missionNoAttache: 'No attache posted',
       missionUnavailableHint:
-        'Missions without a posted attache cannot receive directives. Ask a System Administrator to post an attache there first.',
+        'Missions without a posted attache cannot receive directives. Ask your administrator to post an attache there first.',
       attacheLabel: 'Target attache',
       attacheChooseMission: 'Choose a mission first to see the attaches posted there.',
       attacheAt: (mission: string) => `Commercial Attache, ${mission}`,
@@ -1684,6 +1684,7 @@ const en = {
     record: {
       title: 'Record Referral',
       organisationLabel: 'Organisation',
+      organisationPlaceholder: 'Select an organisation',
       dateLabel: 'Referral Date',
       methodLabel: 'Referral Method',
       contactLabel: 'Contact Person',

@@ -102,8 +102,14 @@ function renderPage(path = '/directives/new') {
 
 const user = userEvent.setup()
 
+/**
+ * Role queries over this large form are slow in jsdom; under the full parallel suite the first
+ * render sometimes passed Testing Library's 1-second default, so these waits allow 5 seconds.
+ */
+const SLOW_RENDER = { timeout: 5000 }
+
 async function waitForMissions() {
-  await screen.findByRole('radio', { name: 'London' })
+  await screen.findByRole('radio', { name: 'London' }, SLOW_RENDER)
 }
 
 async function fillRequired() {
@@ -124,7 +130,7 @@ describe('IssueDirectivePage', () => {
     renderPage('/directives/new?from=hq-workspace&mission_id=mission-london&context=ALT-202610-00012')
 
     await waitForMissions()
-    await waitFor(() => expect(screen.getByRole('radio', { name: 'London' })).toBeChecked())
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'London' })).toBeChecked(), SLOW_RENDER)
     expect(screen.getByRole('radio', { name: 'Purity Samanthe' })).toBeChecked()
     expect(screen.getByLabelText(/^Description/)).toHaveValue('Follow-up to ALT-202610-00012: ')
 

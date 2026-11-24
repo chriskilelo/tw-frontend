@@ -37,6 +37,21 @@ describe('ReferralRecordModal', () => {
     vi.mocked(referralsApi.uploadReferralAttachment).mockReset()
   })
 
+  it('TC-FR-REF-001-C: offers only active organisations, under a prompt rather than an error (ISS-023)', async () => {
+    vi.mocked(referralsApi.getReferralOrganisations).mockResolvedValue([
+      { id: 'org-1', ministry_id: 'ministry-1', name: 'KenInvest', active: true },
+      { id: 'org-2', ministry_id: 'ministry-1', name: 'UAT Test Organisation', active: false },
+    ])
+
+    renderModal()
+    await screen.findByRole('option', { name: 'KenInvest' })
+
+    expect(referralsApi.getReferralOrganisations).toHaveBeenCalledWith({ active: true })
+    expect(screen.queryByRole('option', { name: 'UAT Test Organisation' })).not.toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Select an organisation' })).toBeDisabled()
+    expect(screen.queryByText('This field is required.')).not.toBeInTheDocument()
+  })
+
   it('TC-UI-007: shows the format/size hint next to the attachment control (previously had none at all)', async () => {
     renderModal()
     await screen.findByRole('option', { name: 'KenInvest' })

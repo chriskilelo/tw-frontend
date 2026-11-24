@@ -1378,7 +1378,7 @@ const sw: typeof en = {
       missionAttaches: (names: string) => `Mwambata: ${names}`,
       missionNoAttache: 'Hakuna mwambata aliyepangwa',
       missionUnavailableHint:
-        'Balozi zisizo na mwambata aliyepangwa haziwezi kupokea maagizo. Mwombe Msimamizi wa Mfumo apange mwambata huko kwanza.',
+        'Balozi zisizo na mwambata aliyepangwa haziwezi kupokea maagizo. Mwombe msimamizi wako apange mwambata huko kwanza.',
       attacheLabel: 'Mwambata lengwa',
       attacheChooseMission: 'Chagua ubalozi kwanza ili uone wambata waliopangwa huko.',
       attacheAt: (mission: string) => `Mwambata wa Biashara, ${mission}`,
@@ -1684,6 +1684,7 @@ const sw: typeof en = {
     record: {
       title: 'Sajili Rufaa',
       organisationLabel: 'Shirika',
+      organisationPlaceholder: 'Chagua shirika',
       dateLabel: 'Tarehe ya Rufaa',
       methodLabel: 'Njia ya Rufaa',
       contactLabel: 'Mtu wa Kuwasiliana',
