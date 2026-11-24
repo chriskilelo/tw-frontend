@@ -240,7 +240,8 @@ export default function InquiryDetailPage() {
   const isFinal = inquiry.status === 'closed' || inquiry.status === 'cancelled'
   const isOwningAttache = role?.name === 'Ministry Attache' && user?.mission_id === inquiry.mission?.id
   const canWrite = !readOnly && isOwningAttache && !isFinal
-  const canRecordReferral = !readOnly && role?.name === 'Ministry Attache' && !isFinal
+  // ReferralPolicy::create(): the owning mission's attache only (FR-AUTH-014).
+  const canRecordReferral = canWrite
   const reachedAt = statusReachedAt(inquiry)
   const forwardActions = FORWARD_ACTIONS[inquiry.status]
   const canCancel = CANCELLABLE_STATUSES.includes(inquiry.status)

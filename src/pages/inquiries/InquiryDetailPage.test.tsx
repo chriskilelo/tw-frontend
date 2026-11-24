@@ -255,6 +255,19 @@ describe('InquiryDetailPage', () => {
     expect(within(activity).getByText('Referred to Kenya Investment Authority (KenInvest)')).toBeInTheDocument()
   })
 
+  it('TC-FR-AUTH-014-F: Record referral is offered to the owning mission’s attache only', async () => {
+    signInAs('Ministry Attache', 'mission-2')
+    const { unmount } = renderPage()
+    await screen.findByTestId('inquiry-reference-number')
+    expect(screen.queryByRole('button', { name: 'Record referral' })).not.toBeInTheDocument()
+    unmount()
+
+    signInAs('Ministry Attache', 'mission-1')
+    renderPage()
+    await screen.findByTestId('inquiry-reference-number')
+    expect(screen.getByRole('button', { name: 'Record referral' })).toBeInTheDocument()
+  })
+
   it('TC-FR-INQ-007: the activity filter separates status changes from operational events', async () => {
     renderPage({
       ...INQUIRY,
