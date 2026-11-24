@@ -49,6 +49,8 @@ import {
 import { useAuth } from '../../hooks/useAuth'
 import { useI18n } from '../../i18n/context'
 import { SignalStrength } from './SignalStrength'
+import { alertSubmittedState } from './alertSubmittedState'
+import { apiErrorMessages } from '../../lib/apiErrors'
 import {
   CONFIDENCE_VALUES,
   URGENCY_ICONS,
@@ -155,17 +157,25 @@ export default function AlertSubmitPage() {
     }
   }, [shouldFocusCountry])
 
+  // Once the alert is saved it has been routed and can't be withdrawn (BR-013), so a file that
+  // then fails to upload must not leave the attache on the form, where submitting again would
+  // create a second alert. The alert page confirms the submission and names any such file.
   const mutation = useMutation({
     mutationFn: async (payload: AlertCreateRequest) => {
       const alert = await submitAlert(payload)
+      const failedFiles: string[] = []
       for (const file of files) {
-        await uploadAlertAttachment(alert.id, file)
+        try {
+          await uploadAlertAttachment(alert.id, file)
+        } catch {
+          failedFiles.push(file.name)
+        }
       }
-      return alert
+      return { alert, failedFiles }
     },
-    onSuccess: (alert) => {
+    onSuccess: ({ alert, failedFiles }) => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] })
-      navigate(`/alerts/${alert.id}`)
+      navigate(`/alerts/${alert.id}`, { state: alertSubmittedState(failedFiles) })
     },
   })
 
@@ -694,7 +704,13 @@ export default function AlertSubmitPage() {
             </div>
           </FormSection>
 
-          {mutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
+          {mutation.isError && (
+            <ul role="alert" className="list-disc space-y-1 pl-5 text-body-sm text-danger-soft-text">
+              {apiErrorMessages(mutation.error, t.common.genericError).map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          )}
 
           <FormSubmitBar
             isReady={canSubmit}

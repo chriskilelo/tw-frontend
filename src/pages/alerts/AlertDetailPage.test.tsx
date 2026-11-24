@@ -51,14 +51,14 @@ const ALERT: AlertDetail = {
   updated_at: '2026-08-01T00:00:00Z',
 }
 
-function renderDetailPage() {
+function renderDetailPage(state: unknown = null) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   return render(
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-      <MemoryRouter initialEntries={['/alerts/alert-1']}>
+      <MemoryRouter initialEntries={[{ pathname: '/alerts/alert-1', state }]}>
         <Routes>
           <Route path="/alerts/:id" element={<AlertDetailPage />} />
         </Routes>
@@ -127,6 +127,31 @@ describe('AlertDetailPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Alert not found' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'All alerts' })).toHaveAttribute('href', '/alerts')
+  })
+
+  it('TC-FR-ALERT-005-B: confirms "Alert submitted and routed." when opened straight after submission (ISS-006)', async () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry Attache', 'user-1'))
+    renderDetailPage({ alertSubmitted: { failedFiles: [] } })
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Alert submitted and routed.')
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    expect(screen.queryByText('Alert submitted and routed.')).not.toBeInTheDocument()
+  })
+
+  it('TC-FR-ALERT-005-C: names any file that could not be attached after the alert was saved', async () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry Attache', 'user-1'))
+    renderDetailPage({ alertSubmitted: { failedFiles: ['evidence.pdf', 'stall.jpg'] } })
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Alert submitted and routed.')
+    expect(screen.getByText(/evidence\.pdf, stall\.jpg/)).toBeInTheDocument()
+  })
+
+  it('shows no submission notice when the alert is opened normally', async () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry Attache', 'user-1'))
+    renderDetailPage()
+
+    expect(await screen.findByTestId('alert-reference-number')).toBeInTheDocument()
+    expect(screen.queryByText('Alert submitted and routed.')).not.toBeInTheDocument()
   })
 
   it('shows the delegate button for a Ministry PS', async () => {

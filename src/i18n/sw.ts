@@ -811,6 +811,8 @@ const sw: typeof en = {
       attachmentsTypeError: 'Faili moja au zaidi si ya aina inayokubalika (JPG, PNG, PDF, MP4, LOG) na haikuongezwa.',
       button: 'Wasilisha tahadhari',
       successMessage: 'Tahadhari imewasilishwa na kuelekezwa.',
+      attachmentsNotAdded: (names: string) => `Faili hizi hazikuweza kuambatishwa: ${names}. Tahadhari imehifadhiwa bila faili hizo, kwa hivyo zitume makao makuu kwa njia nyingine.`,
+      dismissNotice: 'Ondoa ujumbe',
       lede: 'Shiriki taarifa za soko kutoka ubalozi wako. Ikiwasilishwa, inaelekezwa moja kwa moja kwa Katibu Mkuu bila hatua ya idhini katikati.',
       optional: 'Hiari',
       requiredMarker: 'inahitajika',

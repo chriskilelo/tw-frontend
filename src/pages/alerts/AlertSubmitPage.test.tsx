@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import AlertSubmitPage from './AlertSubmitPage'
 import * as alertsApi from '../../api/alerts'
@@ -52,11 +52,20 @@ function renderSubmitPage() {
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <MemoryRouter initialEntries={['/alerts/new']}>
-          <AlertSubmitPage />
+          <Routes>
+            <Route path="/alerts/new" element={<AlertSubmitPage />} />
+            <Route path="/alerts/:id" element={<ArrivalProbe />} />
+          </Routes>
         </MemoryRouter>
       </I18nProvider>
     </QueryClientProvider>,
   )
+}
+
+/** Stands in for the alert page, showing where the form sent the attache and what it passed along. */
+function ArrivalProbe() {
+  const location = useLocation()
+  return <p data-testid="arrival">{`${location.pathname} ${JSON.stringify(location.state)}`}</p>
 }
 
 async function waitForIntelligenceTypes() {
@@ -160,14 +169,15 @@ describe('AlertSubmitPage', () => {
     expect(await screen.findByTestId('alert-country-prefilled')).toHaveTextContent('United Kingdom')
     expect(screen.getByText('From your mission profile · London')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('radio', { name: 'Opportunities' }))
-    await user.click(screen.getByRole('button', { name: 'Submit alert' }))
-    expect(alertsApi.submitAlert).toHaveBeenLastCalledWith(expect.objectContaining({ country: 'United Kingdom' }))
-
     await user.click(screen.getByRole('button', { name: 'Change Country' }))
     const countryInput = screen.getByLabelText(/^Country/)
     expect(countryInput).toHaveFocus()
     expect(countryInput).toHaveValue('United Kingdom')
+
+    // Submitting opens the new alert, so this comes last.
+    await user.click(screen.getByRole('radio', { name: 'Opportunities' }))
+    await user.click(screen.getByRole('button', { name: 'Submit alert' }))
+    expect(alertsApi.submitAlert).toHaveBeenLastCalledWith(expect.objectContaining({ country: 'United Kingdom' }))
   })
 
   it('TC-UI-005: lists every field in the readiness checklist, marks only the two mandatory ones, and ticks fields as they are filled', async () => {
@@ -229,7 +239,33 @@ describe('AlertSubmitPage', () => {
     await user.click(screen.getByRole('radio', { name: 'Opportunities' }))
     await user.click(screen.getByRole('button', { name: 'Submit alert' }))
 
-    expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('The intelligence type field is required.')
+    expect(screen.queryByTestId('arrival')).not.toBeInTheDocument()
+  })
+
+  it('TC-FR-ALERT-005-B: opens the new alert with the "submitted and routed" notice (ISS-006)', async () => {
+    renderSubmitPage()
+    await waitForIntelligenceTypes()
+
+    await user.type(screen.getByLabelText(/^Country/), 'Kenya')
+    await user.click(screen.getByRole('radio', { name: 'Opportunities' }))
+    await user.click(screen.getByRole('button', { name: 'Submit alert' }))
+
+    expect(await screen.findByTestId('arrival')).toHaveTextContent('/alerts/alert-1 {"alertSubmitted":{"failedFiles":[]}}')
+  })
+
+  it('TC-FR-ALERT-005-C: a file that fails to upload still opens the saved alert, naming the file, so it is not submitted twice', async () => {
+    vi.mocked(alertsApi.uploadAlertAttachment).mockRejectedValue(new Error('500'))
+    renderSubmitPage()
+    await waitForIntelligenceTypes()
+
+    await user.type(screen.getByLabelText(/^Country/), 'Kenya')
+    await user.click(screen.getByRole('radio', { name: 'Opportunities' }))
+    await user.upload(screen.getByLabelText('Supporting Evidence'), new File(['%PDF'], 'evidence.pdf', { type: 'application/pdf' }))
+    await user.click(screen.getByRole('button', { name: 'Submit alert' }))
+
+    expect(await screen.findByTestId('arrival')).toHaveTextContent('{"alertSubmitted":{"failedFiles":["evidence.pdf"]}}')
+    expect(alertsApi.submitAlert).toHaveBeenCalledTimes(1)
   })
 
   it('TC-UI-007: shows the format/size hint inside the attachment dropzone', async () => {

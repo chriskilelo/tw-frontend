@@ -1,5 +1,5 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import {
@@ -7,12 +7,14 @@ import {
   BuildingLibraryIcon,
   CalendarDaysIcon,
   ChartBarIcon,
+  CheckCircleIcon,
   ChatBubbleLeftRightIcon,
   CheckIcon as CheckOutlineIcon,
   ClipboardDocumentCheckIcon,
   CubeIcon,
   DocumentIcon,
   DocumentTextIcon,
+  ExclamationTriangleIcon,
   EyeIcon,
   GlobeAltIcon,
   InformationCircleIcon,
@@ -23,6 +25,7 @@ import {
   RssIcon,
   UserIcon,
   UserPlusIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import {
   acknowledgeAlert,
@@ -57,6 +60,7 @@ import { AlertStatusBadge } from './AlertStatusBadge'
 import { ChoiceTile } from '../../components/ChoiceTile'
 import { NEUTRAL_TONE } from '../../components/choiceTileTones'
 import { SignalStrength } from './SignalStrength'
+import { readAlertSubmitted } from './alertSubmittedState'
 import {
   CONFIDENCE_VALUES,
   URGENCY_ICONS,
@@ -101,6 +105,17 @@ export default function AlertDetailPage() {
   })
 
   useBreadcrumbLabel(alertQuery.data?.reference_number, { isCode: true })
+
+  // ISS-006: opened straight from the submit form, the page confirms the submission. The router
+  // state is then cleared, so a reload or a later Back doesn't confirm it again.
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [submittedNotice, setSubmittedNotice] = useState(() => readAlertSubmitted(location.state))
+  useEffect(() => {
+    if (readAlertSubmitted(location.state)) {
+      navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null })
+    }
+  }, [location.pathname, location.search, location.state, navigate])
 
   const [isEditing, setIsEditing] = useState(false)
   const [isDelegateModalOpen, setDelegateModalOpen] = useState(false)
@@ -162,6 +177,28 @@ export default function AlertDetailPage() {
 
   return (
     <div className="mx-auto w-full max-w-310 px-4 py-6 sm:px-7">
+      {submittedNotice && (
+        <div role="status" className="mb-4 flex items-start gap-3 rounded-xl border border-success/30 bg-success-soft px-4 py-3 text-body-sm">
+          <CheckCircleIcon className="mt-0.5 size-5 shrink-0 text-success-soft-text" aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-success-soft-text">{t.alerts.submit.successMessage}</p>
+            {submittedNotice.failedFiles.length > 0 && (
+              <p className="mt-1 flex items-start gap-1.5 text-text-primary">
+                <ExclamationTriangleIcon className="mt-0.5 size-4 shrink-0 text-danger-soft-text" aria-hidden="true" />
+                {t.alerts.submit.attachmentsNotAdded(submittedNotice.failedFiles.join(', '))}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setSubmittedNotice(null)}
+            aria-label={t.alerts.submit.dismissNotice}
+            className="grid size-8 shrink-0 place-items-center rounded-lg text-success-soft-text hover:bg-white/60"
+          >
+            <XMarkIcon className="size-4" aria-hidden="true" />
+          </button>
+        </div>
+      )}
       <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm" aria-labelledby="alert-reference-heading">
         <div className={`flex flex-wrap items-start justify-between gap-4 border-l-4 px-4 pb-4 pt-5 sm:px-6 ${typeStyle.accent}`}>
           <div className="min-w-0 flex-1">

@@ -810,6 +810,8 @@ const en = {
       attachmentsTypeError: 'One or more files are not an accepted format (JPG, PNG, PDF, MP4, LOG) and were not added.',
       button: 'Submit alert',
       successMessage: 'Alert submitted and routed.',
+      attachmentsNotAdded: (names: string) => `These files couldn’t be attached: ${names}. The alert was saved without them, so send them to HQ another way.`,
+      dismissNotice: 'Dismiss',
       lede: 'Share market intelligence from your mission. On submission it routes straight to the Principal Secretary, with no approval step in between.',
       optional: 'Optional',
       requiredMarker: 'required',
