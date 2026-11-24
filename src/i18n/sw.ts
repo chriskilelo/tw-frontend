@@ -43,6 +43,7 @@ const sw: typeof en = {
       forgotPasswordLink: 'Umesahau nenosiri lako?',
       invalidCredentials: 'Taarifa za kuingia si sahihi',
       accountLocked: 'Akaunti imefungwa. Weka upya nenosiri lako au wasiliana na msimamizi wako ili kupata ufikiaji.',
+      signedOutIdle: 'Umetolewa baada ya dakika 30 bila shughuli. Ingia tena ili kuendelea.',
     },
     forgotPassword: {
       title: 'Weka upya nenosiri lako',
@@ -147,6 +148,9 @@ const sw: typeof en = {
     markAllRead: 'Weka zote kama zimesomwa',
     empty: 'Hakuna arifa bado.',
     viewAll: 'Tazama arifa zote',
+    unreadCount: (count: number) => (count === 1 ? 'Arifa 1 haijasomwa' : `Arifa ${count} hazijasomwa`),
+    showingLatest: (shown: number, total: number) => `Zinaonyeshwa arifa ${shown} za karibuni kati ya ${total} ambazo hazijasomwa.`,
+    markRead: 'Weka kama imesomwa',
   },
   language: {
     toggleLabel: 'Lugha',

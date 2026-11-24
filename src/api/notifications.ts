@@ -1,4 +1,4 @@
-import client, { type ApiEnvelope } from './client'
+import client, { backgroundHeaders, type ApiEnvelope, type BackgroundRequestOptions } from './client'
 
 export interface Notification {
   id: string
@@ -19,9 +19,22 @@ export interface ListNotificationsParams {
   read?: 0 | 1
 }
 
-export async function listNotifications(params: ListNotificationsParams = {}): Promise<Notification[]> {
-  const { data } = await client.get<ApiEnvelope<Notification[]>>('/notifications', { params })
-  return data.data
+export interface NotificationPage {
+  items: Notification[]
+  /** Every match, not just this page; the bell's badge count (FR-NOTIF-001). */
+  total: number
+}
+
+/** GET /notifications — FR-NOTIF-001. The bell polls this, so it accepts `background`. */
+export async function listNotifications(
+  params: ListNotificationsParams = {},
+  options?: BackgroundRequestOptions,
+): Promise<NotificationPage> {
+  const { data } = await client.get<ApiEnvelope<Notification[]>>('/notifications', {
+    params,
+    headers: backgroundHeaders(options),
+  })
+  return { items: data.data, total: data.meta?.total ?? data.data.length }
 }
 
 /** PATCH /notifications/{notification}/read — FR-NOTIF-004 */

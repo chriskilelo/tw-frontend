@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { login } from '../../api/auth'
@@ -14,6 +14,9 @@ import en from '../../i18n/en'
 export default function LoginPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  // Set by api/client.ts when the server ended the session for inactivity (FR-AUTH-010).
+  const [searchParams] = useSearchParams()
+  const signedOutForInactivity = searchParams.get('signedOut') === 'idle'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -50,6 +53,11 @@ export default function LoginPage() {
   return (
     <AuthLayout>
       <h1 className="text-h2 text-primary">{en.auth.login.title}</h1>
+      {signedOutForInactivity && (
+        <p role="status" className="mt-4 rounded-md border border-info bg-info-soft px-3 py-2 text-body-sm text-info-soft-text">
+          {en.auth.login.signedOutIdle}
+        </p>
+      )}
       <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
         <Input
           label={en.auth.login.emailLabel}

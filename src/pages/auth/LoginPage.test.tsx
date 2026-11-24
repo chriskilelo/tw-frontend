@@ -11,13 +11,13 @@ vi.mock('../../api/auth', async (importOriginal) => {
   return { ...actual, login: vi.fn() }
 })
 
-function renderLoginPage() {
+function renderLoginPage(path = '/login') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/login']}>
+      <MemoryRouter initialEntries={[path]}>
         <LoginPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -68,5 +68,19 @@ describe('LoginPage', () => {
     // class (CLAUDE.md Section 2 / NFR-RESP-001, tailwind.config.ts's `sm` breakpoint).
     expect(container.querySelector('.max-w-md.w-full')).not.toBeNull()
     expect(container.querySelectorAll('[style*="width"]')).toHaveLength(0)
+  })
+
+  it('TC-FR-AUTH-010-L: explains a sign-out for inactivity', () => {
+    renderLoginPage('/login?signedOut=idle')
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'You were signed out after 30 minutes without activity. Sign in again to continue.',
+    )
+  })
+
+  it('TC-FR-AUTH-010-M: shows no notice on an ordinary visit', () => {
+    renderLoginPage()
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 })

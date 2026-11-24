@@ -12,6 +12,7 @@ import {
   SignalIcon,
   UserMinusIcon,
 } from '@heroicons/react/20/solid'
+import type { BackgroundRequestOptions } from '../../api/client'
 import type { ComplianceDashboard, ComplianceMissionRow, ReportComplianceStatus, ReportingPeriod } from '../../api/reports'
 import { Input } from '../../components/Input'
 import { Select } from '../../components/Select'
@@ -27,7 +28,7 @@ interface ComplianceBoardProps {
   title: string
   subtitle: string
   queryKey: readonly unknown[]
-  fetchBoard: (periodLabel?: string) => Promise<ComplianceDashboard>
+  fetchBoard: (periodLabel?: string, options?: BackgroundRequestOptions) => Promise<ComplianceDashboard>
 }
 
 /**
@@ -52,7 +53,9 @@ export function ComplianceBoard({ title, subtitle, queryKey, fetchBoard }: Compl
 
   const boardQuery = useQuery({
     queryKey: [...queryKey, period ?? 'current'],
-    queryFn: () => fetchBoard(period),
+    // Marked background because it re-polls; it still counts as activity whenever someone
+    // has used the page since the last request (FR-AUTH-010, lib/userActivity.ts).
+    queryFn: () => fetchBoard(period, { background: true }),
     placeholderData: keepPreviousData,
     refetchInterval: LIVE_REFRESH_MS,
     refetchOnWindowFocus: true,

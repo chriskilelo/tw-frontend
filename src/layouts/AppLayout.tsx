@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth, AUTH_QUERY_KEY } from '../hooks/useAuth'
@@ -12,6 +12,7 @@ import { Breadcrumbs } from '../components/Breadcrumbs'
 import crest from '../assets/tw_crest.png'
 import { Bars3Icon } from '@heroicons/react/20/solid'
 import { NAV_ICONS, NAV_ITEMS, type NavKey } from './navigation'
+import { startTrackingUserActivity } from '../lib/userActivity'
 
 const ALL_KEYS: NavKey[] = NAV_ITEMS.map((item) => item.key)
 
@@ -198,6 +199,9 @@ const DEFAULT_NAV_KEYS: NavKey[] = ['dashboard', 'search']
  * the 401 interceptor's redirect-to-/login on pages that are already unauthenticated.
  */
 export default function AppLayout() {
+  // FR-AUTH-010: lets timed requests tell the server whether anyone is using the page.
+  useEffect(() => startTrackingUserActivity(), [])
+
   return (
     <I18nProvider>
       <BreadcrumbProvider>

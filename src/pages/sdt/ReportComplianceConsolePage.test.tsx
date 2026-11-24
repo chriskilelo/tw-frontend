@@ -26,7 +26,7 @@ describe('ReportComplianceConsolePage', () => {
     renderRoute('/sdt/reports/compliance', '/sdt/reports/compliance', <ReportComplianceConsolePage />)
 
     expect(await screen.findByRole('heading', { name: 'Report Compliance Console', level: 1 })).toBeInTheDocument()
-    expect(sdtApi.getSdtReportCompliance).toHaveBeenCalledWith(undefined)
+    expect(sdtApi.getSdtReportCompliance).toHaveBeenCalledWith(undefined, { background: true })
     expect(screen.getAllByTestId(/^compliance-row-/)).toHaveLength(4)
     expect(within(screen.getByTestId('compliance-row-m-berlin')).getByRole('link', { name: 'Open the Berlin report' })).toHaveAttribute(
       'href',

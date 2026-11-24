@@ -82,7 +82,7 @@ describe('ComplianceDashboardPage', () => {
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Reporting period' }), 'Q4 2026')
 
-    await waitFor(() => expect(reportsApi.getReportComplianceDashboard).toHaveBeenLastCalledWith('Q4 2026'))
+    await waitFor(() => expect(reportsApi.getReportComplianceDashboard).toHaveBeenLastCalledWith('Q4 2026', { background: true }))
     expect(screen.getByTestId('location')).toHaveTextContent('period=Q4+2026')
   })
 
@@ -90,7 +90,7 @@ describe('ComplianceDashboardPage', () => {
     renderPage('/reports/compliance?period=Q4%202026&status=submitted_late')
 
     await screen.findByTestId('compliance-row-m-accra')
-    expect(reportsApi.getReportComplianceDashboard).toHaveBeenCalledWith('Q4 2026')
+    expect(reportsApi.getReportComplianceDashboard).toHaveBeenCalledWith('Q4 2026', { background: true })
     expect(screen.queryByTestId('compliance-row-m-berlin')).not.toBeInTheDocument()
   })
 

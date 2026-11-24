@@ -42,6 +42,7 @@ const en = {
       forgotPasswordLink: 'Forgot your password?',
       invalidCredentials: 'Invalid credentials',
       accountLocked: 'Account locked. Reset your password or contact your administrator to regain access.',
+      signedOutIdle: 'You were signed out after 30 minutes without activity. Sign in again to continue.',
     },
     forgotPassword: {
       title: 'Reset your password',
@@ -146,6 +147,9 @@ const en = {
     markAllRead: 'Mark all read',
     empty: 'No notifications yet.',
     viewAll: 'View all notifications',
+    unreadCount: (count: number) => (count === 1 ? '1 unread' : `${count} unread`),
+    showingLatest: (shown: number, total: number) => `Showing the latest ${shown} of ${total} unread.`,
+    markRead: 'Mark read',
   },
   language: {
     toggleLabel: 'Language',

@@ -1,4 +1,4 @@
-import client, { type ApiEnvelope } from './client'
+import client, { backgroundHeaders, type ApiEnvelope, type BackgroundRequestOptions } from './client'
 
 export type PeriodicReportStatus = 'draft' | 'submitted'
 export type ReportSectionType = 'narrative' | 'structured_table'
@@ -305,9 +305,13 @@ export async function discardDraftReport(reportId: string): Promise<void> {
 }
 
 /** GET /periodic-reports/compliance — FR-RPT-018: Ministry HQ Director, Ministry PS and Acting PS. */
-export async function getReportComplianceDashboard(periodLabel?: string): Promise<ComplianceDashboard> {
+export async function getReportComplianceDashboard(
+  periodLabel?: string,
+  options?: BackgroundRequestOptions,
+): Promise<ComplianceDashboard> {
   const { data } = await client.get<ApiEnvelope<ComplianceDashboard>>('/periodic-reports/compliance', {
     params: periodLabel ? { period_label: periodLabel } : undefined,
+    headers: backgroundHeaders(options),
   })
   return data.data
 }

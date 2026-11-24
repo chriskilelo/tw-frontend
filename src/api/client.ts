@@ -1,4 +1,5 @@
 import axios, { type AxiosError } from 'axios'
+import { BACKGROUND_REQUEST_HEADER, isUserIdleSinceLastRequest, recordActiveRequest } from '../lib/userActivity'
 
 /**
  * Every TradeWatch response uses the { data, meta, errors } envelope (CLAUDE.md Section 10).
@@ -63,6 +64,29 @@ export async function ensureCsrfCookie(): Promise<void> {
   await axios.get(`${root}/sanctum/csrf-cookie`, { withCredentials: true })
 }
 
+/** Options for API calls that may run on a timer (FR-AUTH-010, lib/userActivity.ts). */
+export interface BackgroundRequestOptions {
+  background?: boolean
+}
+
+/** Headers for a timed request; the interceptor below decides whether it stays background. */
+export function backgroundHeaders(options?: BackgroundRequestOptions): Record<string, string> | undefined {
+  return options?.background ? { [BACKGROUND_REQUEST_HEADER]: '1' } : undefined
+}
+
+client.interceptors.request.use((config) => {
+  if (config.headers.has(BACKGROUND_REQUEST_HEADER) && !isUserIdleSinceLastRequest()) {
+    config.headers.delete(BACKGROUND_REQUEST_HEADER)
+  }
+  if (!config.headers.has(BACKGROUND_REQUEST_HEADER)) {
+    recordActiveRequest()
+  }
+  return config
+})
+
+/** Set by EnforceIdleTimeout (tw-backend) when it ends a session for inactivity. */
+const SESSION_ENDED_HEADER = 'x-session-ended'
+
 client.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiErrorEnvelope>) => {
@@ -70,7 +94,8 @@ client.interceptors.response.use(
 
     if (status === 401) {
       if (window.location.pathname !== '/login') {
-        window.location.assign('/login')
+        const endedForInactivity = error.response?.headers?.[SESSION_ENDED_HEADER] === 'idle'
+        window.location.assign(endedForInactivity ? '/login?signedOut=idle' : '/login')
       }
     } else if (status === 403) {
       const message = error.response?.data?.errors?.[0] ?? 'You do not have permission to perform this action.'

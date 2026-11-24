@@ -1,4 +1,4 @@
-import client, { type ApiEnvelope } from './client'
+import client, { backgroundHeaders, type ApiEnvelope, type BackgroundRequestOptions } from './client'
 import type { AlertIntelligenceType, AlertStatus, MasterDataEntryOption } from './alerts'
 import type { InquiryStatus, InquirySubType } from './inquiries'
 import type { Directive, DirectiveAllowedActions, DirectiveMissionRef, DirectiveStatus, DirectiveSummary, DirectiveUserRef } from './directives'
@@ -279,9 +279,13 @@ export async function deactivateDesignatedDeputy(ministryId?: string): Promise<{
  * PS's own ministry — the response shape is the same ComplianceDashboard type as
  * api/reports.ts's getReportComplianceDashboard(). Ministry PS (and Acting PS) only.
  */
-export async function getSdtReportCompliance(periodLabel?: string): Promise<ComplianceDashboard> {
+export async function getSdtReportCompliance(
+  periodLabel?: string,
+  options?: BackgroundRequestOptions,
+): Promise<ComplianceDashboard> {
   const { data } = await client.get<ApiEnvelope<ComplianceDashboard>>('/sdt/reports/compliance', {
     params: periodLabel ? { period_label: periodLabel } : undefined,
+    headers: backgroundHeaders(options),
   })
   return data.data
 }

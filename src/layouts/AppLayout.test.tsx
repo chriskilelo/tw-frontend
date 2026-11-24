@@ -64,7 +64,7 @@ function renderAppLayoutAt(initialPath: string) {
 describe('AppLayout', () => {
   beforeEach(() => {
     vi.mocked(authApi.me).mockReset()
-    vi.mocked(notificationsApi.listNotifications).mockReset().mockResolvedValue([])
+    vi.mocked(notificationsApi.listNotifications).mockReset().mockResolvedValue({ items: [], total: 0 })
   })
 
   it('TC-UI-004: renders NotificationBell and LanguageToggle regardless of route', async () => {
