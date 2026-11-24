@@ -17,6 +17,7 @@ vi.mock('../../api/users', async (importOriginal) => ({
   getUser: vi.fn(),
   deactivateUser: vi.fn(),
   reactivateUser: vi.fn(),
+  unlockUser: vi.fn(),
 }))
 vi.mock('../../api/missions', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../api/missions')>()),
@@ -129,16 +130,37 @@ describe('UserFormPage', () => {
       expect(screen.getByLabelText('Full name')).toHaveValue('Jane Renamed')
     })
 
-    it('TC-FR-AUTH-009-D: a locked account explains how to unlock it and offers Deactivate', async () => {
+    it('TC-FR-AUTH-009-D: a locked account is unlocked from its page', async () => {
+      const user = userEvent.setup()
       vi.mocked(authApi.me).mockResolvedValue(meAs('System Administrator', null))
-      vi.mocked(usersApi.getUser).mockReset().mockResolvedValue(managedUser({ status: 'locked', last_login_at: '2026-11-03T11:20:00Z' }))
+      const locked = managedUser({ status: 'locked', last_login_at: '2026-11-03T11:20:00Z' })
+      vi.mocked(usersApi.getUser).mockReset().mockResolvedValueOnce(locked).mockResolvedValue({ ...locked, status: 'active' })
+      vi.mocked(usersApi.unlockUser).mockReset().mockResolvedValue({ ...locked, status: 'active' })
 
       editPage()
       const card = await screen.findByTestId('account-status')
       expect(within(card).getByText('Locked')).toBeInTheDocument()
-      expect(card).toHaveTextContent('deactivate the account and then reactivate it')
+      expect(card).toHaveTextContent('Unlock it to let them sign in with their current password')
       expect(card).toHaveTextContent(/Last signed in .*2026/)
       expect(within(card).getByRole('button', { name: 'Deactivate' })).toBeInTheDocument()
+
+      await user.click(within(card).getByRole('button', { name: 'Unlock' }))
+
+      expect(usersApi.unlockUser).toHaveBeenCalledWith('user-1')
+      expect(await within(card).findByRole('status')).toHaveTextContent('Jane Officer is unlocked and can sign in with their current password.')
+      expect(within(card).getByText('Active')).toBeInTheDocument()
+      expect(within(card).queryByRole('button', { name: 'Unlock' })).not.toBeInTheDocument()
+    })
+
+    it('TC-FR-AUTH-021-P: a Ministry Administrator may unlock a locked Principal Secretary, but not deactivate one', async () => {
+      vi.mocked(usersApi.getUser).mockReset().mockResolvedValue(managedUser({ full_name: 'Dr. Principal', roleName: 'Ministry PS', status: 'locked' }))
+
+      editPage()
+      const card = await screen.findByTestId('account-status')
+
+      expect(within(card).getByRole('button', { name: 'Unlock' })).toBeInTheDocument()
+      expect(within(card).queryByRole('button', { name: 'Deactivate' })).not.toBeInTheDocument()
+      expect(card).toHaveTextContent('A Principal Secretary is deactivated or reinstated through a PS approval request.')
     })
 
     it('TC-FR-AUTH-004-D: a System Administrator’s own account explains why it cannot be deactivated', async () => {

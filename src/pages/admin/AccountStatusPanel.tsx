@@ -7,13 +7,12 @@ import { Modal } from '../../components/Modal'
 import { useI18n } from '../../i18n/context'
 import { formatDateTime, localeFor } from '../../lib/formatters'
 import { UserStatusBadge } from './AdminStatusBadges'
-import { useAccountLifecycle, type AccountLifecycleAccess } from './useAccountLifecycle'
+import { canUnlock, useAccountLifecycle, type AccountLifecycleAccess } from './useAccountLifecycle'
 
 /**
- * FR-AUTH-004/005 (ISS-021): an account's status on its own page, what that status means, and
- * the actions the administrator may take. A locked account has no separate unlock action: the
- * person resets their password, or an administrator deactivates and then reactivates it
- * (FR-AUTH-009 AC2).
+ * FR-AUTH-004/005/009 (ISS-021): an account's status on its own page, what that status means,
+ * and the actions the administrator may take. A locked account is unlocked here, or by the
+ * person resetting their password.
  */
 export function AccountStatusPanel({ account, access }: { account: ManagedUser; access: AccountLifecycleAccess }) {
   const { t, language } = useI18n()
@@ -21,6 +20,7 @@ export function AccountStatusPanel({ account, access }: { account: ManagedUser; 
   const headingId = useId()
   const lifecycle = useAccountLifecycle()
   const [confirming, setConfirming] = useState(false)
+  const showUnlock = canUnlock(access, account)
 
   const lastSignIn = account.last_login_at
     ? copy.lastSignIn.replace('{when}', formatDateTime(account.last_login_at, localeFor(language)))
@@ -60,24 +60,31 @@ export function AccountStatusPanel({ account, access }: { account: ManagedUser; 
           </ul>
         )}
 
-        {access === 'manage' ? (
+        {(access === 'manage' || showUnlock) && (
           <div className="flex flex-wrap gap-2">
-            {account.status === 'deactivated' ? (
-              <Button onClick={() => lifecycle.reactivate.mutate(account)} disabled={lifecycle.isPending}>
-                {copy.reactivateButton}
-              </Button>
-            ) : (
-              <Button variant="danger" onClick={() => setConfirming(true)} disabled={lifecycle.isPending}>
-                {copy.deactivateButton}
+            {showUnlock && (
+              <Button onClick={() => lifecycle.unlock.mutate(account)} disabled={lifecycle.isPending}>
+                {copy.unlockButton}
               </Button>
             )}
-            {account.status === 'activation_pending' && (
+            {access === 'manage' &&
+              (account.status === 'deactivated' ? (
+                <Button onClick={() => lifecycle.reactivate.mutate(account)} disabled={lifecycle.isPending}>
+                  {copy.reactivateButton}
+                </Button>
+              ) : (
+                <Button variant="danger" onClick={() => setConfirming(true)} disabled={lifecycle.isPending}>
+                  {copy.deactivateButton}
+                </Button>
+              ))}
+            {access === 'manage' && account.status === 'activation_pending' && (
               <Button variant="secondary" onClick={() => lifecycle.resend.mutate(account)} disabled={lifecycle.isPending}>
                 {copy.resendButton}
               </Button>
             )}
           </div>
-        ) : (
+        )}
+        {access !== 'manage' && (
           <p className="text-body-sm text-text-secondary">
             {copy.lifecycleNote[access]}
             {access === 'ps_approval' && (

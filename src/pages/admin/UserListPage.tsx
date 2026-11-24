@@ -11,7 +11,7 @@ import { Pagination, DEFAULT_PER_PAGE } from '../../components/Pagination'
 import { useAuth, isSystemAdministrator } from '../../hooks/useAuth'
 import { useI18n } from '../../i18n/context'
 import { UserStatusBadge } from './AdminStatusBadges'
-import { accountLifecycleAccess, useAccountLifecycle } from './useAccountLifecycle'
+import { accountLifecycleAccess, canUnlock, useAccountLifecycle } from './useAccountLifecycle'
 
 const USER_STATUSES: ManagedUser['status'][] = ['activation_pending', 'active', 'locked', 'deactivated']
 
@@ -75,6 +75,11 @@ export default function UserListPage() {
             <Button variant="secondary" onClick={() => navigate(`/admin/users/${row.id}`)}>
               {t.admin.users.editButton}
             </Button>
+            {canUnlock(access, row) && (
+              <Button variant="primary" onClick={() => lifecycle.unlock.mutate(row)} disabled={lifecycle.isPending}>
+                {t.admin.users.unlockButton}
+              </Button>
+            )}
             {access === 'manage' &&
               (row.status === 'deactivated' ? (
                 <Button variant="primary" onClick={() => lifecycle.reactivate.mutate(row)} disabled={lifecycle.isPending}>

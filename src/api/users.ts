@@ -69,6 +69,12 @@ export async function reactivateUser(id: string): Promise<ManagedUser> {
   return data.data
 }
 
+/** FR-AUTH-009 AC2: a locked account back to Active, with its current password. */
+export async function unlockUser(id: string): Promise<ManagedUser> {
+  const { data } = await client.post<ApiEnvelope<ManagedUser>>(`/users/${id}/unlock`)
+  return data.data
+}
+
 export async function resendActivation(id: string): Promise<void> {
   await client.post(`/users/${id}/resend-activation`)
 }

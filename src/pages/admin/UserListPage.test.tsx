@@ -14,6 +14,7 @@ vi.mock('../../api/users', async (importOriginal) => ({
   listUsers: vi.fn(),
   deactivateUser: vi.fn(),
   reactivateUser: vi.fn(),
+  unlockUser: vi.fn(),
 }))
 vi.mock('../../api/ministries', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../api/ministries')>()),
@@ -72,6 +73,28 @@ describe('UserListPage', () => {
 
     expect(usersApi.reactivateUser).toHaveBeenCalledWith('officer-2')
     expect(await screen.findByRole('status')).toHaveTextContent('Paul Former can sign in again.')
+  })
+
+  it('TC-FR-AUTH-009-E: a locked account is unlocked from the list; other statuses offer no Unlock', async () => {
+    const user = userEvent.setup()
+    vi.mocked(authApi.me).mockResolvedValue(meAs('Ministry Administrator'))
+    const locked = managedUser({ id: 'officer-3', full_name: 'Lucy Locked', status: 'locked' })
+    vi.mocked(usersApi.listUsers).mockResolvedValue({
+      data: [locked, managedUser({ id: 'officer-1', full_name: 'Jane Officer' })],
+      meta: { current_page: 1, per_page: 10, total: 2, last_page: 1 },
+    })
+    vi.mocked(usersApi.unlockUser).mockReset().mockResolvedValue({ ...locked, status: 'active' })
+
+    renderAdminPage('/admin/users', '/admin/users', <UserListPage />)
+
+    const activeRow = (await screen.findByText('Jane Officer')).closest('tr') as HTMLElement
+    expect(within(activeRow).queryByRole('button', { name: 'Unlock' })).not.toBeInTheDocument()
+
+    const lockedRow = screen.getByText('Lucy Locked').closest('tr') as HTMLElement
+    await user.click(within(lockedRow).getByRole('button', { name: 'Unlock' }))
+
+    expect(usersApi.unlockUser).toHaveBeenCalledWith('officer-3')
+    expect(await screen.findByRole('status')).toHaveTextContent('Lucy Locked is unlocked and can sign in with their current password.')
   })
 
   it('TC-FR-AUTH-004-C: deactivating asks first, confirms the result, and shows a refusal in the API’s words', async () => {
