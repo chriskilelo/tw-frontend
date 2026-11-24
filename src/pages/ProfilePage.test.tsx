@@ -112,6 +112,63 @@ describe('ProfilePage', () => {
     expect(vi.mocked(authApi.uploadAvatar).mock.calls[0][0]).toBe(file)
   })
 
+  it('TC-FR-AUTH-019-B: a refused upload message clears once the photo is removed (ISS-003)', async () => {
+    vi.mocked(authApi.me).mockResolvedValue(meResponse({ avatar_url: 'https://example.test/avatar.jpg' }))
+    vi.mocked(authApi.uploadAvatar).mockRejectedValue(new Error('422'))
+    vi.mocked(authApi.deleteAvatar).mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'My Profile' })
+    const input = screen.getByLabelText('Change Image', { selector: 'input' }) as HTMLInputElement
+    await userEvent.upload(input, new File(['bytes'], 'big.jpg', { type: 'image/jpeg' }))
+    expect(await screen.findByText(/Could not upload that image/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Remove Image' }))
+
+    await waitFor(() => expect(authApi.deleteAvatar).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.queryByText(/Could not upload that image/)).not.toBeInTheDocument())
+  })
+
+  it('TC-FR-AUTH-019-C: says so when the photo cannot be removed', async () => {
+    vi.mocked(authApi.me).mockResolvedValue(meResponse({ avatar_url: 'https://example.test/avatar.jpg' }))
+    vi.mocked(authApi.deleteAvatar).mockRejectedValue(new Error('500'))
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Remove Image' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The photo couldn’t be removed. Please try again.')
+  })
+
+  it('TC-FR-NOTIF-006-B: confirms "Saved." once an email preference is stored (ISS-002)', async () => {
+    vi.mocked(authApi.me).mockResolvedValue(meResponse())
+    vi.mocked(authApi.updatePreferences).mockResolvedValue(
+      meResponse({ email_notification_preferences: { alert_routed: false } }).user,
+    )
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('checkbox', { name: 'An alert is routed to me' }))
+
+    await waitFor(() =>
+      expect(authApi.updatePreferences).toHaveBeenCalledWith({ email_notification_preferences: { alert_routed: false } }),
+    )
+    expect(await screen.findByRole('status')).toHaveTextContent('Saved.')
+  })
+
+  it('TC-FR-NOTIF-006-C: a failed save says so and never claims "Saved."', async () => {
+    vi.mocked(authApi.me).mockResolvedValue(meResponse())
+    vi.mocked(authApi.updatePreferences).mockRejectedValue(new Error('500'))
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('checkbox', { name: 'A directive is issued to me' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save. Please try again.')
+    expect(screen.queryByText('Saved.')).not.toBeInTheDocument()
+  })
+
   it('TC-UI-002: renders without overflow at 375px viewport', async () => {
     Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 375 })
     vi.mocked(authApi.me).mockResolvedValue(meResponse())

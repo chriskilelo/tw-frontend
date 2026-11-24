@@ -168,6 +168,7 @@ const sw: typeof en = {
       uploading: 'Inapakia…',
       removing: 'Inaondoa…',
       uploadFailed: 'Imeshindwa kupakia picha hiyo. Tafadhali angalia aina na ukubwa wa faili, kisha ujaribu tena.',
+      removeFailed: 'Imeshindwa kuondoa picha. Tafadhali jaribu tena.',
     },
     accountInfo: {
       title: 'Taarifa za Akaunti',

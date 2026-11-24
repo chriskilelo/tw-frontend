@@ -28,13 +28,21 @@ export default function ProfilePage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY }),
   })
 
+  // Each photo action clears the other's last message, so a refused upload's error doesn't
+  // stay on screen after a later successful Remove (ISS-003), and vice versa.
   const avatarUploadMutation = useMutation({
-    mutationFn: uploadAvatar,
+    mutationFn: (file: File) => uploadAvatar(file),
+    onMutate: (): void => {
+      avatarRemoveMutation.reset()
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY }),
   })
 
   const avatarRemoveMutation = useMutation({
-    mutationFn: deleteAvatar,
+    mutationFn: () => deleteAvatar(),
+    onMutate: (): void => {
+      avatarUploadMutation.reset()
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY }),
   })
 
@@ -114,6 +122,11 @@ export default function ProfilePage() {
             {t.profile.avatar.uploadFailed}
           </p>
         )}
+        {avatarRemoveMutation.isError && (
+          <p role="alert" className="mt-1 text-caption text-danger-soft-text">
+            {t.profile.avatar.removeFailed}
+          </p>
+        )}
       </div>
 
       {/* Account Information: read-only, self-service edit is out of scope (System Admin only) */}
@@ -140,9 +153,18 @@ export default function ProfilePage() {
       <section className="mt-4 rounded-lg border border-border bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-h3 text-primary">{t.profile.preferences.title}</h2>
-          {notifMutation.isPending && (
-            <span className="text-caption text-text-muted">{t.profile.preferences.saving}</span>
-          )}
+          {/* One live region, so a screen reader hears "Saved." as well as seeing it (ISS-002). */}
+          <span
+            role="status"
+            aria-live="polite"
+            className={`text-caption ${notifMutation.isSuccess ? 'font-semibold text-success-soft-text' : 'text-text-muted'}`}
+          >
+            {notifMutation.isPending
+              ? t.profile.preferences.saving
+              : notifMutation.isSuccess
+                ? t.profile.preferences.saved
+                : ''}
+          </span>
           {notifMutation.isError && (
             <span role="alert" className="text-caption text-danger-soft-text">
               {t.profile.preferences.saveFailed}

@@ -167,6 +167,7 @@ const en = {
       uploading: 'Uploading…',
       removing: 'Removing…',
       uploadFailed: 'Could not upload that image. Please check the format and size, then try again.',
+      removeFailed: 'The photo couldn’t be removed. Please try again.',
     },
     accountInfo: {
       title: 'Account Information',
