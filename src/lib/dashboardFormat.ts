@@ -51,8 +51,22 @@ export function greetingPart(date: Date = new Date()): 'morning' | 'afternoon' |
   return hour < 17 ? 'afternoon' : 'evening'
 }
 
-export function firstName(fullName: string | null | undefined): string {
-  return (fullName ?? '').trim().split(/\s+/)[0] ?? ''
+/** Titles a name may start with; "Dr. Susan Kiragu" is greeted as "Dr. Kiragu". */
+const TITLES = new Set(['dr', 'prof', 'eng', 'hon', 'amb', 'ambassador', 'mr', 'mrs', 'ms', 'miss', 'rev', 'sir'])
+
+/**
+ * The name a greeting uses: the first name, or the title and surname when the name starts with a
+ * title (ISS-004: the PS was greeted "Good afternoon, Dr.").
+ */
+export function greetingName(fullName: string | null | undefined): string {
+  const words = (fullName ?? '').trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) {
+    return ''
+  }
+  if (words.length > 1 && TITLES.has(words[0].replace(/\.$/, '').toLowerCase())) {
+    return `${words[0]} ${words[words.length - 1]}`
+  }
+  return words[0]
 }
 
 /** Wall-clock time in an IANA time zone ("14:05"), or null if the zone is unknown. */

@@ -21,7 +21,7 @@ import { BulletLegend, KpiBulletList, ProgressRing, StackedBar, StatTile } from 
 import type { AuthUser, Role } from '../../api/auth'
 import { useI18n } from '../../i18n/context'
 import { formatDate, localeFor } from '../../lib/formatters'
-import { firstName, formatNumber, greetingPart, periodRange, periodTick } from '../../lib/dashboardFormat'
+import { greetingName, formatNumber, greetingPart, periodRange, periodTick } from '../../lib/dashboardFormat'
 
 interface AttacheDashboardProps {
   data: AttacheDashboardData
@@ -39,7 +39,7 @@ export default function AttacheDashboard({ data, user, role, kpiCycle, onKpiCycl
   const { t, language } = useI18n()
   const locale = localeFor(language)
   const copy = t.dashboard.attache
-  const greeting = t.dashboard.hero.greeting[greetingPart()](firstName(user.full_name))
+  const greeting = t.dashboard.hero.greeting[greetingPart()](greetingName(user.full_name))
 
   if (!data.mission || !data.activity_trend || !data.alerts || !data.inquiries || !data.directives || !data.report || !data.kpi) {
     return (

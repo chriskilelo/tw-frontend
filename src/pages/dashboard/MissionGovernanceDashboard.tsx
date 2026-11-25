@@ -18,7 +18,7 @@ import { CardLink, DashboardError, DashboardHero, DashboardSkeleton } from '../.
 import { DeltaPill, RankedBars, StatTile } from '../../components/dashboard/visuals'
 import { useI18n } from '../../i18n/context'
 import { formatRelativeTime, localeFor } from '../../lib/formatters'
-import { firstName, formatNumber, greetingPart, periodRange } from '../../lib/dashboardFormat'
+import { greetingName, formatNumber, greetingPart, periodRange } from '../../lib/dashboardFormat'
 import { GovernanceStatusBadge } from '../governance/governanceUi'
 import { GOVERNANCE_TYPES, useFeedLine, useStatusRanking } from './governanceLabels'
 
@@ -55,7 +55,7 @@ export default function MissionGovernanceDashboard({ user, role }: { user: AuthU
   return (
     <>
       <DashboardHero
-        title={t.dashboard.hero.greeting[greetingPart()](firstName(user.full_name))}
+        title={t.dashboard.hero.greeting[greetingPart()](greetingName(user.full_name))}
         subtitle={
           <span className="inline-flex flex-wrap items-center gap-2">
             {user.mission?.name ? `${role.name} · ${user.mission.name}` : role.name}

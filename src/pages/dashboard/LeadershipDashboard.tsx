@@ -27,7 +27,7 @@ import { FunnelSteps, KpiStatusLegend, MissionStatusRows, ProgressRing, RankedBa
 import { useI18n } from '../../i18n/context'
 import { COMPLIANCE_COLORS } from '../reports/complianceTheme'
 import { formatDate, localeFor } from '../../lib/formatters'
-import { firstName, formatNumber, greetingPart, percentOf, periodRange, periodTick } from '../../lib/dashboardFormat'
+import { greetingName, formatNumber, greetingPart, percentOf, periodRange, periodTick } from '../../lib/dashboardFormat'
 
 interface LeadershipDashboardProps {
   data: LeadershipDashboardData
@@ -446,7 +446,7 @@ export default function LeadershipDashboard({ data, user, role, kpiCycle, onKpiC
   return (
     <>
       <DashboardHero
-        title={t.dashboard.hero.greeting[greetingPart()](firstName(user.full_name))}
+        title={t.dashboard.hero.greeting[greetingPart()](greetingName(user.full_name))}
         subtitle={user.ministry?.name ? `${role.name} · ${user.ministry.name}` : role.name}
         calendar={data.calendar}
         actions={actions}

@@ -19,7 +19,7 @@ import { AlertRows, CardLink, DashboardHero, DirectiveRows } from '../../compone
 import { RankedBars, StatTile } from '../../components/dashboard/visuals'
 import { useI18n } from '../../i18n/context'
 import { localeFor } from '../../lib/formatters'
-import { firstName, formatNumber, greetingPart, periodRange } from '../../lib/dashboardFormat'
+import { greetingName, formatNumber, greetingPart, periodRange } from '../../lib/dashboardFormat'
 
 /** Ministry HQ Officer: the alerts delegated to them, the inquiry queue and their directives. */
 export default function HqOfficerDashboard({ data, user, role }: { data: HqOfficerDashboardData; user: AuthUser; role: Role }) {
@@ -35,7 +35,7 @@ export default function HqOfficerDashboard({ data, user, role }: { data: HqOffic
   return (
     <>
       <DashboardHero
-        title={t.dashboard.hero.greeting[greetingPart()](firstName(user.full_name))}
+        title={t.dashboard.hero.greeting[greetingPart()](greetingName(user.full_name))}
         subtitle={user.ministry?.name ? `${role.name} · ${user.ministry.name}` : role.name}
         calendar={data.calendar}
         actions={[

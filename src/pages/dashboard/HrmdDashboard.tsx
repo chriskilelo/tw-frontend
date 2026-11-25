@@ -17,7 +17,7 @@ import { DashboardError, DashboardHero, DashboardSkeleton, SegmentedControl } fr
 import { KpiStatusLegend, MissionStatusRows, RankedBars, StatTile } from '../../components/dashboard/visuals'
 import { useI18n } from '../../i18n/context'
 import { localeFor } from '../../lib/formatters'
-import { firstName, formatNumber, greetingPart, percentOf, periodRange, periodTick, recentKpiCycles } from '../../lib/dashboardFormat'
+import { greetingName, formatNumber, greetingPart, percentOf, periodRange, periodTick, recentKpiCycles } from '../../lib/dashboardFormat'
 
 const EMPTY_COUNTS: Record<PerformanceStatus, number> = { on_track: 0, at_risk: 0, below_target: 0, pending: 0, no_target: 0, no_data: 0 }
 
@@ -82,7 +82,7 @@ export default function HrmdDashboard({ user, role }: { user: AuthUser; role: Ro
   return (
     <>
       <DashboardHero
-        title={t.dashboard.hero.greeting[greetingPart()](firstName(user.full_name))}
+        title={t.dashboard.hero.greeting[greetingPart()](greetingName(user.full_name))}
         subtitle={user.ministry?.name ? `${role.name} · ${user.ministry.name}` : role.name}
         actions={[{ to: '/sdt/hrmd-dashboard', label: t.dashboard.actions.attacheSummaries, icon: <UserGroupIcon />, primary: true }]}
         aside={

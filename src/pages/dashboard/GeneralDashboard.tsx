@@ -7,7 +7,7 @@ import { DashboardCard, PanelEmpty } from '../../components/dashboard/DashboardC
 import { AlertRows, DashboardHero } from '../../components/dashboard/layout'
 import { useI18n } from '../../i18n/context'
 import { formatRelativeTime, localeFor } from '../../lib/formatters'
-import { firstName, greetingPart } from '../../lib/dashboardFormat'
+import { greetingName, greetingPart } from '../../lib/dashboardFormat'
 
 /**
  * Every other ministry role (Designated Deputy, Ministry Publishing Authority, Honorary
@@ -31,7 +31,7 @@ export default function GeneralDashboard({ data, user, role }: { data: GeneralDa
   return (
     <>
       <DashboardHero
-        title={t.dashboard.hero.greeting[greetingPart()](firstName(user.full_name))}
+        title={t.dashboard.hero.greeting[greetingPart()](greetingName(user.full_name))}
         subtitle={user.ministry?.name ? `${role.name} · ${user.ministry.name}` : role.name}
         calendar={data.calendar}
         actions={[{ to: '/profile', label: t.dashboard.actions.profile, icon: <UserCircleIcon /> }]}

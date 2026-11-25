@@ -20,7 +20,7 @@ import { DashboardError, DashboardHero, DashboardSkeleton } from '../../componen
 import { RankedBars, StatTile } from '../../components/dashboard/visuals'
 import { useI18n } from '../../i18n/context'
 import { localeFor } from '../../lib/formatters'
-import { firstName, formatNumber, greetingPart, periodRange } from '../../lib/dashboardFormat'
+import { greetingName, formatNumber, greetingPart, periodRange } from '../../lib/dashboardFormat'
 import { GOVERNANCE_TYPES } from './governanceLabels'
 
 /**
@@ -60,7 +60,7 @@ export default function MfaDashboard({ user, role }: { user: AuthUser; role: Rol
   return (
     <>
       <DashboardHero
-        title={t.dashboard.hero.greeting[greetingPart()](firstName(user.full_name))}
+        title={t.dashboard.hero.greeting[greetingPart()](greetingName(user.full_name))}
         subtitle={`${role.name} · ${copy.scope}`}
         actions={[
           { to: '/mfa-awareness', label: t.dashboard.actions.mfaAwareness, icon: <GlobeAltIcon />, primary: true },

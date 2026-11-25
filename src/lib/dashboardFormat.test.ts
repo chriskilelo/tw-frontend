@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { fiscalQuarterLabel, greetingPart, percentOf, periodRange, periodTick, recentKpiCycles, recentQuarters } from './dashboardFormat'
+import { fiscalQuarterLabel, greetingName, greetingPart, percentOf, periodRange, periodTick, recentKpiCycles, recentQuarters } from './dashboardFormat'
 
 /** CLAUDE.md Section 8: Q1 Jul-Sep .. Q4 Apr-Jun, labelled by the quarter's own start year. */
 describe('dashboardFormat', () => {
+  it('TC-UI-004-B: greets by first name, or by title and surname when the name starts with a title (ISS-004)', () => {
+    expect(greetingName('Faith Chebet')).toBe('Faith')
+    expect(greetingName('Dr. Susan Kiragu')).toBe('Dr. Kiragu')
+    expect(greetingName('Prof Jane Wanjiru Otieno')).toBe('Prof Otieno')
+    expect(greetingName('Hon. Kiragu')).toBe('Hon. Kiragu')
+    expect(greetingName('  Purity   Samanthe ')).toBe('Purity')
+    expect(greetingName('Drew Barasa')).toBe('Drew')
+    expect(greetingName(null)).toBe('')
+  })
+
   it('labels fiscal quarters the way ReportService::periodLabelFor() does', () => {
     expect(fiscalQuarterLabel('2026-07-01')).toBe('Q1 2026')
     expect(fiscalQuarterLabel('2026-10-01')).toBe('Q2 2026')
