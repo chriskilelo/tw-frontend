@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AxiosError, AxiosHeaders } from 'axios'
 import { MemoryRouter } from 'react-router-dom'
@@ -47,7 +47,8 @@ function meResponseFor(roleName: string): MeResponse {
 const emptyDashboard = {
   unacknowledged_alerts_count: 0,
   pending_inquiries_count: 0,
-  directive_summary_this_week: { period_start: '2026-08-10', period_end: '2026-08-16', total: 0, by_status: {} },
+  pending_inquiries: [],
+  directive_summary_this_week: { period_start: '2026-08-10', period_end: '2026-08-16', total: 0, by_status: {}, directives: [] },
 }
 
 function unprocessable(message: string) {
@@ -90,14 +91,15 @@ describe('PsDashboardPage', () => {
     vi.mocked(sdtApi.getPsDashboard).mockReset().mockResolvedValue({
       unacknowledged_alerts_count: 0,
       pending_inquiries_count: 0,
-      directive_summary_this_week: { period_start: '2026-08-10', period_end: '2026-08-16', total: 0, by_status: {} },
+      pending_inquiries: [],
+      directive_summary_this_week: { period_start: '2026-08-10', period_end: '2026-08-16', total: 0, by_status: {}, directives: [] },
     })
 
     renderPage()
 
     expect(await screen.findByRole('heading', { name: 'Principal Secretary Dashboard' })).toBeInTheDocument()
-    expect(screen.getByText('Pending Inquiries')).toBeInTheDocument()
-    expect(screen.getByText('Directive Summary')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Pending Inquiries' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Directive Summary' })).toBeInTheDocument()
     expect(await screen.findByText('Unacknowledged Alerts')).toBeInTheDocument()
 
     // The Acting PS activation/deactivation controls are Ministry PS / System
@@ -113,7 +115,8 @@ describe('PsDashboardPage', () => {
     vi.mocked(sdtApi.getPsDashboard).mockReset().mockResolvedValue({
       unacknowledged_alerts_count: 0,
       pending_inquiries_count: 2,
-      directive_summary_this_week: { period_start: '2026-08-10', period_end: '2026-08-16', total: 1, by_status: { issued: 1 } },
+      pending_inquiries: [],
+      directive_summary_this_week: { period_start: '2026-08-10', period_end: '2026-08-16', total: 1, by_status: { issued: 1 }, directives: [] },
     })
 
     renderPage()
@@ -122,6 +125,52 @@ describe('PsDashboardPage', () => {
     expect(screen.getByLabelText('Target user ID')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Activate Acting PS' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Deactivate Acting PS' })).toBeInTheDocument()
+  })
+
+  it('TC-FR-SDT-001-B: lists pending inquiries and this week\'s directives with country and status (ISS-014)', async () => {
+    vi.mocked(authApi.me).mockReset().mockResolvedValue(meResponseFor('Ministry PS'))
+    vi.mocked(sdtApi.getPsDashboard).mockReset().mockResolvedValue({
+      unacknowledged_alerts_count: 0,
+      pending_inquiries_count: 1,
+      pending_inquiries: [
+        {
+          id: 'inquiry-1',
+          reference_number: 'INQ-202611-00004',
+          category: 'Buyer Seeking Supplier',
+          status: 'pending_external_response',
+          mission: { id: 'mission-berlin', name: 'Berlin', host_country: 'Germany' },
+          created_at: '2026-11-20T09:00:00Z',
+        },
+      ],
+      directive_summary_this_week: {
+        period_start: '2026-11-23',
+        period_end: '2026-11-29',
+        total: 1,
+        by_status: { in_progress: 1 },
+        directives: [
+          {
+            id: 'directive-1',
+            description: 'Brief HQ on the Berlin fair.',
+            status: 'in_progress',
+            mission: { id: 'mission-berlin', name: 'Berlin', host_country: 'Germany' },
+            target_completion_date: null,
+            created_at: '2026-11-24T09:00:00Z',
+          },
+        ],
+      },
+    })
+    renderPage()
+
+    const inquiries = await screen.findByRole('region', { name: 'Pending Inquiries' })
+    expect(await within(inquiries).findByText('INQ-202611-00004')).toBeInTheDocument()
+    expect(within(inquiries).getByText('Berlin · Germany')).toBeInTheDocument()
+    expect(within(inquiries).getByText('Pending External Response')).toBeInTheDocument()
+
+    const directives = screen.getByRole('region', { name: 'Directive Summary' })
+    expect(within(directives).getByText('Brief HQ on the Berlin fair.')).toBeInTheDocument()
+    expect(within(directives).getAllByText('In Progress').length).toBeGreaterThan(0)
+    expect(within(directives).queryByText('in_progress')).not.toBeInTheDocument()
+    expect(screen.queryByText(/endpoint/)).not.toBeInTheDocument()
   })
 
   it('TC-FR-SDT-004-B: explains why a second Acting PS activation is refused (BR-023, ISS-012)', async () => {
@@ -165,7 +214,8 @@ describe('PsDashboardPage', () => {
     vi.mocked(sdtApi.getPsDashboard).mockReset().mockResolvedValue({
       unacknowledged_alerts_count: 0,
       pending_inquiries_count: 0,
-      directive_summary_this_week: { period_start: '2026-08-10', period_end: '2026-08-16', total: 0, by_status: {} },
+      pending_inquiries: [],
+      directive_summary_this_week: { period_start: '2026-08-10', period_end: '2026-08-16', total: 0, by_status: {}, directives: [] },
     })
 
     const { container } = renderPage()

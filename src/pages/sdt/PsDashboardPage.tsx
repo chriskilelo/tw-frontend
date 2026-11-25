@@ -1,8 +1,11 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { listAlerts, type Alert } from '../../api/alerts'
-import { activateActingPs, deactivateActingPs, getPsDashboard } from '../../api/sdt'
+import { activateActingPs, deactivateActingPs, getPsDashboard, type PsDashboardDirective, type PsDashboardInquiry, type PsDashboardMissionRef } from '../../api/sdt'
+import type { DirectiveStatus } from '../../api/directives'
+import { InquiryStatusBadge } from '../inquiries/InquiryStatusBadge'
+import { DirectiveStatusBadge } from '../directives/DirectiveStatusBadge'
 import { useAuth } from '../../hooks/useAuth'
 import { Table, type TableColumn } from '../../components/Table'
 import { AlertStatusBadge } from '../alerts/AlertStatusBadge'
@@ -98,6 +101,23 @@ export default function PsDashboardPage() {
   ]
 
   const directiveSummary = dashboardQuery.data?.directive_summary_this_week
+  const pendingInquiries = dashboardQuery.data?.pending_inquiries ?? []
+  const pendingCount = dashboardQuery.data?.pending_inquiries_count ?? 0
+  const weekDirectives = directiveSummary?.directives ?? []
+  const missionLabel = (mission: PsDashboardMissionRef | null) => (mission ? `${mission.name} · ${mission.host_country}` : '—')
+
+  const inquiryColumns: TableColumn<PsDashboardInquiry>[] = [
+    { key: 'reference_number', header: t.sdt.psDashboard.columnReference, render: (row) => <span className="font-mono">{row.reference_number}</span> },
+    { key: 'mission', header: t.sdt.psDashboard.columnMissionCountry, render: (row) => missionLabel(row.mission) },
+    { key: 'category', header: t.sdt.psDashboard.columnCategory, render: (row) => row.category },
+    { key: 'status', header: t.sdt.psDashboard.columnStatus, render: (row) => <InquiryStatusBadge status={row.status} /> },
+  ]
+
+  const directiveColumns: TableColumn<PsDashboardDirective>[] = [
+    { key: 'description', header: t.sdt.psDashboard.columnDirective, render: (row) => <span className="line-clamp-2">{row.description}</span> },
+    { key: 'mission', header: t.sdt.psDashboard.columnMissionCountry, render: (row) => missionLabel(row.mission) },
+    { key: 'status', header: t.sdt.psDashboard.columnStatus, render: (row) => <DirectiveStatusBadge status={row.status} /> },
+  ]
 
   return (
     <div className="p-6" data-testid="alert-dashboard">
@@ -112,10 +132,12 @@ export default function PsDashboardPage() {
           <p className="text-body-sm text-text-muted">{t.sdt.psDashboard.directiveSummaryTitle}</p>
           <p className="mt-1 font-mono text-h1 text-primary">{directiveSummary?.total ?? '—'}</p>
           {directiveSummary && (
-            <dl className="mt-2 space-y-1 text-body-sm">
-              {Object.entries(directiveSummary.by_status).map(([status, count]) => (
-                <div key={status} className="flex justify-between">
-                  <dt className="text-text-secondary">{status}</dt>
+            <dl className="mt-2 space-y-1.5 text-body-sm">
+              {(Object.entries(directiveSummary.by_status) as [DirectiveStatus, number][]).map(([status, count]) => (
+                <div key={status} className="flex items-center justify-between gap-2">
+                  <dt>
+                    <DirectiveStatusBadge status={status} />
+                  </dt>
                   <dd className="font-mono text-text-primary">{count}</dd>
                 </div>
               ))}
@@ -141,6 +163,48 @@ export default function PsDashboardPage() {
             onPerPageChange={unacknowledgedAlertsPage.setPerPage}
             className="mt-4"
           />
+        </div>
+      </section>
+
+      {/* ISS-014: the items behind the two counts above, with country and status. */}
+      <section className="mt-8" aria-labelledby="ps-pending-inquiries-heading">
+        <h2 id="ps-pending-inquiries-heading" className="text-h3 text-primary">
+          {t.sdt.psDashboard.pendingInquiriesTitle}
+        </h2>
+        <div className="mt-3">
+          <Table
+            columns={inquiryColumns}
+            data={pendingInquiries}
+            rowKey={(row) => row.id}
+            emptyMessage={t.sdt.psDashboard.pendingInquiriesEmpty}
+            onRowClick={(row) => navigate(`/inquiries/${row.id}`)}
+          />
+          {pendingCount > pendingInquiries.length && (
+            <Link to="/inquiries" className="mt-2 inline-block text-body-sm font-semibold text-info-soft-text hover:underline">
+              {t.sdt.psDashboard.viewAllInquiries(pendingInquiries.length, pendingCount)}
+            </Link>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-8" aria-labelledby="ps-directives-heading">
+        <h2 id="ps-directives-heading" className="text-h3 text-primary">
+          {t.sdt.psDashboard.directiveSummaryTitle}
+        </h2>
+        <p className="text-body-sm text-text-secondary">{t.sdt.psDashboard.directivesThisWeek}</p>
+        <div className="mt-3">
+          <Table
+            columns={directiveColumns}
+            data={weekDirectives}
+            rowKey={(row) => row.id}
+            emptyMessage={t.sdt.psDashboard.directivesEmpty}
+            onRowClick={(row) => navigate(`/directives/${row.id}`)}
+          />
+          {(directiveSummary?.total ?? 0) > weekDirectives.length && (
+            <Link to="/directives" className="mt-2 inline-block text-body-sm font-semibold text-info-soft-text hover:underline">
+              {t.sdt.psDashboard.viewAllDirectives}
+            </Link>
+          )}
         </div>
       </section>
 

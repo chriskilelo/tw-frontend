@@ -7,17 +7,46 @@ import type { ComparisonKpiRow, KpiComparisonMatrix } from './kpi'
 import type { ReferralOrganisation } from './referrals'
 
 /** SdtService::directiveSummaryForWeek() shape — FR-SDT-001. */
+export interface PsDashboardMissionRef {
+  id: string
+  name: string
+  host_country: string
+}
+
+export interface PsDashboardDirective {
+  id: string
+  description: string
+  status: DirectiveStatus
+  mission: PsDashboardMissionRef | null
+  target_completion_date: string | null
+  created_at: string
+}
+
 export interface DirectiveWeekSummary {
   period_start: string
   period_end: string
   total: number
-  by_status: Record<string, number>
+  by_status: Partial<Record<DirectiveStatus, number>>
+  /** This week's directives, newest first (at most 10; `total` counts them all). */
+  directives: PsDashboardDirective[]
+}
+
+/** A pending inquiry on the PS dashboard. Carries no inquirer details (LEG-001). */
+export interface PsDashboardInquiry {
+  id: string
+  reference_number: string
+  category: string
+  status: InquiryStatus
+  mission: PsDashboardMissionRef | null
+  created_at: string
 }
 
 /** GET /sdt/dashboard response — SdtService::psDashboard(), FR-SDT-001. */
 export interface PsDashboard {
   unacknowledged_alerts_count: number
   pending_inquiries_count: number
+  /** The most recent pending inquiries (at most 10; the count covers the rest). ISS-014. */
+  pending_inquiries: PsDashboardInquiry[]
   directive_summary_this_week: DirectiveWeekSummary
 }
 
