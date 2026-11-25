@@ -52,6 +52,24 @@ describe('CountryProfilePage', () => {
     expect(searchApi.getCountryProfile).toHaveBeenCalledWith('Germany')
   })
 
+  it('TC-FR-SEARCH-004-B: names intelligence types and uses plain wording (ISS-013)', async () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(authAs('Ministry HQ Officer'))
+    vi.mocked(searchApi.getCountryProfile).mockResolvedValue({
+      country: 'Germany',
+      total_alerts: 1,
+      by_intelligence_type: { trade_barriers: 1 },
+      by_sector: {},
+      recent_alerts: [
+        { id: 'alert-1', reference_number: 'ALT-202611-00009', intelligence_type: 'trade_barriers', sector: null, urgency: null, status: 'new', mission: 'Berlin', submitted_by: null, created_at: '2026-11-02T09:00:00Z' },
+      ],
+    })
+    renderPage()
+
+    expect((await screen.findAllByText('Trade Barriers')).length).toBe(2)
+    expect(screen.queryByText('trade_barriers')).not.toBeInTheDocument()
+    expect(screen.queryByText(/endpoint|backend|FR-SEARCH/)).not.toBeInTheDocument()
+  })
+
   it('TC-FR-MFA-001-AC2: tells an MFA role the profile is unavailable without asking for it (ISS-020)', () => {
     vi.mocked(useAuthModule.useAuth).mockReturnValue(authAs('MFA Principal Secretary'))
     renderPage()

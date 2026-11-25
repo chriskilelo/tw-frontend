@@ -57,6 +57,12 @@ export function isConfidenceValue(value: string): value is ConfidenceValue {
 }
 
 type UrgencyOptionsCopy = Record<UrgencyValue, { name: string }>
+
+/** The localised intelligence type name; an unknown stored value is shown as it is (ISS-013, ISS-027). */
+export function intelligenceTypeName(value: string, names: Record<'opportunities' | 'trade_barriers', string>): string {
+  return value === 'opportunities' || value === 'trade_barriers' ? names[value] : value
+}
+
 type ConfidenceOptionsCopy = Record<ConfidenceValue, { name: string }>
 
 /** Localised name for the tile values; any other (legacy/free-text) stored value is shown verbatim. */

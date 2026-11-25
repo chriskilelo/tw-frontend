@@ -227,14 +227,16 @@ export default function InquirySettingsConfigPage() {
             onChange={(event) => setNewDisplayOrder(event.target.value)}
           />
           {!defaultMinistryId && (
-            <Input
-              label={t.sdt.inquirySettings.ministryIdLabel}
-              required
-              value={newMinistryId}
-              onChange={(event) => setNewMinistryId(event.target.value)}
-            />
+            <>
+              <Input
+                label={t.sdt.inquirySettings.ministryIdLabel}
+                required
+                value={newMinistryId}
+                onChange={(event) => setNewMinistryId(event.target.value)}
+              />
+              <p className="text-caption text-text-muted">{t.sdt.inquirySettings.ministryIdHint}</p>
+            </>
           )}
-          <p className="text-caption text-text-muted">{t.sdt.inquirySettings.ministryIdHint}</p>
 
           {createMutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
 

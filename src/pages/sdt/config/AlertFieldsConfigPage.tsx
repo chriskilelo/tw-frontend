@@ -14,6 +14,7 @@ import { Pagination } from '../../../components/Pagination'
 import { useClientPagination } from '../../../hooks/useClientPagination'
 import { useAuth, isMinistryAdministrator } from '../../../hooks/useAuth'
 import { useI18n } from '../../../i18n/context'
+import { intelligenceTypeName } from '../../alerts/alertAssessment'
 
 const QUERY_KEY = ['sdt', 'config', 'alert-fields'] as const
 
@@ -97,7 +98,7 @@ export default function AlertFieldsConfigPage() {
         editingId === row.id ? (
           <Input value={editValue} onChange={(event) => setEditValue(event.target.value)} />
         ) : (
-          row.value
+          <OptionValue value={row.value} />
         ),
     },
     {
@@ -179,14 +180,16 @@ export default function AlertFieldsConfigPage() {
             onChange={(event) => setNewDisplayOrder(event.target.value)}
           />
           {!defaultMinistryId && (
-            <Input
-              label={t.sdt.alertFields.ministryIdLabel}
-              required
-              value={newMinistryId}
-              onChange={(event) => setNewMinistryId(event.target.value)}
-            />
+            <>
+              <Input
+                label={t.sdt.alertFields.ministryIdLabel}
+                required
+                value={newMinistryId}
+                onChange={(event) => setNewMinistryId(event.target.value)}
+              />
+              <p className="text-caption text-text-muted">{t.sdt.alertFields.ministryIdHint}</p>
+            </>
           )}
-          <p className="text-caption text-text-muted">{t.sdt.alertFields.ministryIdHint}</p>
 
           {createMutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
 
@@ -198,5 +201,17 @@ export default function AlertFieldsConfigPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+/** ISS-027: the option's name, with the value stored in the database as a note when they differ. */
+function OptionValue({ value }: { value: string }) {
+  const { t } = useI18n()
+  const name = intelligenceTypeName(value, t.alerts.intelligenceType)
+  return (
+    <span className="flex flex-col">
+      <span>{name}</span>
+      {name !== value && <span className="font-mono text-caption text-text-muted">{t.sdt.alertFields.storedAs(value)}</span>}
+    </span>
   )
 }

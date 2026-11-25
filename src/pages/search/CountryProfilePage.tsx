@@ -9,6 +9,7 @@ import { Button } from '../../components/Button'
 import { Pagination } from '../../components/Pagination'
 import { useClientPagination } from '../../hooks/useClientPagination'
 import { AlertStatusBadge } from '../alerts/AlertStatusBadge'
+import { intelligenceTypeName } from '../alerts/alertAssessment'
 import type { CountryProfileAlert } from '../../api/search'
 import { canUseSearch, useAuth } from '../../hooks/useAuth'
 import { useI18n } from '../../i18n/context'
@@ -58,7 +59,7 @@ export default function CountryProfilePage() {
     {
       key: 'intelligence_type',
       header: t.search.countryProfile.columnIntelligenceType,
-      render: (row) => row.intelligence_type,
+      render: (row) => intelligenceTypeName(row.intelligence_type, t.alerts.intelligenceType),
     },
     { key: 'sector', header: t.search.countryProfile.columnSector, render: (row) => row.sector ?? '—' },
     {
@@ -115,6 +116,7 @@ export default function CountryProfilePage() {
             <BreakdownCard
               title={t.search.countryProfile.byIntelligenceTypeTitle}
               breakdown={profileQuery.data.by_intelligence_type}
+              label={(key) => intelligenceTypeName(key, t.alerts.intelligenceType)}
             />
             <BreakdownCard title={t.search.countryProfile.bySectorTitle} breakdown={profileQuery.data.by_sector} />
           </section>
@@ -157,7 +159,7 @@ export default function CountryProfilePage() {
   )
 }
 
-function BreakdownCard({ title, breakdown }: { title: string; breakdown: Record<string, number> }) {
+function BreakdownCard({ title, breakdown, label = (key) => key }: { title: string; breakdown: Record<string, number>; label?: (key: string) => string }) {
   const entries = Object.entries(breakdown)
   return (
     <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
@@ -168,7 +170,7 @@ function BreakdownCard({ title, breakdown }: { title: string; breakdown: Record<
         ) : (
           entries.map(([key, count]) => (
             <div key={key} className="flex justify-between">
-              <dt className="text-text-secondary">{key}</dt>
+              <dt className="text-text-secondary">{label(key)}</dt>
               <dd className="font-mono text-text-primary">{count}</dd>
             </div>
           ))

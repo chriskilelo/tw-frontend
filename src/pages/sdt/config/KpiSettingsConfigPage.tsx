@@ -253,14 +253,16 @@ export default function KpiSettingsConfigPage() {
           />
 
           {!defaultMinistryId && (
-            <Input
-              label={t.sdt.kpiSettings.ministryIdLabel}
-              required
-              value={newMinistryId}
-              onChange={(event) => setNewMinistryId(event.target.value)}
-            />
+            <>
+              <Input
+                label={t.sdt.kpiSettings.ministryIdLabel}
+                required
+                value={newMinistryId}
+                onChange={(event) => setNewMinistryId(event.target.value)}
+              />
+              <p className="text-caption text-text-muted">{t.sdt.kpiSettings.ministryIdHint}</p>
+            </>
           )}
-          <p className="text-caption text-text-muted">{t.sdt.kpiSettings.ministryIdHint}</p>
 
           {createMutation.isError && <ErrorList messages={apiErrorMessages(createMutation.error, t.common.genericError)} />}
 
