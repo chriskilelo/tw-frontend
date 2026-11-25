@@ -6,6 +6,7 @@ import { useAuth, AUTH_QUERY_KEY } from '../hooks/useAuth'
 import { useI18n } from '../i18n/context'
 import type { LanguagePreference } from '../i18n'
 import { Avatar, getInitials } from '../components/Avatar'
+import { translatedName } from '../lib/displayNames'
 
 const LANGUAGES: LanguagePreference[] = ['en', 'sw']
 const NOTIFICATION_TRIGGERS = ['alert_routed', 'directive_issued', 'report_deadline_reminder'] as const
@@ -78,7 +79,7 @@ export default function ProfilePage() {
           <Avatar initials={initials} src={user.avatar_url} alt={user.full_name} size="lg" />
           <div className="min-w-0">
             <p className="truncate text-h3 text-text-primary">{user.full_name}</p>
-            {role && <p className="text-body-sm text-text-secondary">{role.name}</p>}
+            {role && <p className="text-body-sm text-text-secondary">{translatedName(role.name, t.roleNames)}</p>}
             {(user.mission || user.ministry) && (
               <p className="truncate text-body-sm text-text-muted">
                 {[user.mission?.name, user.ministry?.name].filter(Boolean).join(' · ')}
@@ -136,7 +137,7 @@ export default function ProfilePage() {
         <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t.profile.accountInfo.fullNameLabel} value={user.full_name} />
           <Field label={t.profile.accountInfo.emailLabel} value={user.email} />
-          <Field label={t.profile.accountInfo.roleLabel} value={role?.name ?? t.profile.accountInfo.notApplicable} />
+          <Field label={t.profile.accountInfo.roleLabel} value={role ? translatedName(role.name, t.roleNames) : t.profile.accountInfo.notApplicable} />
           <Field label={t.profile.accountInfo.statusLabel} value={t.profile.status[user.status]} />
           <Field
             label={t.profile.accountInfo.missionLabel}

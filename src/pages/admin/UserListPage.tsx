@@ -12,6 +12,7 @@ import { useAuth, isSystemAdministrator } from '../../hooks/useAuth'
 import { useI18n } from '../../i18n/context'
 import { UserStatusBadge } from './AdminStatusBadges'
 import { accountLifecycleAccess, canUnlock, useAccountLifecycle } from './useAccountLifecycle'
+import { translatedName } from '../../lib/displayNames'
 
 const USER_STATUSES: ManagedUser['status'][] = ['activation_pending', 'active', 'locked', 'deactivated']
 
@@ -56,7 +57,7 @@ export default function UserListPage() {
   const columns: TableColumn<ManagedUser>[] = [
     { key: 'name', header: t.admin.users.columnName, render: (row) => row.full_name },
     { key: 'email', header: t.admin.users.columnEmail, render: (row) => row.email },
-    { key: 'role', header: t.admin.users.columnRole, render: (row) => row.role?.name ?? '—' },
+    { key: 'role', header: t.admin.users.columnRole, render: (row) => (row.role ? translatedName(row.role.name, t.roleNames) : '—') },
     { key: 'mission', header: t.admin.users.columnMission, render: (row) => row.mission?.name ?? '—' },
     ...(systemAdministrator
       ? [{ key: 'department', header: t.admin.users.columnDepartment, render: (row: ManagedUser) => row.ministry?.name ?? '—' }]

@@ -21,6 +21,7 @@ import { formatRelativeTime, localeFor } from '../../lib/formatters'
 import { greetingName, formatNumber, greetingPart, periodRange } from '../../lib/dashboardFormat'
 import { GovernanceStatusBadge } from '../governance/governanceUi'
 import { GOVERNANCE_TYPES, useFeedLine, useStatusRanking } from './governanceLabels'
+import { translatedName } from '../../lib/displayNames'
 
 
 /**
@@ -58,7 +59,7 @@ export default function MissionGovernanceDashboard({ user, role }: { user: AuthU
         title={t.dashboard.hero.greeting[greetingPart()](greetingName(user.full_name))}
         subtitle={
           <span className="inline-flex flex-wrap items-center gap-2">
-            {user.mission?.name ? `${role.name} · ${user.mission.name}` : role.name}
+            {user.mission?.name ? `${translatedName(role.name, t.roleNames)} · ${user.mission.name}` : translatedName(role.name, t.roleNames)}
             <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-caption font-semibold text-white ring-1 ring-white/20">
               <EyeIcon aria-hidden="true" className="size-3.5" />
               {t.dashboard.common.viewOnly}

@@ -12,6 +12,7 @@ import { isForbidden } from '../../lib/apiErrors'
 import { InquiryStatusBadge } from './InquiryStatusBadge'
 import { InquirySubTypeBadge } from './InquirySubTypeBadge'
 import { useI18n } from '../../i18n/context'
+import { translatedName } from '../../lib/displayNames'
 
 const STATUS_OPTIONS: InquiryStatus[] = [
   'draft',
@@ -74,7 +75,7 @@ export default function InquiryListPage() {
       header: t.inquiries.list.columnReference,
       render: (row) => <span className="font-mono">{row.reference_number}</span>,
     },
-    { key: 'category', header: t.inquiries.list.columnCategory, render: (row) => row.category },
+    { key: 'category', header: t.inquiries.list.columnCategory, render: (row) => translatedName(row.category, t.inquiryCategoryNames) },
     {
       key: 'sub_type',
       header: t.inquiries.list.columnSubType,
@@ -149,7 +150,7 @@ export default function InquiryListPage() {
               <option value="">{t.inquiries.list.allCategories}</option>
               {(categoriesQuery.data ?? []).map((option) => (
                 <option key={option.id} value={option.value}>
-                  {option.value}
+                  {translatedName(option.value, t.inquiryCategoryNames)}
                 </option>
               ))}
             </select>

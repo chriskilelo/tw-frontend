@@ -14,6 +14,7 @@ import { apiErrorMessages } from '../../lib/apiErrors'
 import { AccountStatusPanel } from './AccountStatusPanel'
 import { PortfolioEditor } from './PortfolioEditor'
 import { accountLifecycleAccess } from './useAccountLifecycle'
+import { translatedName } from '../../lib/displayNames'
 
 /** The role whose accounts carry a portfolio (UserPortfolioController::HQ_OFFICER). */
 const HQ_OFFICER = 'Ministry HQ Officer'
@@ -73,9 +74,9 @@ export default function UserFormPage() {
   const selectedRole = roles.find((candidate) => candidate.id === roleId)
   // Editing a role the actor may not assign (e.g. a PS, whose role only changes through an
   // approval request): keep it visible so the form still shows what the account holds.
-  const roleOptions = roles.map((candidate) => ({ value: candidate.id, label: candidate.name }))
+  const roleOptions = roles.map((candidate) => ({ value: candidate.id, label: translatedName(candidate.name, t.roleNames) }))
   if (userQuery.data?.role && !roles.some((candidate) => candidate.id === userQuery.data?.role?.id)) {
-    roleOptions.push({ value: userQuery.data.role.id, label: userQuery.data.role.name })
+    roleOptions.push({ value: userQuery.data.role.id, label: translatedName(userQuery.data.role.name, t.roleNames) })
   }
   const selectedRoleName = selectedRole?.name ?? userQuery.data?.role?.name
   const needsMission = selectedRole?.scope === 'mission'

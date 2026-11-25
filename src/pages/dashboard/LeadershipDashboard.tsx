@@ -28,6 +28,7 @@ import { useI18n } from '../../i18n/context'
 import { COMPLIANCE_COLORS } from '../reports/complianceTheme'
 import { formatDate, localeFor } from '../../lib/formatters'
 import { greetingName, formatNumber, greetingPart, percentOf, periodRange, periodTick } from '../../lib/dashboardFormat'
+import { translatedName } from '../../lib/displayNames'
 
 interface LeadershipDashboardProps {
   data: LeadershipDashboardData
@@ -447,7 +448,7 @@ export default function LeadershipDashboard({ data, user, role, kpiCycle, onKpiC
     <>
       <DashboardHero
         title={t.dashboard.hero.greeting[greetingPart()](greetingName(user.full_name))}
-        subtitle={user.ministry?.name ? `${role.name} · ${user.ministry.name}` : role.name}
+        subtitle={user.ministry?.name ? `${translatedName(role.name, t.roleNames)} · ${user.ministry.name}` : translatedName(role.name, t.roleNames)}
         calendar={data.calendar}
         actions={actions}
       />

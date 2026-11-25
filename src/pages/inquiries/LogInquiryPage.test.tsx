@@ -86,6 +86,15 @@ describe('LogInquiryPage', () => {
     })
   })
 
+  it('TC-FR-I18N-001-C: names inquiry categories in Kiswahili while sending the stored value (ISS-005)', async () => {
+    const swahiliAttache = attacheWithMission()
+    swahiliAttache.user.language_preference = 'sw'
+    vi.mocked(authApi.me).mockReset().mockResolvedValue(swahiliAttache)
+    renderLogInquiryPage()
+
+    expect(await screen.findByRole('radio', { name: /Mnunuzi Anayetafuta Msambazaji/ })).toHaveAttribute('value', 'Buyer Seeking Supplier')
+  })
+
   it('TC-FR-INQ-002: renders and submitting a filled form calls inquiries.logInquiry', async () => {
     renderLogInquiryPage()
 

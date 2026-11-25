@@ -22,6 +22,7 @@ import { useI18n } from '../../i18n/context'
 import { localeFor } from '../../lib/formatters'
 import { greetingName, formatNumber, greetingPart, periodRange } from '../../lib/dashboardFormat'
 import { GOVERNANCE_TYPES } from './governanceLabels'
+import { translatedName } from '../../lib/displayNames'
 
 /**
  * MFA HQ Officer / MFA Principal Secretary (FR-MFA-001 to 003): cross-mission awareness from
@@ -61,7 +62,7 @@ export default function MfaDashboard({ user, role }: { user: AuthUser; role: Rol
     <>
       <DashboardHero
         title={t.dashboard.hero.greeting[greetingPart()](greetingName(user.full_name))}
-        subtitle={`${role.name} · ${copy.scope}`}
+        subtitle={`${translatedName(role.name, t.roleNames)} · ${copy.scope}`}
         actions={[
           { to: '/mfa-awareness', label: t.dashboard.actions.mfaAwareness, icon: <GlobeAltIcon />, primary: true },
           { to: '/mfa-awareness?view=log', label: t.governance.mfaAwareness.views.log, icon: <TableCellsIcon /> },

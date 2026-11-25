@@ -2,6 +2,9 @@
 // Deliberately not `as const`: string leaves stay widened to `string` so sw.ts
 // (typed as `typeof en`) can hold different Kiswahili text at every key.
 const en = {
+  /** Role names and inquiry categories are stored in English; English shows them as stored. */
+  roleNames: {} as Record<string, string>,
+  inquiryCategoryNames: {} as Record<string, string>,
   common: {
     save: 'Save',
     cancel: 'Cancel',

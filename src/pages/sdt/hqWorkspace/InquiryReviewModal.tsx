@@ -19,6 +19,7 @@ import { useI18n } from '../../../i18n/context'
 import { retryUnlessClientError } from '../../../lib/apiErrors'
 import { formatDate, formatRelativeTime, localeFor } from '../../../lib/formatters'
 import { issueDirectiveLink } from './workspaceState'
+import { translatedName } from '../../../lib/displayNames'
 
 const TIMELINE_LIMIT = 6
 
@@ -117,7 +118,7 @@ function InquiryReviewBody({ row, onClose }: { row: HqWorkspaceInquiry; onClose:
       )}
 
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-xl bg-page-bg p-4 sm:grid-cols-2">
-        <Fact label={copy.category} value={inquiry.category} />
+        <Fact label={copy.category} value={translatedName(inquiry.category, t.inquiryCategoryNames)} />
         <Fact label={copy.product} value={inquiry.product_or_sector} />
         <Fact label={copy.inquirer} value={inquiry.inquirer_name} />
         <Fact label={copy.organisation} value={inquiry.inquirer_organisation} />

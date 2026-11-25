@@ -8,6 +8,7 @@ import { Select } from '../../components/Select'
 import { useAuth, isSystemAdministrator } from '../../hooks/useAuth'
 import { useI18n } from '../../i18n/context'
 import { apiErrorMessages } from '../../lib/apiErrors'
+import { translatedName } from '../../lib/displayNames'
 
 /** Accounts that can never be switched into either leadership role from here. */
 const EXCLUDED_ROLES = ['System Administrator', 'Ministry Administrator', 'Ministry PS', 'Acting PS']
@@ -120,7 +121,7 @@ function SwitchCard({ title, hint, officers, onActivate, onDeactivate, testId }:
           value={userId}
           onChange={(event) => setUserId(event.target.value)}
           placeholder={t.admin.leadership.userPlaceholder}
-          options={officers.map((account) => ({ value: account.id, label: `${account.full_name} — ${account.role?.name ?? ''}` }))}
+          options={officers.map((account) => ({ value: account.id, label: `${account.full_name} — ${translatedName(account.role?.name, t.roleNames)}` }))}
         />
 
         {notice && <p className="text-body-sm text-success-soft-text">{notice}</p>}

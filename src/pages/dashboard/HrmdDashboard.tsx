@@ -18,6 +18,7 @@ import { KpiStatusLegend, MissionStatusRows, RankedBars, StatTile } from '../../
 import { useI18n } from '../../i18n/context'
 import { localeFor } from '../../lib/formatters'
 import { greetingName, formatNumber, greetingPart, percentOf, periodRange, periodTick, recentKpiCycles } from '../../lib/dashboardFormat'
+import { translatedName } from '../../lib/displayNames'
 
 const EMPTY_COUNTS: Record<PerformanceStatus, number> = { on_track: 0, at_risk: 0, below_target: 0, pending: 0, no_target: 0, no_data: 0 }
 
@@ -83,7 +84,7 @@ export default function HrmdDashboard({ user, role }: { user: AuthUser; role: Ro
     <>
       <DashboardHero
         title={t.dashboard.hero.greeting[greetingPart()](greetingName(user.full_name))}
-        subtitle={user.ministry?.name ? `${role.name} · ${user.ministry.name}` : role.name}
+        subtitle={user.ministry?.name ? `${translatedName(role.name, t.roleNames)} · ${user.ministry.name}` : translatedName(role.name, t.roleNames)}
         actions={[{ to: '/sdt/hrmd-dashboard', label: t.dashboard.actions.attacheSummaries, icon: <UserGroupIcon />, primary: true }]}
         aside={
           <div className="w-full rounded-xl bg-white p-4 text-text-primary shadow-sm lg:w-80">

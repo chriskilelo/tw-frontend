@@ -25,6 +25,7 @@ import { useAuth, isMinistryAdministrator, isSystemAdministrator } from '../../h
 import { useI18n } from '../../i18n/context'
 import { apiErrorMessages } from '../../lib/apiErrors'
 import { ApprovalStatusBadge } from './AdminStatusBadges'
+import { translatedName } from '../../lib/displayNames'
 
 const STATUSES: ApprovalRequestStatus[] = ['pending', 'approved', 'rejected', 'cancelled']
 const TYPES: ApprovalRequestType[] = ['ps_appointment', 'ps_promotion', 'ps_deactivation', 'ps_succession']
@@ -240,7 +241,7 @@ function NewPsRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
   const accounts = (usersQuery.data?.data ?? []).filter((account) => account.status !== 'deactivated')
   const sittingPs = accounts.find((account) => account.role?.name === 'Ministry PS')
   const eligible = accounts.filter((account) => !INELIGIBLE_ROLES.includes(account.role?.name ?? ''))
-  const eligibleOptions = eligible.map((account) => ({ value: account.id, label: `${account.full_name} — ${account.role?.name ?? ''}` }))
+  const eligibleOptions = eligible.map((account) => ({ value: account.id, label: `${account.full_name} — ${translatedName(account.role?.name, t.roleNames)}` }))
 
   const needsSittingPs = type === 'ps_deactivation' || type === 'ps_succession'
   const needsNewPerson = type === 'ps_appointment' || (type === 'ps_succession' && incomingMode === 'new')

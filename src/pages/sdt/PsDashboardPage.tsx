@@ -15,6 +15,7 @@ import { Pagination } from '../../components/Pagination'
 import { useClientPagination } from '../../hooks/useClientPagination'
 import { useI18n } from '../../i18n/context'
 import { apiErrorMessages } from '../../lib/apiErrors'
+import { translatedName } from '../../lib/displayNames'
 
 /**
  * FR-SDT-001: SdtService::psDashboard() only returns unacknowledged_alerts_count, not
@@ -109,7 +110,7 @@ export default function PsDashboardPage() {
   const inquiryColumns: TableColumn<PsDashboardInquiry>[] = [
     { key: 'reference_number', header: t.sdt.psDashboard.columnReference, render: (row) => <span className="font-mono">{row.reference_number}</span> },
     { key: 'mission', header: t.sdt.psDashboard.columnMissionCountry, render: (row) => missionLabel(row.mission) },
-    { key: 'category', header: t.sdt.psDashboard.columnCategory, render: (row) => row.category },
+    { key: 'category', header: t.sdt.psDashboard.columnCategory, render: (row) => translatedName(row.category, t.inquiryCategoryNames) },
     { key: 'status', header: t.sdt.psDashboard.columnStatus, render: (row) => <InquiryStatusBadge status={row.status} /> },
   ]
 

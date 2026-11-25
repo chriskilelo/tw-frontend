@@ -51,6 +51,7 @@ import {
   type HeroIcon,
 } from './inquiryPresentation'
 import { StickyAside } from '../../components/StickyAside'
+import { translatedName } from '../../lib/displayNames'
 
 type SectionKey = 'classification' | 'inquirer' | 'details'
 
@@ -209,7 +210,7 @@ export default function LogInquiryPage() {
                         isRequired
                         tone={NEUTRAL_TONE}
                         icon={<CategoryIcon className="size-4" aria-hidden="true" />}
-                        title={option.value}
+                        title={translatedName(option.value, t.inquiryCategoryNames)}
                         description={copy.categoryDescriptions[option.value]}
                       />
                     )

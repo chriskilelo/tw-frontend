@@ -169,6 +169,14 @@ describe('ProfilePage', () => {
     expect(screen.queryByText('Saved.')).not.toBeInTheDocument()
   })
 
+  it('TC-FR-I18N-001-D: shows the role name in Kiswahili (ISS-005)', async () => {
+    vi.mocked(authApi.me).mockResolvedValue(meResponse({ language_preference: 'sw' }))
+    renderPage()
+
+    expect((await screen.findAllByText('Mwambata wa Wizara')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Ministry Attache')).not.toBeInTheDocument()
+  })
+
   it('TC-UI-002: renders without overflow at 375px viewport', async () => {
     Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 375 })
     vi.mocked(authApi.me).mockResolvedValue(meResponse())

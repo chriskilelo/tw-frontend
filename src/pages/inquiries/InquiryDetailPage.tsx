@@ -82,6 +82,7 @@ import {
   type HeroIcon,
 } from './inquiryPresentation'
 import { StickyAside } from '../../components/StickyAside'
+import { translatedName } from '../../lib/displayNames'
 
 type WorkflowStep = 'draft' | 'received' | 'in_progress' | 'resolved' | 'closed'
 type ActionKey = 'markReceived' | 'startWork' | 'awaitExternal' | 'markResolved' | 'resumeWork'
@@ -381,7 +382,7 @@ export default function InquiryDetailPage() {
               <InquirySubTypeBadge subType={inquiry.sub_type} />
               <span className="inline-flex items-center gap-1.5 rounded-full bg-section-bg px-2.5 py-0.5 text-caption font-semibold text-text-secondary">
                 <CategoryIcon className="size-3.5" aria-hidden="true" />
-                {inquiry.category}
+                {translatedName(inquiry.category, t.inquiryCategoryNames)}
               </span>
               {inquiry.high_value_flag && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-0.5 text-caption font-semibold text-accent-soft-text">
@@ -550,7 +551,7 @@ export default function InquiryDetailPage() {
                 <p className="mb-4 text-body-sm italic text-text-muted">{copy.noDescription}</p>
               )}
               <dl className="grid gap-3 sm:grid-cols-2">
-                <FactTile icon={<CategoryIcon className="size-4" />} label={t.inquiries.log.categoryLabel} value={inquiry.category} emptyText={copy.notProvided} />
+                <FactTile icon={<CategoryIcon className="size-4" />} label={t.inquiries.log.categoryLabel} value={translatedName(inquiry.category, t.inquiryCategoryNames)} emptyText={copy.notProvided} />
                 <FactTile
                   icon={(() => {
                     const SubTypeIcon = SUB_TYPE_ICONS[inquiry.sub_type]

@@ -22,6 +22,7 @@ import type { AuthUser, Role } from '../../api/auth'
 import { useI18n } from '../../i18n/context'
 import { formatDate, localeFor } from '../../lib/formatters'
 import { greetingName, formatNumber, greetingPart, periodRange, periodTick } from '../../lib/dashboardFormat'
+import { translatedName } from '../../lib/displayNames'
 
 interface AttacheDashboardProps {
   data: AttacheDashboardData
@@ -44,7 +45,7 @@ export default function AttacheDashboard({ data, user, role, kpiCycle, onKpiCycl
   if (!data.mission || !data.activity_trend || !data.alerts || !data.inquiries || !data.directives || !data.report || !data.kpi) {
     return (
       <>
-        <DashboardHero title={greeting} subtitle={role.name} calendar={data.calendar} />
+        <DashboardHero title={greeting} subtitle={translatedName(role.name, t.roleNames)} calendar={data.calendar} />
         <PanelEmpty icon={<MapPinIcon />} title={copy.noMission.title} body={copy.noMission.body} />
       </>
     )

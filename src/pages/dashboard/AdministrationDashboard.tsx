@@ -32,6 +32,7 @@ import { Select } from '../../components/Select'
 import { useI18n } from '../../i18n/context'
 import { formatRelativeTime, localeFor } from '../../lib/formatters'
 import { greetingName, formatBytes, formatNumber, greetingPart, percentOf, weekTick } from '../../lib/dashboardFormat'
+import { translatedName } from '../../lib/displayNames'
 
 const HEALTH_STYLE: Record<HealthStatus, { icon: typeof CheckCircleIcon; color: string; chip: string }> = {
   pass: { icon: CheckCircleIcon, color: CHART_COLORS.onTrack, chip: 'bg-success-soft text-success-soft-text' },
@@ -85,7 +86,7 @@ export default function AdministrationDashboard({ user, role }: { user: AuthUser
     <>
       <DashboardHero
         title={t.dashboard.hero.greeting[greetingPart()](greetingName(user.full_name))}
-        subtitle={`${role.name} · ${isPlatformAdministrator ? copy.platformScope : scopeName}`}
+        subtitle={`${translatedName(role.name, t.roleNames)} · ${isPlatformAdministrator ? copy.platformScope : scopeName}`}
         actions={[
           { to: '/admin/users/new', label: t.dashboard.actions.newAccount, icon: <UserPlusIcon />, primary: true },
           { to: '/admin/approvals', label: t.dashboard.actions.reviewApprovals, icon: <CheckBadgeIcon />, badge: data.approvals.pending },

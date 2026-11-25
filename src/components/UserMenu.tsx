@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { AuthUser, Role } from '../api/auth'
 import { useI18n } from '../i18n/context'
 import { Avatar, getInitials } from './Avatar'
+import { translatedName } from '../lib/displayNames'
 
 interface UserMenuProps {
   user: AuthUser
@@ -20,7 +21,7 @@ interface UserMenuProps {
 export function UserMenu({ user, role, onLogout }: UserMenuProps) {
   const { t } = useI18n()
   const initials = getInitials(user.full_name)
-  const title = role?.display_title || role?.name
+  const title = role?.display_title || translatedName(role?.name, t.roleNames)
   const department = user.ministry?.name ?? user.home_ministry?.name
 
   return (
