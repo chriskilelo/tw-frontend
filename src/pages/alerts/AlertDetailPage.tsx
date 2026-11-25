@@ -61,14 +61,17 @@ import { ChoiceTile } from '../../components/ChoiceTile'
 import { NEUTRAL_TONE } from '../../components/choiceTileTones'
 import { SignalStrength } from './SignalStrength'
 import { readAlertSubmitted } from './alertSubmittedState'
+import { AlertVersionHistory } from './AlertVersionHistory'
 import {
   CONFIDENCE_VALUES,
   URGENCY_ICONS,
   URGENCY_TONES,
   URGENCY_VALUES,
+  confidenceDisplayName,
   confidenceLevel,
   isConfidenceValue,
   isUrgencyValue,
+  urgencyDisplayName,
   urgencyTier,
 } from './alertAssessment'
 import { useBreadcrumbLabel } from '../../hooks/useBreadcrumbs'
@@ -518,25 +521,7 @@ export default function AlertDetailPage() {
                 {copy.versionsNone}
               </p>
             ) : (
-              <ol className="flex flex-col gap-2">
-                {[...alert.versions]
-                  .sort((first, second) => first.created_at.localeCompare(second.created_at))
-                  .map((version, index) => ({ version, number: index + 1 }))
-                  .reverse()
-                  .map(({ version, number }) => (
-                    <li key={version.id} className="flex items-start gap-2.5 rounded-lg border border-border px-3 py-2">
-                      <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-section-bg font-mono text-[0.6875rem] text-primary">
-                        {number}
-                      </span>
-                      <span className="min-w-0 text-body-sm">
-                        <span className="block font-semibold text-text-primary">{copy.versionEntry(number)}</span>
-                        <span className="block text-caption text-text-secondary">
-                          {copy.versionSavedBeforeEdit} · {formatDateTime(version.created_at)}
-                        </span>
-                      </span>
-                    </li>
-                  ))}
-              </ol>
+              <AlertVersionHistory alert={alert} formatDateTime={formatDateTime} />
             )}
             <p className="flex gap-2 rounded-lg bg-atrisk-soft px-3 py-2 text-caption leading-snug text-atrisk-soft-text">
               <InformationCircleIcon className="mt-px size-4 shrink-0" aria-hidden="true" />
@@ -559,18 +544,6 @@ export default function AlertDetailPage() {
       )}
     </div>
   )
-}
-
-type UrgencyOptionsCopy = Record<(typeof URGENCY_VALUES)[number], { name: string }>
-type ConfidenceOptionsCopy = Record<(typeof CONFIDENCE_VALUES)[number], { name: string }>
-
-/** Localised name for the tile values; any other (legacy/free-text) stored value is shown verbatim. */
-function urgencyDisplayName(value: string, options: UrgencyOptionsCopy): string {
-  return isUrgencyValue(value) ? options[value].name : value
-}
-
-function confidenceDisplayName(value: string, options: ConfidenceOptionsCopy): string {
-  return isConfidenceValue(value) ? options[value].name : value
 }
 
 function AssessmentGauge({

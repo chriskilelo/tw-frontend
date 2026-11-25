@@ -154,6 +154,61 @@ describe('AlertDetailPage', () => {
     expect(screen.queryByText('Alert submitted and routed.')).not.toBeInTheDocument()
   })
 
+  it('TC-FR-ALERT-012: each earlier version shows who edited it and the text it held (ISS-007)', async () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry Attache', 'attache-1'))
+    const content = {
+      country: 'United Kingdom',
+      sector: 'Coffee',
+      product_category: null,
+      intelligence_type: 'opportunities' as const,
+      intelligence_source: null,
+      urgency: 'high',
+      confidence_rating: null,
+      tags: ['coffee'],
+    }
+    vi.mocked(alertsApi.getAlert).mockResolvedValue({
+      ...ALERT,
+      ...content,
+      product_description: 'UK roaster now seeks 60 tonnes.',
+      urgency: 'medium',
+      versions: [
+        {
+          id: 'version-2',
+          snapshot: { ...content, product_description: 'UK roaster now seeks 40 tonnes.' },
+          edited_by_user_id: 'attache-1',
+          edited_by: { id: 'attache-1', full_name: 'Purity Samanthe' },
+          created_at: '2026-08-03T09:00:00Z',
+        },
+        {
+          id: 'version-1',
+          snapshot: { ...content, product_description: 'UK roaster seeks 20 tonnes.' },
+          edited_by_user_id: 'attache-1',
+          edited_by: { id: 'attache-1', full_name: 'Purity Samanthe' },
+          created_at: '2026-08-02T09:00:00Z',
+        },
+      ],
+    })
+    const user = userEvent.setup()
+    renderDetailPage()
+
+    const history = await screen.findByRole('list', { name: 'Version History' })
+    const [newest, oldest] = within(history).getAllByRole('listitem')
+    expect(newest).toHaveTextContent('Version 2')
+    expect(oldest).toHaveTextContent('Edited by Purity Samanthe')
+
+    // Version 1 is compared with version 2, the state its edit produced.
+    await user.click(within(oldest).getByRole('button', { name: 'Show what changed (1 field)' }))
+    expect(within(oldest).getByText('UK roaster seeks 20 tonnes.')).toBeInTheDocument()
+    expect(within(oldest).getByText('UK roaster now seeks 40 tonnes.')).toBeInTheDocument()
+
+    // Version 2 is compared with the alert as it is now: two fields changed.
+    await user.click(within(newest).getByRole('button', { name: 'Show what changed (2 fields)' }))
+    expect(within(newest).getByText('UK roaster now seeks 60 tonnes.')).toBeInTheDocument()
+    expect(within(newest).getByText('High')).toBeInTheDocument()
+    expect(within(newest).getByText('Medium')).toBeInTheDocument()
+    expect(within(newest).getByRole('button', { name: 'Hide changes' })).toHaveAttribute('aria-expanded', 'true')
+  })
+
   it('shows the delegate button for a Ministry PS', async () => {
     vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry PS', 'ps-user-1'))
 

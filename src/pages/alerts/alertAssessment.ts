@@ -56,6 +56,18 @@ export function isConfidenceValue(value: string): value is ConfidenceValue {
   return (CONFIDENCE_VALUES as readonly string[]).includes(value)
 }
 
+type UrgencyOptionsCopy = Record<UrgencyValue, { name: string }>
+type ConfidenceOptionsCopy = Record<ConfidenceValue, { name: string }>
+
+/** Localised name for the tile values; any other (legacy/free-text) stored value is shown verbatim. */
+export function urgencyDisplayName(value: string, options: UrgencyOptionsCopy): string {
+  return isUrgencyValue(value) ? options[value].name : value
+}
+
+export function confidenceDisplayName(value: string, options: ConfidenceOptionsCopy): string {
+  return isConfidenceValue(value) ? options[value].name : value
+}
+
 /** The urgency tier a stored value belongs to, for styling only; null when it can't be placed. */
 export function urgencyTier(value: string): UrgencyValue | null {
   const normalised = value.trim().toLowerCase()

@@ -45,10 +45,25 @@ export interface AlertFeedback {
   created_at: string
 }
 
+/** The alert's content as it was before an edit (FR-ALERT-012): the fields an attache can edit. */
+export interface AlertVersionContent {
+  country: string | null
+  sector: string | null
+  product_category: string | null
+  product_description: string | null
+  intelligence_type: AlertIntelligenceType | null
+  intelligence_source: string | null
+  urgency: string | null
+  confidence_rating: string | null
+  tags: string[] | null
+}
+
 export interface AlertVersion {
   id: string
-  snapshot: Record<string, unknown>
+  snapshot: AlertVersionContent
   edited_by_user_id: string
+  /** Who made the edit this version was saved before. */
+  edited_by: AlertUserRef | null
   created_at: string
 }
 
