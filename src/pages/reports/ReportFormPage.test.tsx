@@ -189,7 +189,8 @@ describe('ReportFormPage — the attache editor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add row' }))
     fireEvent.change(screen.getByRole('textbox', { name: 'Item Number, row 1' }), { target: { value: 'abc' } })
 
-    expect(screen.getByText('Enter a number, e.g. 1250.50')).toBeInTheDocument()
+    // ISS-010: Item Number is a whole-number column.
+    expect(screen.getByText('Enter a whole number')).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Item Number, row 1' })).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByTestId('report-save-status')).toHaveTextContent('Fix the highlighted values to save this table')
 

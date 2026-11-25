@@ -23,6 +23,9 @@ describe('reportPresentation', () => {
     expect(parseNumberInput('abc', false).error).toBe('number')
     expect(parseNumberInput('1.2.3', false).error).toBe('number')
     expect(parseNumberInput('2.5', true).error).toBe('integer')
+    // ISS-010: anything that isn't a whole number asks for one in a whole-number column.
+    expect(parseNumberInput('abc', true).error).toBe('integer')
+    expect(parseNumberInput('1.2.3', true).error).toBe('integer')
     expect(parseNumberInput('1.23456', false).error).toBe('number')
   })
 
@@ -38,7 +41,7 @@ describe('reportPresentation', () => {
     ]
 
     expect(validateRows(columns, rows)).toEqual([
-      { rowIndex: 0, column: 'Item Number', code: 'number' },
+      { rowIndex: 0, column: 'Item Number', code: 'integer' },
       { rowIndex: 0, column: 'Status', code: 'option' },
       { rowIndex: 1, column: 'Remarks', code: 'tooLong' },
     ])

@@ -58,7 +58,8 @@ export function parseNumberInput(raw: string, integer: boolean): { value: number
   if (pattern.test(compact)) {
     return { value: Number(compact), error: null }
   }
-  return { value: null, error: integer && /^-?\d{1,15}\.\d+$/.test(compact) ? 'integer' : 'number' }
+  // A whole-number column always asks for a whole number (ISS-010: letters got the decimal hint).
+  return { value: null, error: integer ? 'integer' : 'number' }
 }
 
 /** Locale thousands separators for display (FR-RPT-010). */
