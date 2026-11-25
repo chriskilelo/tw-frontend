@@ -34,7 +34,7 @@ export function Table<T>({
   }
 
   return (
-    <div className={`overflow-x-auto rounded border border-border ${className}`}>
+    <div className={`relative overflow-x-auto rounded border border-border ${className}`}>
       <table className="min-w-full divide-y divide-border text-body-sm">
         <thead className="bg-section-bg">
           <tr>

@@ -44,6 +44,7 @@ import { DirectiveDueBadge, DirectiveStaleBadge, DirectiveStatusBadge } from './
 import { DirectiveActivity, DirectiveProgressSteps } from './DirectiveTimeline'
 import { ReviseTargetDateModal, TransitionNoteModal } from './DirectiveActionModals'
 import { DIRECTIVE_TEXT_MAX, formatCalendarDate, truncateText } from './directivePresentation'
+import { StickyAside } from '../../components/StickyAside'
 
 /** Headline length before the full description moves into the details card. */
 const TITLE_MAX = 160
@@ -474,7 +475,7 @@ export default function DirectiveDetailPage() {
           </DetailCard>
         </div>
 
-        <aside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:sticky min-[1200px]:top-5 min-[1200px]:grid-cols-1">
+        <StickyAside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:grid-cols-1">
           <DetailSidePanel title={copy.peopleTitle}>
             <ol className="flex flex-col">
               <PersonRow
@@ -517,7 +518,7 @@ export default function DirectiveDetailPage() {
               {copy.allDirectives}
             </Link>
           </DetailSidePanel>
-        </aside>
+        </StickyAside>
       </div>
 
       {noteModal && noteModalCopy && (

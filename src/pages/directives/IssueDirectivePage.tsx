@@ -47,6 +47,7 @@ import { DirectiveStatusBadge } from './DirectiveStatusBadge'
 import { AttachePicker, MissionPicker } from './IssueDirectivePickers'
 import { mapIssueDirectiveErrors, type IssueDirectiveField, type IssueDirectiveServerErrors } from './issueDirectiveErrors'
 import { DIRECTIVE_TEXT_MAX, addDays, formatCalendarDate, localDateString } from './directivePresentation'
+import { StickyAside } from '../../components/StickyAside'
 
 /**
  * Mirrors DirectivePolicy::create() (Ministry HQ Officer, Ministry PS, Acting PS — the latter
@@ -531,7 +532,7 @@ function IssueDirectiveForm() {
           </FormSubmitBar>
         </form>
 
-        <aside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:sticky min-[1200px]:top-5 min-[1200px]:grid-cols-1">
+        <StickyAside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:grid-cols-1">
           <FormReadinessPanel
             title={copy.readiness.title}
             progressLabel={copy.readiness.progressLabel}
@@ -563,7 +564,7 @@ function IssueDirectiveForm() {
               />
             </ol>
           </FormSidePanel>
-        </aside>
+        </StickyAside>
       </div>
     </div>
   )

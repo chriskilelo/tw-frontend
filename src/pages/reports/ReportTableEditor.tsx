@@ -135,7 +135,7 @@ export function ReportTableEditor({ section, rows, onChange, labelledBy, carryFo
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-white">
+      <div className="relative overflow-x-auto rounded-xl border border-border bg-white">
         <table aria-labelledby={labelledBy} aria-describedby={noteId} className="min-w-full divide-y divide-border text-body-sm">
           <thead className="bg-section-bg">
             <tr>

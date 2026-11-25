@@ -50,6 +50,7 @@ import {
   localDateString,
   type HeroIcon,
 } from './inquiryPresentation'
+import { StickyAside } from '../../components/StickyAside'
 
 type SectionKey = 'classification' | 'inquirer' | 'details'
 
@@ -466,7 +467,7 @@ export default function LogInquiryPage() {
           </FormSubmitBar>
         </form>
 
-        <aside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:sticky min-[1200px]:top-5 min-[1200px]:grid-cols-1">
+        <StickyAside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:grid-cols-1">
           <FormReadinessPanel
             title={copy.readiness.title}
             progressLabel={copy.readiness.progressLabel}
@@ -530,7 +531,7 @@ export default function LogInquiryPage() {
               {copy.afterLog.referenceAfter}
             </p>
           </FormSidePanel>
-        </aside>
+        </StickyAside>
       </div>
     </div>
   )

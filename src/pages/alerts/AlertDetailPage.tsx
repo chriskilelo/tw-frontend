@@ -77,6 +77,7 @@ import {
 import { useBreadcrumbLabel } from '../../hooks/useBreadcrumbs'
 import { useI18n } from '../../i18n/context'
 import { retryUnlessClientError } from '../../lib/apiErrors'
+import { StickyAside } from '../../components/StickyAside'
 
 /** Mirrors App\Policies\AlertPolicy::DELEGATING_ROLES — the backend also permits Acting PS, not only Ministry PS. */
 const DELEGATING_ROLES = ['Ministry PS', 'Acting PS']
@@ -484,7 +485,7 @@ export default function AlertDetailPage() {
           </DetailCard>
         </div>
 
-        <aside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:sticky min-[1200px]:top-5 min-[1200px]:grid-cols-1">
+        <StickyAside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:grid-cols-1">
           <DetailSidePanel title={copy.peopleTitle}>
             <ol className="flex flex-col">
               <PersonRow
@@ -528,7 +529,7 @@ export default function AlertDetailPage() {
               {copy.versionsNote}
             </p>
           </DetailSidePanel>
-        </aside>
+        </StickyAside>
       </div>
 
       {canDelegate && (

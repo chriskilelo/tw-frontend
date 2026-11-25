@@ -81,6 +81,7 @@ import {
   localDateString,
   type HeroIcon,
 } from './inquiryPresentation'
+import { StickyAside } from '../../components/StickyAside'
 
 type WorkflowStep = 'draft' | 'received' | 'in_progress' | 'resolved' | 'closed'
 type ActionKey = 'markReceived' | 'startWork' | 'awaitExternal' | 'markResolved' | 'resumeWork'
@@ -790,7 +791,7 @@ export default function InquiryDetailPage() {
           <InquiryMatchingPanel inquiry={inquiry} onLinked={setInquiry} />
         </div>
 
-        <aside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:sticky min-[1200px]:top-5 min-[1200px]:grid-cols-1">
+        <StickyAside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:grid-cols-1">
           <DetailSidePanel title={copy.inquirerTitle}>
             <div className="flex items-center gap-3">
               <span className="grid size-11 shrink-0 place-items-center rounded-full bg-primary text-body-sm font-bold text-white" aria-hidden="true">
@@ -878,7 +879,7 @@ export default function InquiryDetailPage() {
               <p className="-mt-1.5 text-right text-caption text-text-muted">{copy.missionName(inquiry.linked_inquiry.mission)}</p>
             )}
           </DetailSidePanel>
-        </aside>
+        </StickyAside>
       </div>
 
       {canWrite && inquiry.status === 'resolved' && (

@@ -49,7 +49,7 @@ export function ReportMarkdown({ source, headingLevel = 2, className = '' }: { s
           }
           case 'table':
             return (
-              <div key={key} className="overflow-x-auto rounded-lg border border-border">
+              <div key={key} className="relative overflow-x-auto rounded-lg border border-border">
                 <table className="min-w-full divide-y divide-border text-body-sm">
                   <thead className="bg-section-bg">
                     <tr>

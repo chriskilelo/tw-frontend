@@ -59,6 +59,7 @@ import {
   type ConfidenceValue,
   type UrgencyValue,
 } from './alertAssessment'
+import { StickyAside } from '../../components/StickyAside'
 
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 // Must match StoreAlertAttachmentRequest's 'extensions' allowlist exactly (NFR-SEC-004,
@@ -727,7 +728,7 @@ export default function AlertSubmitPage() {
           </FormSubmitBar>
         </form>
 
-        <aside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:sticky min-[1200px]:top-5 min-[1200px]:grid-cols-1">
+        <StickyAside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:grid-cols-1">
           <FormReadinessPanel
             title={copy.readiness.title}
             progressLabel={copy.readiness.progressLabel}
@@ -762,7 +763,7 @@ export default function AlertSubmitPage() {
               {copy.afterSubmit.referenceAfter}
             </p>
           </FormSidePanel>
-        </aside>
+        </StickyAside>
       </div>
     </div>
   )

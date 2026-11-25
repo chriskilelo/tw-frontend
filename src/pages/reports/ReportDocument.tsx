@@ -18,6 +18,7 @@ import { formatDateTime, localeFor } from '../../lib/formatters'
 import { ReportMarkdown } from './ReportMarkdown'
 import { CompletionMark, ReportStatusBadge, ReportTimelinessBadge } from './ReportStatusBadge'
 import { computeTotals, formatDay, formatNumber, formatPeriodRange, isIntegerType, isNumericType, parseNumberInput, rowsFromSection } from './reportPresentation'
+import { StickyAside } from '../../components/StickyAside'
 
 /**
  * FR-RPT-015/017, FR-HOM-001 AC2: a report as a read-only document — how HQ reviewers, Heads of
@@ -120,7 +121,7 @@ export function ReportDocument({ report, justSubmitted = false }: { report: Peri
           ))}
         </article>
 
-        <aside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:sticky min-[1200px]:top-5 min-[1200px]:grid-cols-1 print:hidden">
+        <StickyAside className="grid min-w-0 gap-4 sm:grid-cols-2 min-[1200px]:grid-cols-1 print:hidden">
           <DetailSidePanel title={copy.contents} count={sections.length}>
             <nav aria-label={copy.contents}>
               <ol className="flex flex-col gap-0.5">
@@ -164,7 +165,7 @@ export function ReportDocument({ report, justSubmitted = false }: { report: Peri
               {copy.allReports}
             </Link>
           </DetailSidePanel>
-        </aside>
+        </StickyAside>
       </div>
     </div>
   )
@@ -214,7 +215,7 @@ function ReadOnlyTable({ section, locale }: { section: ReportSectionDetail; loca
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="relative overflow-x-auto rounded-lg border border-border">
       <table className="min-w-full divide-y divide-border text-body-sm">
         <thead className="bg-section-bg">
           <tr>
