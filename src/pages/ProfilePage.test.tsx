@@ -144,15 +144,15 @@ describe('ProfilePage', () => {
   it('TC-FR-NOTIF-006-B: confirms "Saved." once an email preference is stored (ISS-002)', async () => {
     vi.mocked(authApi.me).mockResolvedValue(meResponse())
     vi.mocked(authApi.updatePreferences).mockResolvedValue(
-      meResponse({ email_notification_preferences: { alert_routed: false } }).user,
+      meResponse({ email_notification_preferences: { directive_revised: false } }).user,
     )
     const user = userEvent.setup()
     renderPage()
 
-    await user.click(await screen.findByRole('checkbox', { name: 'An alert is routed to me' }))
+    await user.click(await screen.findByRole('checkbox', { name: 'A directive issued to me is revised' }))
 
     await waitFor(() =>
-      expect(authApi.updatePreferences).toHaveBeenCalledWith({ email_notification_preferences: { alert_routed: false } }),
+      expect(authApi.updatePreferences).toHaveBeenCalledWith({ email_notification_preferences: { directive_revised: false } }),
     )
     expect(await screen.findByRole('status')).toHaveTextContent('Saved.')
   })
@@ -175,6 +175,38 @@ describe('ProfilePage', () => {
 
     expect((await screen.findAllByText('Mwambata wa Wizara')).length).toBeGreaterThan(0)
     expect(screen.queryByText('Ministry Attache')).not.toBeInTheDocument()
+  })
+
+  it('TC-FR-NOTIF-006-D: offers an attache the emails that reach an attache, and says account emails always go', async () => {
+    vi.mocked(authApi.me).mockResolvedValue(meResponse())
+    renderPage()
+
+    for (const label of ['A directive is issued to me', 'HQ follows up on a directive', 'A receipt when I submit a report', 'My report is overdue']) {
+      expect(await screen.findByRole('checkbox', { name: label })).toBeChecked()
+    }
+    expect(screen.queryByRole('checkbox', { name: 'A mission submits a quarterly report' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: 'A PS change is waiting for my approval' })).not.toBeInTheDocument()
+    expect(screen.getByText(/always sent/)).toBeInTheDocument()
+  })
+
+  it('TC-FR-NOTIF-006-E: offers the PS report and alert emails, and a role with none says so', async () => {
+    const ps = meResponse()
+    ps.role = { id: 'role-ps', name: 'Ministry PS', layer: '2/3', scope: 'ministry' }
+    vi.mocked(authApi.me).mockResolvedValue(ps)
+    const { unmount } = renderPage()
+
+    expect(await screen.findByRole('checkbox', { name: 'A mission submits a quarterly report' })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'An alert is routed or delegated to me' })).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: 'A directive is issued to me' })).not.toBeInTheDocument()
+    unmount()
+
+    const headOfMission = meResponse()
+    headOfMission.role = { id: 'role-hom', name: 'Head of Mission', layer: '1', scope: 'mission' }
+    vi.mocked(authApi.me).mockResolvedValue(headOfMission)
+    renderPage()
+
+    expect(await screen.findByText('No optional emails apply to your role.')).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
   })
 
   it('TC-UI-002: renders without overflow at 375px viewport', async () => {

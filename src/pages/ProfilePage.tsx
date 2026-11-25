@@ -6,10 +6,10 @@ import { useAuth, AUTH_QUERY_KEY } from '../hooks/useAuth'
 import { useI18n } from '../i18n/context'
 import type { LanguagePreference } from '../i18n'
 import { Avatar, getInitials } from '../components/Avatar'
+import { EMAIL_TRIGGERS_BY_ROLE } from './emailTriggers'
 import { translatedName } from '../lib/displayNames'
 
 const LANGUAGES: LanguagePreference[] = ['en', 'sw']
-const NOTIFICATION_TRIGGERS = ['alert_routed', 'directive_issued', 'report_deadline_reminder'] as const
 
 /**
  * My Profile: read-only account details (name/email/role/mission/ministry are managed by a
@@ -61,6 +61,7 @@ export default function ProfilePage() {
 
   const initials = getInitials(user.full_name)
   const notificationPreferences = user.email_notification_preferences ?? {}
+  const emailTriggers = EMAIL_TRIGGERS_BY_ROLE[role?.name ?? ''] ?? []
 
   function toggleTrigger(trigger: string) {
     notifMutation.mutate({
@@ -197,8 +198,9 @@ export default function ProfilePage() {
         <div className="mt-6 border-t border-border pt-4">
           <p className="text-body-sm font-semibold text-text-secondary">{t.profile.preferences.notificationsTitle}</p>
           <p className="mt-1 text-caption text-text-muted">{t.profile.preferences.notificationsHint}</p>
+          {emailTriggers.length === 0 && <p className="mt-3 text-body-sm text-text-secondary">{t.profile.preferences.noEmailsForRole}</p>}
           <div className="mt-3 flex flex-col gap-2">
-            {NOTIFICATION_TRIGGERS.map((trigger) => (
+            {emailTriggers.map((trigger) => (
               <label key={trigger} className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -210,6 +212,7 @@ export default function ProfilePage() {
               </label>
             ))}
           </div>
+          <p className="mt-3 text-caption text-text-muted">{t.profile.preferences.alwaysSent}</p>
         </div>
       </section>
 
