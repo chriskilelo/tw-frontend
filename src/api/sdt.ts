@@ -551,6 +551,8 @@ export interface KpiDefinition {
   unit: string | null
   calculation_method: 'auto' | 'manual'
   data_source: string | null
+  /** 'live' when the engine counts it from engine data; otherwise values are recorded by hand. */
+  source?: 'live' | 'recorded'
   reporting_frequency: string
   active: boolean
   created_at: string
