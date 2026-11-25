@@ -79,7 +79,11 @@ export function NarrativeEditor({ value, onChange, labelledBy, describedBy, head
       })
       .join('\n')
     const next = `${value.slice(0, lineStart)}${replaced}${value.slice(lineEnd)}`
-    edit(next, lineStart, lineStart + replaced.length)
+    // On an empty line only the sample text is selected, so typing replaces it and keeps the
+    // marker (ISS-009: typing used to replace "- " too). Lines with text stay selected whole.
+    const usedSample = lines.length === 1 && lines[0].replace(LINE_MARKER, '') === ''
+    const markerLength = replaced.length - (usedSample ? sample.length : replaced.length)
+    edit(next, lineStart + markerLength, lineStart + replaced.length)
   }
 
   function insertTable() {
