@@ -101,6 +101,25 @@ describe('KpiDashboardPage', () => {
     await waitFor(() => expect(kpiApi.getKpiDashboard).toHaveBeenLastCalledWith({ period: undefined, mission_id: 'mission-dubai' }))
   })
 
+  it('TC-FR-KPI-012-UI-B: the department view shows each mission\'s report status per quarter (ISS-019)', async () => {
+    vi.mocked(kpiApi.getKpiDashboard).mockResolvedValue(departmentDashboard())
+    renderPage()
+
+    const board = await screen.findByRole('table', { name: 'Quarterly report compliance' })
+    expect(within(board).getAllByRole('columnheader').map((header) => header.textContent)).toEqual(['Mission', 'Q1 2026', 'Q2 2026'])
+
+    const [dubai, london] = within(board).getAllByRole('row').slice(1)
+    expect(dubai).toHaveTextContent('Dubai')
+    expect(dubai).toHaveTextContent('Not started')
+    expect(dubai).toHaveTextContent('Overdue')
+    expect(within(london).getByRole('link', { name: 'Q1 2026, London: On time. Open report' })).toHaveAttribute('href', '/reports/report-q1')
+    expect(london).toHaveTextContent('Not due')
+
+    const totals = screen.getByTestId('kpi-compliance-totals')
+    expect(totals).toHaveTextContent('1 on time')
+    expect(totals).toHaveTextContent('1 not started')
+  })
+
   it('TC-FR-KPI-010-B: gives an attache their own mission only, read-only', async () => {
     vi.mocked(kpiApi.getKpiDashboard).mockResolvedValue(
       missionDashboard({

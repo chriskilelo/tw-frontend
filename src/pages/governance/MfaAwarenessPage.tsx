@@ -39,7 +39,8 @@ import { DeltaPill, RankedBars, StackedBar, StatTile } from '../../components/da
 import { useI18n } from '../../i18n/context'
 import { formatDate, formatRelativeTime, localeFor } from '../../lib/formatters'
 import { formatNumber } from '../../lib/dashboardFormat'
-import { ActivityTrendCard, GovernanceUnavailable, ScrollRegion, SummarySkeleton, TypeBadge, TypeChip, ViewOnlyPill } from './governanceUi'
+import { ActivityTrendCard, GovernanceUnavailable, SummarySkeleton, TypeBadge, TypeChip, ViewOnlyPill } from './governanceUi'
+import { ScrollRegion } from '../../components/ScrollRegion'
 import { TYPE_STYLE, isGovernanceType, retryUnlessRefused, useQuarterLabel } from './governanceTheme'
 
 type View = 'overview' | 'log' | 'national'

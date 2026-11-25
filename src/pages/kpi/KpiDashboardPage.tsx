@@ -9,8 +9,6 @@ import {
   ArrowUpRightIcon,
   BuildingLibraryIcon,
   ChevronRightIcon,
-  ClipboardDocumentCheckIcon,
-  DocumentTextIcon,
   ExclamationTriangleIcon,
   EyeIcon,
   FlagIcon,
@@ -29,7 +27,6 @@ import {
   getKpiDashboard,
   PERFORMANCE_STATUSES,
   type DashboardKpiRow,
-  type KpiComplianceQuarter,
   type KpiDashboard,
   type KpiMissionHealth,
   type KpiPeriodInfo,
@@ -46,6 +43,7 @@ import { retryUnlessClientError } from '../../lib/apiErrors'
 import { localeFor } from '../../lib/formatters'
 import { periodRange } from '../../lib/dashboardFormat'
 import { KpiStatusBadge } from './KpiStatusBadge'
+import { ComplianceBoard, ComplianceStrip } from './KpiComplianceViews'
 import { KpiPeriodBanner, KpiPeriodPicker } from './KpiPeriodControls'
 import { KpiBulletBar, KpiBulletLegend, KpiStatusMark, KpiStatusStack, KpiTrendChart } from './KpiVisuals'
 import { dataSourceLabel, formatDay, formatKpiValue, formatRatio, formatSigned, formatSignedRatio, periodQueryFrom, periodQueryKey, statusMarkBackground } from './kpiPresentation'
@@ -288,6 +286,7 @@ export default function KpiDashboardPage() {
           )}
 
           {data.compliance && <ComplianceStrip quarters={data.compliance} />}
+          {data.scope === 'ministry' && (data.missions?.length ?? 0) > 0 && <ComplianceBoard missions={data.missions ?? []} />}
         </>
       )}
 
@@ -654,45 +653,6 @@ function MissionsToWatch({ missions, onView, className }: { missions: KpiMission
           )}
         </>
       )}
-    </DashboardCard>
-  )
-}
-
-const COMPLIANCE_TONE: Record<KpiComplianceQuarter['status'], string> = {
-  submitted_on_time: 'bg-success-soft text-success-soft-text',
-  submitted_late: 'bg-atrisk-soft text-atrisk-soft-text',
-  draft_in_progress: 'bg-info-soft text-info-soft-text',
-  not_started: 'bg-section-bg text-text-secondary',
-  not_due: 'bg-white text-text-muted',
-}
-
-function ComplianceStrip({ quarters }: { quarters: KpiComplianceQuarter[] }) {
-  const { t, language } = useI18n()
-  const locale = localeFor(language)
-  const copy = t.kpi.dashboard.compliance
-
-  return (
-    <DashboardCard title={copy.title} subtitle={copy.subtitle} icon={<ClipboardDocumentCheckIcon />} tone="success">
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {quarters.map((quarter) => (
-          <li key={quarter.label} className={`rounded-lg p-3 ring-1 ring-border ${COMPLIANCE_TONE[quarter.status]}`} data-testid={`kpi-compliance-${quarter.label.replace(' ', '-')}`}>
-            <p className="text-body-sm font-semibold">
-              {quarter.label} <span className="font-normal">· {periodRange(quarter, locale)}</span>
-            </p>
-            <p className="mt-1 text-caption font-semibold">{copy.status[quarter.status]}</p>
-            <p className="mt-0.5 text-caption">
-              {quarter.submitted_at ? copy.submittedOn(formatDay(quarter.submitted_at, locale)) : copy.dueOn(formatDay(quarter.deadline, locale))}
-              {quarter.is_overdue && !quarter.submitted_at && <span className="ml-1 font-semibold text-danger-soft-text">· {copy.overdue}</span>}
-            </p>
-            {quarter.report_id && (
-              <Link to={`/reports/${quarter.report_id}`} className="mt-2 inline-flex items-center gap-1 text-caption font-semibold text-info-soft-text hover:underline">
-                <DocumentTextIcon aria-hidden="true" className="size-3.5" />
-                {copy.open}
-              </Link>
-            )}
-          </li>
-        ))}
-      </ul>
     </DashboardCard>
   )
 }

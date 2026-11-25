@@ -173,8 +173,28 @@ export function departmentDashboard(overrides: Partial<KpiDashboard> = {}): KpiD
       }),
     ],
     missions: [
-      { mission_id: 'mission-dubai', mission_name: 'Dubai', city: 'Dubai', host_country: 'United Arab Emirates', ...summary({ below_target: 1 }, 0.4) },
-      { mission_id: 'mission-london', mission_name: 'London', city: 'London', host_country: 'United Kingdom', ...summary({ on_track: 1 }, 1) },
+      {
+        mission_id: 'mission-dubai',
+        mission_name: 'Dubai',
+        city: 'Dubai',
+        host_country: 'United Arab Emirates',
+        ...summary({ below_target: 1 }, 0.4),
+        compliance: [
+          { label: 'Q1 2026', start: '2026-07-01', end: '2026-09-30', deadline: '2026-10-15', status: 'not_started', is_overdue: true, submitted_at: null, report_id: null },
+          { label: 'Q2 2026', start: '2026-10-01', end: '2026-12-31', deadline: '2027-01-15', status: 'not_due', is_overdue: false, submitted_at: null, report_id: null },
+        ],
+      },
+      {
+        mission_id: 'mission-london',
+        mission_name: 'London',
+        city: 'London',
+        host_country: 'United Kingdom',
+        ...summary({ on_track: 1 }, 1),
+        compliance: [
+          { label: 'Q1 2026', start: '2026-07-01', end: '2026-09-30', deadline: '2026-10-15', status: 'submitted_on_time', is_overdue: false, submitted_at: '2026-10-10T09:00:00Z', report_id: 'report-q1' },
+          { label: 'Q2 2026', start: '2026-10-01', end: '2026-12-31', deadline: '2027-01-15', status: 'not_due', is_overdue: false, submitted_at: null, report_id: null },
+        ],
+      },
     ],
     ...overrides,
   })

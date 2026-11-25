@@ -161,6 +161,8 @@ export interface KpiMissionHealth extends KpiStatusSummary {
   mission_name: string
   city: string | null
   host_country: string | null
+  /** Each quarter's report status for the mission (FR-KPI-012, ISS-019). */
+  compliance: KpiComplianceQuarter[]
 }
 
 export interface KpiDashboardCapabilities {
