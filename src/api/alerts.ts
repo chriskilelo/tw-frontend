@@ -222,6 +222,23 @@ export async function getAlertAttachmentDownloadUrl(id: string, attachmentId: st
   return data.data.url
 }
 
+/** One person an alert can be delegated to (K-02). No contact details. */
+export interface AlertDelegateCandidate {
+  id: string
+  full_name: string
+  role: { name: string | null }
+  /** An HQ officer whose portfolio covers this alert (FR-SDT-012). */
+  in_portfolio: boolean
+  /** Already the alert's assignee. */
+  is_assignee: boolean
+}
+
+/** GET /alerts/{id}/delegates — K-02, FR-ALERT-007. PS and Acting PS only. */
+export async function listAlertDelegates(id: string): Promise<AlertDelegateCandidate[]> {
+  const { data } = await client.get<ApiEnvelope<AlertDelegateCandidate[]>>(`/alerts/${id}/delegates`)
+  return data.data
+}
+
 /** POST /alerts/{id}/delegate — FR-ALERT-007, FR-SDT-002. Returns the AlertDetailResource shape. */
 export async function delegateAlert(id: string, payload: AlertDelegateRequest): Promise<AlertDetail> {
   const { data } = await client.post<ApiEnvelope<AlertDetail>>(`/alerts/${id}/delegate`, payload)

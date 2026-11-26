@@ -1,21 +1,18 @@
-import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { listAlerts, type Alert } from '../../api/alerts'
-import { activateActingPs, deactivateActingPs, getPsDashboard, type PsDashboardDirective, type PsDashboardInquiry, type PsDashboardMissionRef } from '../../api/sdt'
+import { getPsDashboard, type PsDashboardDirective, type PsDashboardInquiry, type PsDashboardMissionRef } from '../../api/sdt'
 import type { DirectiveStatus } from '../../api/directives'
 import { InquiryStatusBadge } from '../inquiries/InquiryStatusBadge'
 import { DirectiveStatusBadge } from '../directives/DirectiveStatusBadge'
 import { useAuth } from '../../hooks/useAuth'
 import { Table, type TableColumn } from '../../components/Table'
 import { AlertStatusBadge } from '../alerts/AlertStatusBadge'
-import { Button } from '../../components/Button'
-import { Input } from '../../components/Input'
 import { Pagination } from '../../components/Pagination'
 import { useClientPagination } from '../../hooks/useClientPagination'
 import { useI18n } from '../../i18n/context'
-import { apiErrorMessages } from '../../lib/apiErrors'
 import { translatedName } from '../../lib/displayNames'
+import { LeadershipSwitchPanel } from './LeadershipSwitchPanel'
 
 /**
  * FR-SDT-001: SdtService::psDashboard() only returns unacknowledged_alerts_count, not
@@ -24,20 +21,18 @@ import { translatedName } from '../../lib/displayNames'
  * and status=assigned — merged client-side, since AlertController::index has no
  * "status != acknowledged" filter.
  *
- * The Acting PS activate/deactivate section (FR-SDT-004/006, MinistryPolicy::manageActingPs
- * — Ministry PS or System Administrator only) is gated on role here too: the route itself
- * has no per-role guard (only ProtectedRoute checks authentication, CLAUDE.md Section 10),
- * so without this check any authenticated user landing on this page — e.g. a read-only
- * BR-020 role — would see live activation controls even though the underlying API call
- * would 403. UI-006: this hides the panel, it does not substitute for the backend check.
+ * The leadership switches (K-02, K-05, K-08: FR-SDT-003 to 006) show the PS and the Acting PS
+ * whether an Acting PS or a Designated Deputy is on and who holds it, and let them choose from
+ * the people the server accepts. The route has no per-role guard (only ProtectedRoute checks
+ * authentication), so the panel is shown to those two roles only. The API decides what each
+ * may change (an Acting PS sees its own switch read-only). UI-006: hiding the panel does not
+ * substitute for the backend check.
  */
 export default function PsDashboardPage() {
   const { t } = useI18n()
-  const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { role } = useAuth()
-  const canManageActingPs = role?.name === 'Ministry PS' || role?.name === 'System Administrator'
-  const [actingPsUserId, setActingPsUserId] = useState('')
+  const showsLeadershipSwitches = role?.name === 'Ministry PS' || role?.name === 'Acting PS'
 
   const dashboardQuery = useQuery({ queryKey: ['sdt', 'dashboard'], queryFn: getPsDashboard })
 
@@ -54,38 +49,6 @@ export default function PsDashboardPage() {
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   )
   const unacknowledgedAlertsPage = useClientPagination(unacknowledgedAlerts)
-
-  // One outcome line for both switches: the latest action's success or the API's reason for
-  // refusing it (BR-023's second activation, or nothing to deactivate). ISS-012: a refusal
-  // used to leave the page looking as if nothing had happened.
-  const [actingPsNotice, setActingPsNotice] = useState<string | null>(null)
-  const [actingPsErrors, setActingPsErrors] = useState<string[]>([])
-
-  function actingPsOutcome(successMessage: string, onSuccess?: () => void) {
-    return {
-      onMutate: () => {
-        setActingPsNotice(null)
-        setActingPsErrors([])
-      },
-      onSuccess: () => {
-        onSuccess?.()
-        setActingPsNotice(successMessage)
-        queryClient.invalidateQueries({ queryKey: ['sdt', 'dashboard'] })
-      },
-      onError: (error: unknown) => setActingPsErrors(apiErrorMessages(error, t.common.genericError)),
-    }
-  }
-
-  const activateMutation = useMutation({
-    mutationFn: () => activateActingPs(actingPsUserId.trim()),
-    ...actingPsOutcome(t.sdt.psDashboard.activateSuccessMessage, () => setActingPsUserId('')),
-  })
-
-  const deactivateMutation = useMutation({
-    mutationFn: () => deactivateActingPs(),
-    ...actingPsOutcome(t.sdt.psDashboard.deactivateSuccessMessage),
-  })
-  const actingPsBusy = activateMutation.isPending || deactivateMutation.isPending
 
   const columns: TableColumn<Alert>[] = [
     {
@@ -209,38 +172,9 @@ export default function PsDashboardPage() {
         </div>
       </section>
 
-      {canManageActingPs && (
-        <section className="mt-8">
-          <h2 className="text-h3 text-primary">{t.sdt.psDashboard.actingPsSectionTitle}</h2>
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
-            <Input
-              label={t.sdt.psDashboard.actingPsUserIdLabel}
-              value={actingPsUserId}
-              onChange={(event) => setActingPsUserId(event.target.value)}
-              className="sm:w-80"
-            />
-            <Button
-              variant="primary"
-              disabled={actingPsUserId.trim().length === 0 || actingPsBusy}
-              onClick={() => activateMutation.mutate()}
-            >
-              {t.sdt.psDashboard.activateActingPsButton}
-            </Button>
-            <Button variant="secondary" disabled={actingPsBusy} onClick={() => deactivateMutation.mutate()}>
-              {t.sdt.psDashboard.deactivateActingPsButton}
-            </Button>
-          </div>
-          <p className="mt-2 text-caption text-text-muted">{t.sdt.psDashboard.actingPsUserIdHint}</p>
-          <div aria-live="polite">
-            {actingPsNotice && <p className="mt-2 text-body-sm text-success-soft-text">{actingPsNotice}</p>}
-          </div>
-          {actingPsErrors.length > 0 && (
-            <ul role="alert" className="mt-2 list-disc pl-5 text-body-sm text-danger-soft-text">
-              {actingPsErrors.map((message) => (
-                <li key={message}>{message}</li>
-              ))}
-            </ul>
-          )}
+      {showsLeadershipSwitches && (
+        <section className="mt-8" aria-label={t.admin.leadership.title}>
+          <LeadershipSwitchPanel switches={['acting_ps', 'designated_deputy']} columns={2} />
         </section>
       )}
     </div>

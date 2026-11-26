@@ -23,7 +23,14 @@ vi.mock('../../api/alerts', async (importOriginal) => {
 
 vi.mock('../../api/sdt', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/sdt')>()
-  return { ...actual, getPsDashboard: vi.fn(), activateActingPs: vi.fn(), deactivateActingPs: vi.fn() }
+  return {
+    ...actual,
+    getPsDashboard: vi.fn(),
+    getLeadershipSwitches: vi.fn(),
+    activateActingPs: vi.fn(),
+    deactivateActingPs: vi.fn(),
+    activateDesignatedDeputy: vi.fn(),
+  }
 })
 
 function meResponseFor(roleName: string): MeResponse {
@@ -49,6 +56,18 @@ const emptyDashboard = {
   pending_inquiries_count: 0,
   pending_inquiries: [],
   directive_summary_this_week: { period_start: '2026-08-10', period_end: '2026-08-16', total: 0, by_status: {}, directives: [] },
+}
+
+const FRANK = { id: 'u-frank', full_name: 'Frank Director', role: { name: 'Ministry HQ Director' } }
+const CAROL = { id: 'u-carol', full_name: 'Carol Officer', role: { name: 'Ministry HQ Officer' } }
+
+function leadership(overrides: Partial<sdtApi.LeadershipSwitches> = {}): sdtApi.LeadershipSwitches {
+  return {
+    ministry: { id: 'trade', name: 'Trade' },
+    acting_ps: { active: false, holder: null, can_manage: true, candidates: [CAROL, FRANK] },
+    designated_deputy: { active: false, holder: null, can_manage: true, candidates: [CAROL] },
+    ...overrides,
+  }
 }
 
 function unprocessable(message: string) {
@@ -84,6 +103,8 @@ describe('PsDashboardPage', () => {
     })
     vi.mocked(sdtApi.activateActingPs).mockReset()
     vi.mocked(sdtApi.deactivateActingPs).mockReset()
+    vi.mocked(sdtApi.activateDesignatedDeputy).mockReset()
+    vi.mocked(sdtApi.getLeadershipSwitches).mockReset().mockResolvedValue(leadership())
   })
 
   it('TC-UI-006: Head of Mission sees the activity view only, not the Acting PS controls', async () => {
@@ -102,15 +123,13 @@ describe('PsDashboardPage', () => {
     expect(screen.getByRole('region', { name: 'Directive Summary' })).toBeInTheDocument()
     expect(await screen.findByText('Unacknowledged Alerts')).toBeInTheDocument()
 
-    // The Acting PS activation/deactivation controls are Ministry PS / System
-    // Administrator only (MinistryPolicy::manageActingPs) — never shown to a HoM.
-    expect(screen.queryByText('Acting PS')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Target user ID')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Activate Acting PS' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Deactivate Acting PS' })).not.toBeInTheDocument()
+    // The leadership switches are for the PS and the Acting PS only — never shown to a HoM.
+    expect(screen.queryByRole('region', { name: 'Acting Principal Secretary' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Designated Deputy' })).not.toBeInTheDocument()
+    expect(sdtApi.getLeadershipSwitches).not.toHaveBeenCalled()
   })
 
-  it('Ministry PS sees the Acting PS activation/deactivation controls', async () => {
+  it('TC-FR-SDT-004-K: a Ministry PS sees both leadership switches and chooses people by name, never by ID (K-02, K-05)', async () => {
     vi.mocked(authApi.me).mockReset().mockResolvedValue(meResponseFor('Ministry PS'))
     vi.mocked(sdtApi.getPsDashboard).mockReset().mockResolvedValue({
       unacknowledged_alerts_count: 0,
@@ -121,10 +140,54 @@ describe('PsDashboardPage', () => {
 
     renderPage()
 
-    expect(await screen.findByText('Acting PS')).toBeInTheDocument()
-    expect(screen.getByLabelText('Target user ID')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Activate Acting PS' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Deactivate Acting PS' })).toBeInTheDocument()
+    const actingPs = await screen.findByRole('region', { name: 'Acting Principal Secretary' })
+    expect(within(actingPs).getByText('Off')).toBeInTheDocument()
+    expect(within(actingPs).getByRole('radio', { name: /Frank Director/ })).toBeInTheDocument()
+    expect(within(actingPs).getByRole('button', { name: 'Make Acting PS' })).toBeDisabled()
+    expect(screen.getByRole('region', { name: 'Designated Deputy' })).toBeInTheDocument()
+    expect(screen.queryByText(/user ID/i)).not.toBeInTheDocument()
+  })
+
+  it('TC-FR-SDT-004-L: activates the chosen person and confirms by name', async () => {
+    vi.mocked(authApi.me).mockReset().mockResolvedValue(meResponseFor('Ministry PS'))
+    vi.mocked(sdtApi.getPsDashboard).mockReset().mockResolvedValue(emptyDashboard)
+    vi.mocked(sdtApi.activateActingPs).mockResolvedValue({ ministry_id: 'trade', acting_ps_user_id: 'u-frank', active: true })
+    const user = userEvent.setup()
+    renderPage()
+
+    const actingPs = await screen.findByRole('region', { name: 'Acting Principal Secretary' })
+    await user.click(within(actingPs).getByRole('radio', { name: /Frank Director/ }))
+    await user.click(within(actingPs).getByRole('button', { name: 'Make Frank Director Acting PS' }))
+
+    expect(sdtApi.activateActingPs).toHaveBeenCalledWith('u-frank')
+    expect(await within(actingPs).findByText('Frank Director is now Acting PS.')).toBeInTheDocument()
+    expect(sdtApi.getLeadershipSwitches).toHaveBeenCalledTimes(2)
+  })
+
+  it('TC-FR-SDT-004-M: shows an Acting PS its own switch read-only, and the deputy switch it may use (K-08)', async () => {
+    vi.mocked(authApi.me).mockReset().mockResolvedValue(meResponseFor('Acting PS'))
+    vi.mocked(sdtApi.getPsDashboard).mockReset().mockResolvedValue(emptyDashboard)
+    vi.mocked(sdtApi.getLeadershipSwitches).mockResolvedValue(
+      leadership({
+        acting_ps: {
+          active: true,
+          holder: { ...FRANK, status: 'active', since: '2026-11-03T09:00:00+00:00' },
+          can_manage: false,
+          candidates: [],
+        },
+      }),
+    )
+    renderPage()
+
+    const actingPs = await screen.findByRole('region', { name: 'Acting Principal Secretary' })
+    expect(within(actingPs).getByText('On')).toBeInTheDocument()
+    expect(within(actingPs).getByText('Frank Director')).toBeInTheDocument()
+    expect(within(actingPs).getByText('Ministry HQ Director · Acting PS since 3 Nov 2026')).toBeInTheDocument()
+    expect(within(actingPs).queryByRole('button')).not.toBeInTheDocument()
+    expect(within(actingPs).getByText(/only the PS or the Ministry Administrator can change it/)).toBeInTheDocument()
+
+    const deputy = screen.getByRole('region', { name: 'Designated Deputy' })
+    expect(within(deputy).getByRole('radio', { name: /Carol Officer/ })).toBeInTheDocument()
   })
 
   it('TC-FR-SDT-001-B: lists pending inquiries and this week\'s directives with country and status (ISS-014)', async () => {
@@ -182,30 +245,37 @@ describe('PsDashboardPage', () => {
     const user = userEvent.setup()
     renderPage()
 
-    await user.type(await screen.findByLabelText('Target user ID'), '7d1f3c56-0b2a-4c1e-9f7d-2a6b8c9d0e1f')
-    await user.click(screen.getByRole('button', { name: 'Activate Acting PS' }))
+    const actingPs = await screen.findByRole('region', { name: 'Acting Principal Secretary' })
+    await user.click(within(actingPs).getByRole('radio', { name: /Carol Officer/ }))
+    await user.click(within(actingPs).getByRole('button', { name: 'Make Carol Officer Acting PS' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('An Acting PS is already active in this department.')
-    expect(screen.queryByText('Acting PS activated.')).not.toBeInTheDocument()
+    expect(await within(actingPs).findByRole('alert')).toHaveTextContent('An Acting PS is already active in this department.')
+    expect(within(actingPs).queryByText('Carol Officer is now Acting PS.')).not.toBeInTheDocument()
   })
 
-  it('TC-FR-SDT-006-B: says so when there is no Acting PS to deactivate, replacing an earlier success (ISS-012)', async () => {
+  it('TC-FR-SDT-006-B: ends the assignment by name, and shows the server\'s reason when it cannot (ISS-012, K-08)', async () => {
     vi.mocked(authApi.me).mockReset().mockResolvedValue(meResponseFor('Ministry PS'))
     vi.mocked(sdtApi.getPsDashboard).mockReset().mockResolvedValue(emptyDashboard)
+    vi.mocked(sdtApi.getLeadershipSwitches).mockResolvedValue(
+      leadership({
+        acting_ps: { active: true, holder: { ...FRANK, status: 'active', since: null }, can_manage: true, candidates: [CAROL, FRANK] },
+      }),
+    )
     vi.mocked(sdtApi.deactivateActingPs)
-      .mockResolvedValueOnce(undefined as never)
       .mockRejectedValueOnce(unprocessable('No Acting PS is currently active in this department.'))
+      .mockResolvedValueOnce({ ministry_id: 'trade', active: false })
     const user = userEvent.setup()
     renderPage()
 
-    const deactivate = await screen.findByRole('button', { name: 'Deactivate Acting PS' })
-    await user.click(deactivate)
-    expect(await screen.findByText('Acting PS deactivated.')).toBeInTheDocument()
+    const actingPs = await screen.findByRole('region', { name: 'Acting Principal Secretary' })
+    const end = within(actingPs).getByRole('button', { name: 'End Frank Director’s assignment' })
+    await user.click(end)
+    expect(await within(actingPs).findByRole('alert')).toHaveTextContent('No Acting PS is currently active in this department.')
 
-    await user.click(deactivate)
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('No Acting PS is currently active in this department.')
-    expect(screen.queryByText('Acting PS deactivated.')).not.toBeInTheDocument()
+    await user.click(end)
+    expect(await within(actingPs).findByText('The Acting PS assignment has ended. The PS is in charge again.')).toBeInTheDocument()
+    expect(within(actingPs).queryByRole('alert')).not.toBeInTheDocument()
+    expect(sdtApi.deactivateActingPs).toHaveBeenLastCalledWith(undefined)
   })
 
   it('TC-UI-002: renders without overflow at 375px viewport', async () => {

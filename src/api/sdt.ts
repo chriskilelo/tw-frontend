@@ -268,6 +268,48 @@ export function listHqWorkspaceReports(filters: HqWorkspaceReportFilters = {}): 
   return getHqWorkspacePage('reports', filters)
 }
 
+/** One person a leadership switch can be given to (K-02). No contact details. */
+export interface LeadershipCandidate {
+  id: string
+  full_name: string
+  role: { name: string | null }
+}
+
+/** Who holds a switch that is on. role is their standing role, not "Acting PS". */
+export interface LeadershipHolder extends LeadershipCandidate {
+  status: 'activation_pending' | 'active' | 'locked' | 'deactivated'
+  /** When the switch was last turned on (ISO 8601), from the audit trail. */
+  since: string | null
+}
+
+export interface LeadershipSwitchState {
+  active: boolean
+  holder: LeadershipHolder | null
+  /** Whether the viewer may turn this switch on or off. */
+  can_manage: boolean
+  /** Empty unless can_manage. */
+  candidates: LeadershipCandidate[]
+}
+
+export type LeadershipSwitchKey = 'acting_ps' | 'designated_deputy'
+
+export interface LeadershipSwitches {
+  ministry: { id: string; name: string }
+  acting_ps: LeadershipSwitchState
+  designated_deputy: LeadershipSwitchState
+}
+
+/**
+ * GET /sdt/leadership — K-08, FR-SDT-003 to 006: whether each switch is on, who holds it and
+ * who may be chosen. A System Administrator names the department; everyone else reads their own.
+ */
+export async function getLeadershipSwitches(ministryId?: string): Promise<LeadershipSwitches> {
+  const { data } = await client.get<ApiEnvelope<LeadershipSwitches>>('/sdt/leadership', {
+    params: ministryId ? { ministry_id: ministryId } : {},
+  })
+  return data.data
+}
+
 /** POST /sdt/acting-ps/activate — FR-SDT-004, BR-023. */
 export async function activateActingPs(userId: string): Promise<ActingPsActivationResult> {
   const { data } = await client.post<ApiEnvelope<ActingPsActivationResult>>('/sdt/acting-ps/activate', {
@@ -694,6 +736,20 @@ export interface HrmdAttacheSummary {
   }
   cycle_label: string
   kpis: ComparisonKpiRow[]
+}
+
+/** One attache an HRM&D Officer may summarise (K-02). posted: holds the mission's post. */
+export interface HrmdAttache {
+  id: string
+  full_name: string
+  mission: { id: string; name: string; host_country: string }
+  posted: boolean
+}
+
+/** GET /sdt/hrmd-dashboard/attaches — K-02, FR-SDT-017. HRM&D Officer only. */
+export async function listHrmdAttaches(): Promise<HrmdAttache[]> {
+  const { data } = await client.get<ApiEnvelope<HrmdAttache[]>>('/sdt/hrmd-dashboard/attaches')
+  return data.data
 }
 
 /** GET /sdt/hrmd-dashboard — FR-SDT-016, FR-KPI-011. HRM&D Officer only (KpiPolicy::viewHrmdDashboard()). Every access is audit-logged server-side. */

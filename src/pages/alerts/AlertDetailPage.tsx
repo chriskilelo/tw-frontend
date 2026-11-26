@@ -33,6 +33,7 @@ import {
   getAlert,
   getAlertAttachmentDownloadUrl,
   getAlertIntelligenceTypeOptions,
+  listAlertDelegates,
   postAlertFeedback,
   updateAlert,
   type AlertDetail,
@@ -76,7 +77,9 @@ import {
 } from './alertAssessment'
 import { useBreadcrumbLabel } from '../../hooks/useBreadcrumbs'
 import { useI18n } from '../../i18n/context'
-import { retryUnlessClientError } from '../../lib/apiErrors'
+import { apiErrorMessages, retryUnlessClientError } from '../../lib/apiErrors'
+import { translatedName } from '../../lib/displayNames'
+import { PeoplePicker, type PersonOption } from '../../components/PeoplePicker'
 import { StickyAside } from '../../components/StickyAside'
 
 /** Mirrors App\Policies\AlertPolicy::DELEGATING_ROLES — the backend also permits Acting PS, not only Ministry PS. */
@@ -741,6 +744,12 @@ function AlertEditForm({
   )
 }
 
+/**
+ * K-02, FR-ALERT-007, FR-SDT-002: the PS (or Acting PS) chooses delegates by name from the
+ * people GET /alerts/{id}/delegates says may take the alert. The first person chosen becomes
+ * the alert's assignee; the others are notified. HQ officers whose portfolio covers the alert
+ * are listed first and tagged, so the PS sees who already follows that market.
+ */
 function DelegateModal({
   alertId,
   open,
@@ -753,51 +762,97 @@ function DelegateModal({
   onDelegated: (updated: AlertDetail) => void
 }) {
   const { t } = useI18n()
-  const [userIds, setUserIds] = useState('')
+  const copy = t.alerts.detail
+  const [chosen, setChosen] = useState<string[]>([])
   const [note, setNote] = useState('')
+  const [showChooseFirst, setShowChooseFirst] = useState(false)
+
+  const candidatesQuery = useQuery({
+    queryKey: ['alert', alertId, 'delegates'],
+    queryFn: () => listAlertDelegates(alertId),
+    enabled: open,
+  })
+
+  const people: PersonOption[] = [...(candidatesQuery.data ?? [])]
+    .sort((a, b) => Number(b.in_portfolio) - Number(a.in_portfolio))
+    .map((candidate) => ({
+      id: candidate.id,
+      name: candidate.full_name,
+      detail: translatedName(candidate.role.name, t.roleNames),
+      tags: [
+        ...(candidate.in_portfolio ? [{ label: copy.delegateInPortfolio, tone: 'success' as const }] : []),
+        ...(candidate.is_assignee ? [{ label: copy.delegateCurrentAssignee, tone: 'info' as const }] : []),
+      ],
+    }))
 
   const mutation = useMutation({
-    mutationFn: () =>
-      delegateAlert(alertId, {
-        delegate_user_ids: userIds
-          .split(',')
-          .map((value) => value.trim())
-          .filter(Boolean),
-        note: note || undefined,
-      }),
-    onSuccess: onDelegated,
+    mutationFn: () => delegateAlert(alertId, { delegate_user_ids: chosen, note: note || undefined }),
+    onSuccess: (updated) => {
+      setChosen([])
+      setNote('')
+      onDelegated(updated)
+    },
   })
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (chosen.length === 0) {
+      setShowChooseFirst(true)
+      return
+    }
     mutation.mutate()
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={t.alerts.detail.delegateModalTitle}>
+    <Modal open={open} onClose={onClose} title={copy.delegateModalTitle} size="xl">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1">
-          <Input
-            label={t.alerts.detail.delegateUserIdsLabel}
-            value={userIds}
-            onChange={(event) => setUserIds(event.target.value)}
-            required
+        {candidatesQuery.isError ? (
+          <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-body-sm text-danger-soft-text">
+            {apiErrorMessages(candidatesQuery.error, copy.delegateLoadError)[0]}
+          </p>
+        ) : (
+          <PeoplePicker
+            label={copy.delegatePeopleLabel}
+            description={copy.delegatePeopleHint}
+            mode="multiple"
+            leadLabel={copy.delegateLead}
+            value={chosen}
+            onChange={(ids) => {
+              setChosen(ids)
+              setShowChooseFirst(false)
+            }}
+            people={people}
+            isLoading={candidatesQuery.isPending}
+            emptyMessage={copy.delegateNoneEligible}
+            disabled={mutation.isPending}
+            testId="delegate-picker"
           />
-          <p className="text-caption text-text-muted">{t.alerts.detail.delegateUserIdsHint}</p>
-        </div>
+        )}
+        {showChooseFirst && (
+          <p role="alert" className="text-body-sm text-danger-soft-text">
+            {copy.delegateChooseFirst}
+          </p>
+        )}
         <label className="flex flex-col gap-1">
-          <span className="text-body-sm font-semibold text-text-secondary">{t.alerts.detail.delegateNoteLabel}</span>
+          <span className="text-body-sm font-semibold text-text-secondary">{copy.delegateNoteLabel}</span>
           <textarea
             value={note}
             onChange={(event) => setNote(event.target.value)}
             rows={2}
+            maxLength={2000}
             className="rounded border border-border px-3 py-2 text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </label>
-        {mutation.isError && <p className="text-body-sm text-danger-soft-text">{t.common.genericError}</p>}
+        {mutation.isError && (
+          <ul role="alert" className="list-disc pl-5 text-body-sm text-danger-soft-text">
+            {apiErrorMessages(mutation.error, t.common.genericError).map((message) => (
+              <li key={message}>{message}</li>
+            ))}
+          </ul>
+        )}
         <div className="flex gap-3">
-          <Button type="submit" disabled={mutation.isPending}>
-            {t.alerts.detail.delegateSubmitButton}
+          <Button type="submit" disabled={mutation.isPending || candidatesQuery.isPending}>
+            {copy.delegateSubmitButton}
           </Button>
           <Button type="button" variant="ghost" onClick={onClose}>
             {t.common.cancel}

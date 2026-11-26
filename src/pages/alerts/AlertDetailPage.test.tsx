@@ -8,6 +8,7 @@ import * as alertsApi from '../../api/alerts'
 import * as useAuthModule from '../../hooks/useAuth'
 import type { AlertDetail } from '../../api/alerts'
 import { I18nProvider } from '../../i18n/context'
+import { httpError } from '../../test/httpErrors'
 
 vi.mock('../../api/alerts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../api/alerts')>()
@@ -18,6 +19,7 @@ vi.mock('../../api/alerts', async (importOriginal) => {
     postAlertFeedback: vi.fn(),
     acknowledgeAlert: vi.fn(),
     delegateAlert: vi.fn(),
+    listAlertDelegates: vi.fn(),
     updateAlert: vi.fn(),
     getAlertAttachmentDownloadUrl: vi.fn(),
   }
@@ -215,6 +217,81 @@ describe('AlertDetailPage', () => {
     renderDetailPage()
 
     expect(await screen.findByRole('button', { name: 'Delegate' })).toBeInTheDocument()
+  })
+
+  describe('delegating by name (K-02)', () => {
+    const CANDIDATES: alertsApi.AlertDelegateCandidate[] = [
+      { id: 'u-carol', full_name: 'Carol Officer', role: { name: 'Ministry HQ Officer' }, in_portfolio: false, is_assignee: false },
+      { id: 'u-frank', full_name: 'Frank Director', role: { name: 'Ministry HQ Director' }, in_portfolio: false, is_assignee: false },
+      { id: 'u-amina', full_name: 'Amina Officer', role: { name: 'Ministry HQ Officer' }, in_portfolio: true, is_assignee: false },
+    ]
+
+    async function openDelegateDialog() {
+      vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry PS', 'ps-user-1'))
+      const user = userEvent.setup()
+      renderDetailPage()
+      await user.click(await screen.findByRole('button', { name: 'Delegate' }))
+      return { user, dialog: await screen.findByRole('dialog') }
+    }
+
+    beforeEach(() => {
+      vi.mocked(alertsApi.listAlertDelegates).mockReset().mockResolvedValue(CANDIDATES)
+      vi.mocked(alertsApi.delegateAlert).mockReset().mockResolvedValue({ ...ALERT, assigned_to: { id: 'u-frank', full_name: 'Frank Director' } })
+    })
+
+    it('TC-FR-ALERT-007-K: lists the eligible people by name, portfolio matches first, with no user ID field', async () => {
+      const { dialog } = await openDelegateDialog()
+
+      const picker = await within(dialog).findByRole('group', { name: 'Delegate to' })
+      const options = await within(picker).findAllByRole('checkbox')
+      expect(options.map((option) => option.closest('label')?.textContent)).toEqual([
+        expect.stringContaining('Amina Officer'),
+        expect.stringContaining('Carol Officer'),
+        expect.stringContaining('Frank Director'),
+      ])
+      expect(within(picker).getByText('Covers this alert')).toBeInTheDocument()
+      expect(within(dialog).queryByText(/user ID/i)).not.toBeInTheDocument()
+      expect(alertsApi.listAlertDelegates).toHaveBeenCalledWith('alert-1')
+    })
+
+    it('TC-FR-ALERT-007-Q: sends the chosen people in order, the first as lead, and can promote another to lead', async () => {
+      const { user, dialog } = await openDelegateDialog()
+
+      await user.click(await within(dialog).findByRole('checkbox', { name: /Carol Officer/ }))
+      await user.click(within(dialog).getByRole('checkbox', { name: /Frank Director/ }))
+      const chosen = within(dialog).getByRole('group', { name: 'Selected people' })
+      expect(within(chosen).getByText('Lead').parentElement).toHaveTextContent('Carol Officer')
+
+      await user.click(within(chosen).getByRole('button', { name: 'Make Frank Director the lead' }))
+      await user.type(within(dialog).getByLabelText('Note (optional)'), 'Please brief the PS.')
+      await user.click(within(dialog).getByRole('button', { name: 'Delegate' }))
+
+      expect(alertsApi.delegateAlert).toHaveBeenCalledWith('alert-1', {
+        delegate_user_ids: ['u-frank', 'u-carol'],
+        note: 'Please brief the PS.',
+      })
+    })
+
+    it('TC-FR-ALERT-007-R: asks for a person before sending, and shows the server\'s reason for a refusal', async () => {
+      vi.mocked(alertsApi.delegateAlert).mockRejectedValue(httpError(422, ['Each delegate must be an active director or HQ trade officer of this department.']))
+      const { user, dialog } = await openDelegateDialog()
+      await within(dialog).findAllByRole('checkbox')
+
+      await user.click(within(dialog).getByRole('button', { name: 'Delegate' }))
+      expect(within(dialog).getByText('Choose at least one person.')).toBeInTheDocument()
+      expect(alertsApi.delegateAlert).not.toHaveBeenCalled()
+
+      await user.click(within(dialog).getByRole('checkbox', { name: /Carol Officer/ }))
+      await user.click(within(dialog).getByRole('button', { name: 'Delegate' }))
+      expect(await within(dialog).findByText('Each delegate must be an active director or HQ trade officer of this department.')).toBeInTheDocument()
+    })
+
+    it('TC-FR-ALERT-007-S: explains when nobody can take the alert', async () => {
+      vi.mocked(alertsApi.listAlertDelegates).mockResolvedValue([])
+      const { dialog } = await openDelegateDialog()
+
+      expect(await within(dialog).findByText(/Nobody in your department can take this alert yet/)).toBeInTheDocument()
+    })
   })
 
   it('TC-UI-002: renders without overflow at 375px viewport', async () => {
