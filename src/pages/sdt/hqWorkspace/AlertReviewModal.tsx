@@ -14,6 +14,7 @@ import { Button } from '../../../components/Button'
 import { Modal } from '../../../components/Modal'
 import { FORM_INPUT_CLASS } from '../../../components/FormLayout'
 import { AlertStatusBadge } from '../../alerts/AlertStatusBadge'
+import { DelegationNote } from '../../alerts/DelegationNote'
 import { CONFIDENCE_VALUES, urgencyTier } from '../../alerts/alertAssessment'
 import { useI18n } from '../../../i18n/context'
 import { retryUnlessClientError } from '../../../lib/apiErrors'
@@ -137,6 +138,8 @@ function AlertReviewBody({ row, onClose, onChanged }: { row: HqWorkspaceAlert; o
         <Fact label={copy.facts.source} value={alert.intelligence_source} />
         <Fact label={copy.facts.received} value={formatDateTime(alert.created_at, locale)} />
       </dl>
+
+      <DelegationNote delegation={alert.delegation} />
 
       <section aria-labelledby={`${feedbackId}-description`}>
         <h3 id={`${feedbackId}-description`} className="text-h4 text-primary">

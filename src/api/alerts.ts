@@ -100,8 +100,20 @@ export interface AlertDetail {
    * record-level: an HQ officer only on an alert assigned to them). Optional for older payloads.
    */
   allowed_actions?: AlertAllowedActions
+  /**
+   * FR-ALERT-007: the latest delegation and its note. Sent only to the PS or Acting PS and to
+   * the people it was delegated to; null for everyone else, and before any delegation.
+   */
+  delegation?: AlertDelegation | null
   created_at: string
   updated_at: string
+}
+
+export interface AlertDelegation {
+  delegated_by: AlertUserRef | null
+  delegated_at: string | null
+  note: string | null
+  delegates: AlertUserRef[]
 }
 
 export interface AlertAllowedActions {

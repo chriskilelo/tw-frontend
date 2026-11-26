@@ -294,6 +294,44 @@ describe('AlertDetailPage', () => {
     })
   })
 
+  describe('the delegation note (FR-ALERT-007)', () => {
+    const DELEGATION: alertsApi.AlertDelegation = {
+      delegated_by: { id: 'ps-user-1', full_name: 'Dr. Susan Kiragu' },
+      delegated_at: '2026-11-26T08:15:00Z',
+      note: 'Please check the buyer before we reply.',
+      delegates: [
+        { id: 'u-faith', full_name: 'Faith Chebet' },
+        { id: 'u-james', full_name: 'James Mutuku' },
+      ],
+    }
+
+    it('TC-FR-ALERT-007-X: shows the note with who left it, when, and to whom', async () => {
+      vi.mocked(alertsApi.getAlert).mockResolvedValue({ ...ALERT, delegation: DELEGATION })
+      vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry HQ Officer', 'u-faith'))
+      renderDetailPage()
+
+      const note = await screen.findByTestId('delegation-note')
+      expect(within(note).getByText('Delegation note')).toBeInTheDocument()
+      expect(within(note).getByText('“Please check the buyer before we reply.”')).toBeInTheDocument()
+      expect(note).toHaveTextContent('Dr. Susan Kiragu · ')
+      expect(note).toHaveTextContent('To Faith Chebet, James Mutuku')
+    })
+
+    it('TC-FR-ALERT-007-Y: shows no card when there is no note, or the API sends no delegation', async () => {
+      vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry PS', 'ps-user-1'))
+      vi.mocked(alertsApi.getAlert).mockResolvedValue({ ...ALERT, delegation: { ...DELEGATION, note: null } })
+      const { unmount } = renderDetailPage()
+      expect(await screen.findByTestId('alert-reference-number')).toBeInTheDocument()
+      expect(screen.queryByTestId('delegation-note')).not.toBeInTheDocument()
+      unmount()
+
+      vi.mocked(alertsApi.getAlert).mockResolvedValue({ ...ALERT, delegation: null })
+      renderDetailPage()
+      expect(await screen.findByTestId('alert-reference-number')).toBeInTheDocument()
+      expect(screen.queryByTestId('delegation-note')).not.toBeInTheDocument()
+    })
+  })
+
   it('TC-UI-002: renders without overflow at 375px viewport', async () => {
     Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 375 })
     vi.mocked(useAuthModule.useAuth).mockReturnValue(meFor('Ministry Attache', 'attache-1'))

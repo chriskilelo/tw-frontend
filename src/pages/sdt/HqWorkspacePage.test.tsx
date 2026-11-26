@@ -239,6 +239,25 @@ describe('HqWorkspacePage', () => {
     expect(alertsApi.postAlertFeedback).toHaveBeenCalledWith('alert-1', { content: 'Call the roaster.' })
   })
 
+  it('TC-FR-ALERT-007-Z: shows the PS\'s delegation note when reviewing an assigned alert', async () => {
+    vi.mocked(alertsApi.getAlert).mockResolvedValue({
+      ...ALERT_DETAIL,
+      delegation: {
+        delegated_by: { id: 'ps-1', full_name: 'Esther PS' },
+        delegated_at: '2026-10-15T08:00:00Z',
+        note: 'Check the buyer first.',
+        delegates: [{ id: 'user-1', full_name: 'Carol Officer' }],
+      },
+    })
+    const user = userEvent.setup({ delay: null })
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Review alert ALT-202610-00012' }))
+    const note = await within(await screen.findByRole('dialog')).findByTestId('delegation-note')
+    expect(note).toHaveTextContent('“Check the buyer first.”')
+    expect(note).toHaveTextContent('To Carol Officer')
+  })
+
   it('TC-FR-SDT-013-UI-C: lists the inquiries flagged for HQ and reviews one read-only', async () => {
     const user = userEvent.setup({ delay: null })
     renderPage('/sdt/hq-workspace?tab=inquiries')

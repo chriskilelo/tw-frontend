@@ -63,6 +63,7 @@ import { NEUTRAL_TONE } from '../../components/choiceTileTones'
 import { SignalStrength } from './SignalStrength'
 import { readAlertSubmitted } from './alertSubmittedState'
 import { AlertVersionHistory } from './AlertVersionHistory'
+import { DelegationNote } from './DelegationNote'
 import {
   CONFIDENCE_VALUES,
   URGENCY_ICONS,
@@ -507,6 +508,9 @@ export default function AlertDetailPage() {
                 isLast
               />
             </ol>
+            <div className="mt-4 empty:hidden">
+              <DelegationNote delegation={alert.delegation} />
+            </div>
           </DetailSidePanel>
 
           <DetailSidePanel title={copy.recordTitle}>
